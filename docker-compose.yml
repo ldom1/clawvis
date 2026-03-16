@@ -1,0 +1,17 @@
+# DomBot LabOS — Full stack
+# WIP: services will be added progressively
+# See ARCHITECTURE.md for full design
+
+version: '3.9'
+
+services:
+  hub:
+    build: ./hub
+    ports:
+      - "${HUB_PORT:-8088}:80"
+    volumes:
+      - ./hub/public:/var/www/html
+    env_file: .env
+
+  # kanban:  # coming in Phase Setup.1
+  # openclaw: # coming in Phase Setup.1
