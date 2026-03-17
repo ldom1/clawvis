@@ -50,7 +50,7 @@ nav a:hover { color: var(--text); }
 .btn-nav:hover { border-color: var(--accent); }
 
 /* ── HERO ────────────────────────────────────────────────── */
-.hero { position: relative; padding: 100px 0 60px; text-align: center; overflow: hidden; }
+.hero { position: relative; padding: 100px 0 60px; text-align: center; overflow: visible; }
 .hero-bg {
   position: absolute; inset: 0; z-index: 0;
   background:
