@@ -298,3 +298,7 @@ Donc `sse.py` utilise `@router.get("/stream")` sans prefix, monté dans `server.
 - Modification du modèle Pydantic `Task` (confidence déjà présent)
 - Interface d'édition du score de confiance dans l'UI (phase ultérieure)
 - Tests heartbeat et hash-deduplication (déférés phase 2)
+
+## Documentation
+
+Ajoute ca à la documentation de dombot-labos ainsi que dans ta mémoire .openclaw/workspace/memory
