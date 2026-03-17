@@ -2,7 +2,7 @@ const PHRASES = [
   'AI Agent Lab',
   'Multi-Agent Orchestration',
   'Autonomous Workflows',
-  'Your Personal Lab',
+  'Open Source Infrastructure',
 ] as const;
 
 const TIMING = {
