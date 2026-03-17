@@ -228,7 +228,7 @@ h1 .typewriter {
 .svg-agent-node rect { transition: all 0.4s; }
 .svg-agent-node.active rect { stroke: var(--accent); fill: rgba(108,99,255,.15); stroke-width: 2; }
 .svg-node text { fill: var(--text); font-family: var(--font); font-size: 13px; font-weight: 600; text-anchor: middle; dominant-baseline: middle; }
-.svg-node-title { font-size: 13px !important; }
+.svg-node-title { font-size: 13px !important; fill: var(--text) !important; font-weight: 600 !important; }
 .svg-node-sub { font-size: 10px !important; fill: var(--muted) !important; font-weight: 400 !important; }
 .svg-node-badge { font-size: 9px !important; fill: var(--accent2) !important; font-weight: 500 !important; }
 .svg-arrow { fill: none; stroke: #27272a; stroke-width: 1.5; transition: stroke 0.4s; }
