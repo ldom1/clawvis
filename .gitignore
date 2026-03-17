@@ -1,7 +1,47 @@
+########################
+# Generic dev artifacts
+########################
+
 node_modules/
 dist/
-.env
-.env.local
+build/
+.cache/
+.next/
 *.log
 .DS_Store
+.idea/
+.vscode/
 .superpowers/
+
+########################
+# Env / secrets
+########################
+
+.env
+.env.local
+.env.*.local
+!.env.example
+!**/.env.example
+
+# Hub-core local env (API keys)
+hub-core/.env
+
+########################
+# Python / tooling
+########################
+
+**/__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+########################
+# Frontend / tooling
+########################
+
+landing/node_modules/
+landing/dist/
+landing/.pnp.cjs
+landing/.pnp.loader.mjs
+
