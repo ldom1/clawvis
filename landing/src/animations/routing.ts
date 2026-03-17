@@ -3,9 +3,9 @@ type AgentKey = 'openclaw' | 'claude' | 'gemini';
 const AGENTS: AgentKey[] = ['openclaw', 'claude', 'gemini'];
 
 const LABELS: Record<AgentKey, string> = {
-  openclaw: 'Routing to OpenClaw (free · local)',
-  claude:   'Routing to Claude Code ($0.01 · quality)',
-  gemini:   'Routing to Gemini (cheap · fast)',
+  openclaw: '→ Selected: OpenClaw  ·  cost: free  ·  quality: 85%  ·  local model',
+  claude:   '→ Selected: Claude Code  ·  cost: $0.01  ·  quality: 95%  ·  best accuracy',
+  gemini:   '→ Selected: Gemini  ·  cost: cheap  ·  quality: 80%  ·  fast response',
 };
 
 function getEl<T extends Element>(id: string): T | null {

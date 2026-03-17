@@ -54,6 +54,18 @@
     </div>
   </section>
 
+  <!-- PITCH -->
+  <section class="pitch">
+    <div class="container">
+      <p class="pitch-text">
+        Autonomous AI agents are powerful — but they're all black boxes.<br>
+        <strong>LabOS is different: every decision is visible.</strong>
+        Confidence score, agent selected, cost, reason — all logged before execution.
+        Self-hosted. Vendor-free. Open source.
+      </p>
+    </div>
+  </section>
+
   <!-- SECTION 2: DEMO -->
   <section class="demo" id="demo">
     <div class="container">
@@ -61,9 +73,18 @@
       <h2>See LabOS in action</h2>
       <p class="section-sub">Simulated — real interfaces running on your self-hosted instance</p>
       <div class="demo-tabs">
-        <button class="tab-btn active" data-tab="kanban">📋 Kanban</button>
-        <button class="tab-btn" data-tab="logs">📜 Logs</button>
-        <button class="tab-btn" data-tab="agents">🤖 Agents</button>
+        <button class="tab-btn active" data-tab="kanban">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="4" width="3" height="9" rx="1" fill="currentColor" opacity="0.5"/><rect x="5.5" y="1" width="3" height="12" rx="1" fill="currentColor" opacity="0.8"/><rect x="10" y="6" width="3" height="7" rx="1" fill="currentColor" opacity="0.5"/></svg>
+          Kanban
+        </button>
+        <button class="tab-btn" data-tab="logs">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="1.5" width="12" height="2" rx="1" fill="currentColor"/><rect x="1" y="6" width="9" height="2" rx="1" fill="currentColor" opacity="0.7"/><rect x="1" y="10.5" width="10.5" height="2" rx="1" fill="currentColor" opacity="0.5"/></svg>
+          Logs
+        </button>
+        <button class="tab-btn" data-tab="agents">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="2" fill="currentColor"/><circle cx="2" cy="2.5" r="1.5" fill="currentColor" opacity="0.6"/><circle cx="12" cy="2.5" r="1.5" fill="currentColor" opacity="0.6"/><circle cx="2" cy="11.5" r="1.5" fill="currentColor" opacity="0.6"/><line x1="3.5" y1="3.8" x2="5.8" y2="5.8" stroke="currentColor" stroke-width="1" opacity="0.4"/><line x1="10.5" y1="3.8" x2="8.2" y2="5.8" stroke="currentColor" stroke-width="1" opacity="0.4"/><line x1="3.5" y1="10.2" x2="5.8" y2="8.2" stroke="currentColor" stroke-width="1" opacity="0.4"/></svg>
+          Agents
+        </button>
       </div>
       <div class="demo-content">
         <!-- Kanban panel -->
@@ -122,54 +143,56 @@
               <span class="demo-url">lab.dombot.tech — agent routing</span>
             </div>
             <div class="routing-container" id="routing-container">
-              <svg id="routing-svg" viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
-                <!-- Hub node -->
-                <g id="node-hub">
-                  <rect x="230" y="120" width="140" height="60" rx="10" class="svg-node svg-node-hub"/>
-                  <text x="300" y="146" class="svg-node-title">Hub</text>
-                  <text x="300" y="163" class="svg-node-sub">Task Router</text>
-                </g>
-                <!-- OpenClaw node -->
-                <g id="node-openclaw" class="svg-agent-node">
-                  <rect x="20" y="30" width="140" height="65" rx="8" class="svg-node svg-agent"/>
-                  <text x="90" y="54" class="svg-node-title">OpenClaw</text>
-                  <text x="90" y="70" class="svg-node-sub">free · 85% quality</text>
-                  <text x="90" y="86" class="svg-node-badge">local model</text>
-                </g>
-                <!-- Claude Code node -->
-                <g id="node-claude" class="svg-agent-node">
-                  <rect x="20" y="118" width="140" height="65" rx="8" class="svg-node svg-agent"/>
-                  <text x="90" y="142" class="svg-node-title">Claude Code</text>
-                  <text x="90" y="158" class="svg-node-sub">$0.01 · 95% quality</text>
-                  <text x="90" y="174" class="svg-node-badge">anthropic</text>
-                </g>
-                <!-- Gemini node -->
-                <g id="node-gemini" class="svg-agent-node">
-                  <rect x="20" y="206" width="140" height="65" rx="8" class="svg-node svg-agent"/>
-                  <text x="90" y="230" class="svg-node-title">Gemini</text>
-                  <text x="90" y="246" class="svg-node-sub">cheap · 80% quality</text>
-                  <text x="90" y="262" class="svg-node-badge">google</text>
-                </g>
-                <!-- Arrows -->
-                <path id="arrow-openclaw" d="M 160 62 L 230 140" class="svg-arrow" marker-end="url(#arrowhead)"/>
-                <path id="arrow-claude" d="M 160 150 L 230 150" class="svg-arrow" marker-end="url(#arrowhead)"/>
-                <path id="arrow-gemini" d="M 160 238 L 230 160" class="svg-arrow" marker-end="url(#arrowhead)"/>
-                <!-- Output -->
-                <rect x="440" y="120" width="140" height="60" rx="10" class="svg-node svg-node-output"/>
-                <text x="510" y="146" class="svg-node-title">Result</text>
-                <text x="510" y="163" class="svg-node-sub">+ audit log</text>
-                <path d="M 370 150 L 440 150" class="svg-arrow svg-arrow-output" marker-end="url(#arrowhead-output)"/>
-                <!-- Decision label -->
-                <text id="routing-label" x="300" y="220" class="svg-routing-label">Evaluating agents...</text>
-                <!-- Arrow marker -->
+              <svg id="routing-svg" viewBox="0 0 640 270" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
                     <polygon points="0 0, 8 3, 0 6" class="svg-arrowhead"/>
                   </marker>
-                  <marker id="arrowhead-output" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                    <polygon points="0 0, 8 3, 0 6" class="svg-arrowhead-output"/>
+                  <marker id="arrowhead-in" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                    <polygon points="0 0, 8 3, 0 6" fill="#6c63ff" opacity="0.4"/>
                   </marker>
                 </defs>
+                <!-- Task input (left) -->
+                <g>
+                  <rect x="10" y="105" width="100" height="50" rx="8" class="svg-node"/>
+                  <text x="60" y="124" class="svg-node-title">Task</text>
+                  <text x="60" y="141" class="svg-node-sub">incoming</text>
+                </g>
+                <!-- Task → Hub -->
+                <path d="M 110 130 L 175 130" class="svg-arrow-in" marker-end="url(#arrowhead-in)"/>
+                <!-- Hub (center) -->
+                <g id="node-hub">
+                  <rect x="175" y="95" width="125" height="70" rx="10" class="svg-node svg-node-hub"/>
+                  <text x="237" y="124" class="svg-node-title">Hub</text>
+                  <text x="237" y="143" class="svg-node-sub">Smart Router</text>
+                </g>
+                <!-- Hub → Agent arrows (Hub selects the agent) -->
+                <path id="arrow-openclaw" d="M 300 112 Q 344 55 390 55" class="svg-arrow" marker-end="url(#arrowhead)"/>
+                <path id="arrow-claude"   d="M 300 130 L 390 132"        class="svg-arrow" marker-end="url(#arrowhead)"/>
+                <path id="arrow-gemini"   d="M 300 148 Q 344 210 390 210" class="svg-arrow" marker-end="url(#arrowhead)"/>
+                <!-- OpenClaw node -->
+                <g id="node-openclaw" class="svg-agent-node">
+                  <rect x="390" y="22" width="235" height="65" rx="8" class="svg-node svg-agent"/>
+                  <text x="507" y="44" class="svg-node-title">OpenClaw</text>
+                  <text x="507" y="61" class="svg-node-sub">free · 85% quality</text>
+                  <text x="507" y="77" class="svg-node-badge">local model</text>
+                </g>
+                <!-- Claude Code node -->
+                <g id="node-claude" class="svg-agent-node">
+                  <rect x="390" y="100" width="235" height="65" rx="8" class="svg-node svg-agent"/>
+                  <text x="507" y="122" class="svg-node-title">Claude Code</text>
+                  <text x="507" y="139" class="svg-node-sub">$0.01 · 95% quality</text>
+                  <text x="507" y="155" class="svg-node-badge">anthropic</text>
+                </g>
+                <!-- Gemini node -->
+                <g id="node-gemini" class="svg-agent-node">
+                  <rect x="390" y="178" width="235" height="65" rx="8" class="svg-node svg-agent"/>
+                  <text x="507" y="200" class="svg-node-title">Gemini</text>
+                  <text x="507" y="217" class="svg-node-sub">cheap · 80% quality</text>
+                  <text x="507" y="233" class="svg-node-badge">google</text>
+                </g>
+                <!-- Selected label -->
+                <text id="routing-label" x="320" y="260" class="svg-routing-label">Evaluating agents...</text>
               </svg>
             </div>
           </div>
@@ -312,32 +335,32 @@ cd dombot-labos</code></pre>
       <div class="section-label">Documentation</div>
       <h2>Everything documented</h2>
       <div class="docs-grid">
-        <a href="#" class="doc-card">
+        <a href="javascript:void(0)" class="doc-card">
           <div class="doc-icon">🏗️</div>
           <h3>Architecture</h3>
           <p>Two-layer system design, agent adapters, confidence scoring.</p>
         </a>
-        <a href="#" class="doc-card">
+        <a href="javascript:void(0)" class="doc-card">
           <div class="doc-icon">🛍️</div>
           <h3>Skills</h3>
           <p>Writing, using, and publishing reusable agent workflows.</p>
         </a>
-        <a href="#" class="doc-card">
+        <a href="javascript:void(0)" class="doc-card">
           <div class="doc-icon">📡</div>
           <h3>API Reference</h3>
           <p>Kanban API, Logs API, agent adapter interface.</p>
         </a>
-        <a href="#" class="doc-card">
+        <a href="javascript:void(0)" class="doc-card">
           <div class="doc-icon">🚀</div>
           <h3>Deployment</h3>
           <p>VPS, Raspberry Pi, Docker, Nginx config, Authelia auth.</p>
         </a>
-        <a href="#" class="doc-card">
+        <a href="javascript:void(0)" class="doc-card">
           <div class="doc-icon">🔐</div>
           <h3>RBAC &amp; Security</h3>
           <p>Agent identity, roles, network policy, audit trail.</p>
         </a>
-        <a href="#" class="doc-card">
+        <a href="javascript:void(0)" class="doc-card">
           <div class="doc-icon">🗺️</div>
           <h3>Roadmap</h3>
           <p>Phase 1–6 plan, current status, community contributions.</p>
