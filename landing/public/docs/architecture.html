@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Architecture — DomBot LabOS</title>
+  <link rel="stylesheet" href="docs.css"/>
+</head>
+<body>
+  <nav class="doc-nav">
+    <div class="doc-nav-inner">
+      <a href="/" class="back">Home</a>
+      <span class="sep">/</span>
+      <a href="/" class="logo">DomBot<span>.</span>tech</a>
+      <span class="sep">/</span>
+      <span class="current">Architecture</span>
+    </div>
+  </nav>
+
+  <main class="doc-main">
+    <header class="doc-header">
+      <div class="doc-tag">Documentation</div>
+      <h1>Architecture</h1>
+      <p>LabOS is a two-layer system: an operational layer for task execution with full transparency, and a strategic layer for multi-agent orchestration.</p>
+    </header>
+
+    <h2>Overview</h2>
+    <p>Every design decision in LabOS is driven by one principle: <strong>no agent action should be invisible</strong>. Every task carries a confidence score, every decision is logged before execution, and every agent can be replaced without rewriting your workflows.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>Layer 1 — Operational</h4>
+        <p>Hub + Kanban + Logs. Single-agent task execution with confidence scoring and immutable audit trail.</p>
+      </div>
+      <div class="card">
+        <h4>Layer 2 — Strategic</h4>
+        <p>Workflow engine, agent registry, smart router, skills marketplace. Multi-agent orchestration with cost and quality tracking.</p>
+      </div>
+    </div>
+
+    <h2>Layer 1 — Operational</h2>
+    <p>The operational layer is the heart of LabOS. It provides three surfaces that work together:</p>
+
+    <h3>Hub (Dashboard)</h3>
+    <p>The Hub is the control plane. It exposes a real-time SSE stream so every agent action appears instantly. Quick actions let you create tasks, check system health, and view live metrics without leaving the dashboard.</p>
+
+    <h3>Kanban (Task Interface)</h3>
+    <p>Every task lives in the Kanban board. Tasks move through four stages: <strong>Backlog → In Progress → Review → Done</strong>. Dependency enforcement ensures no task can start until its upstream dependencies are complete. Each task carries a confidence score (0–1) calculated from:</p>
+    <ul>
+      <li>Pattern matching (how similar tasks were handled before)</li>
+      <li>Dependency check (all upstream tasks satisfied)</li>
+      <li>Context approval (human approval history)</li>
+      <li>Urgency + complexity scoring</li>
+    </ul>
+
+    <h3>Logs (Audit Trail)</h3>
+    <p>Every agent action is logged <strong>before execution</strong>. The log entry is immutable once written. Each entry contains: timestamp, agent identity, action type, confidence score, and message. Three confidence tiers:</p>
+    <div class="badge-row">
+      <span class="badge badge-green">&gt; 0.80 — Auto-proceed</span>
+      <span class="badge badge-amber">0.50–0.80 — Verify before archiving</span>
+      <span class="badge badge-red" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);">&lt; 0.50 — Manual review</span>
+    </div>
+
+    <h3>Write-Through Guarantee</h3>
+    <p>State changes flow through all layers in a fixed order:</p>
+    <pre>Agent Action
+  → 1. Log action (immutable write)
+  → 2. Update Kanban (metadata + status)
+  → 3. Rebuild .md source-of-truth (vault)
+  → 4. Hub polls / receives SSE event
+  → 5. Dashboard refreshes (within 5s)</pre>
+
+    <h2>Layer 2 — Strategic</h2>
+    <p>The strategic layer adds multi-agent orchestration on top of the operational layer.</p>
+
+    <h3>Agent Registry</h3>
+    <p>All available agents (OpenClaw, Claude Code, Gemini, custom) register with their capabilities, health status, cost per token, and quality score. The registry monitors uptime and updates metrics continuously.</p>
+
+    <h3>Workflow Engine</h3>
+    <p>Workflows are composed of steps, each assigned to an agent. Steps can run sequentially, in parallel, or with branching logic. Output of one step is available to the next via <code>${{ steps.X.output }}</code>.</p>
+    <pre>name: "Draft-Review-Polish"
+steps:
+  - agent: openclaw
+    task: "Write initial implementation"
+
+  - agent: claude-code
+    task: "Review and suggest improvements"
+    context:
+      code: ${{ steps[0].output }}
+
+  - agent: openclaw
+    task: "Refactor based on feedback"
+    context:
+      feedback: ${{ steps[1].output }}
+
+mode: sequential
+aggregation: last</pre>
+
+    <h3>Smart Router</h3>
+    <p>The router selects the best agent for each task based on a configurable policy: <strong>cheapest agent that meets the quality threshold</strong>. You set the minimum acceptable quality, and the router picks the most cost-effective agent that satisfies it.</p>
+
+    <table>
+      <thead><tr><th>Agent</th><th>Latency</th><th>Cost</th><th>Quality</th></tr></thead>
+      <tbody>
+        <tr><td><strong>OpenClaw</strong></td><td>~100ms</td><td>Free</td><td>85%</td></tr>
+        <tr><td><strong>Claude Code</strong></td><td>~500ms</td><td>$0.01/task</td><td>95%</td></tr>
+        <tr><td><strong>Gemini</strong></td><td>~300ms</td><td>Cheap</td><td>80%</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Skills Marketplace</h3>
+    <p>Skills are reusable workflow packages. A skill bundles a prompt strategy, agent selection policy, and quality thresholds into a single installable unit. See the <a href="skills.html">Skills documentation</a> for details.</p>
+
+    <h2>Data Flow</h2>
+    <pre>Strategic Layer              Operational Layer         Source of Truth
+─────────────────            ─────────────────         ────────────────
+Workflow definition
+Agent params + routing   →  Task creation (Kanban)
+                                  ↓
+                         Confidence check
+                                  ↓
+                         Log action (immutable)
+                                  ↓
+Agent selection          Agent execution         →   .md vault files
+                                  ↓
+Workflow aggregation     Result → Kanban
+                                  ↓
+Metrics update           Hub displays (SSE)</pre>
+
+    <footer class="doc-footer">
+      <span>DomBot LabOS — MIT License</span>
+      <a href="/">← Back to dombot.tech</a>
+    </footer>
+  </main>
+</body>
+</html>

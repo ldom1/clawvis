@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Skills — DomBot LabOS</title>
+  <link rel="stylesheet" href="docs.css"/>
+</head>
+<body>
+  <nav class="doc-nav">
+    <div class="doc-nav-inner">
+      <a href="/" class="back">Home</a>
+      <span class="sep">/</span>
+      <a href="/" class="logo">DomBot<span>.</span>tech</a>
+      <span class="sep">/</span>
+      <span class="current">Skills</span>
+    </div>
+  </nav>
+
+  <main class="doc-main">
+    <header class="doc-header">
+      <div class="doc-tag">Documentation</div>
+      <h1>Skills</h1>
+      <p>Skills are reusable agent workflow packages. Write once, use everywhere. Share with the community or keep private.</p>
+    </header>
+
+    <h2>What is a Skill?</h2>
+    <p>A skill is a Markdown file with YAML frontmatter that defines <strong>how an agent should approach a specific task</strong>. It is not code — it is structured guidance loaded into the agent's context at the right moment.</p>
+    <p>Skills tell the agent: what to do, how to verify it did it correctly, what tools to use, and when to ask for human input. They encode your team's best practices into a reproducible format.</p>
+
+    <h2>Skill Format</h2>
+    <pre>---
+name: tdd
+description: Use when implementing any feature or bugfix — enforces test-first workflow
+trigger: "implement|feature|bugfix|fix"
+agent: claude-code
+quality_threshold: 0.85
+---
+
+# Test-Driven Development
+
+## When to use
+Invoke this skill before writing any implementation code.
+
+## Process
+1. Write a failing test that describes the desired behavior
+2. Run the test — confirm it fails for the right reason
+3. Write the minimal implementation to make the test pass
+4. Refactor without breaking the test
+5. Commit with the test and implementation together
+
+## Verification checklist
+- [ ] Test written before implementation
+- [ ] Test fails before implementation
+- [ ] Test passes after implementation
+- [ ] No implementation code without a corresponding test</pre>
+
+    <h2>Skill Lifecycle</h2>
+    <ol>
+      <li><strong>Trigger detection</strong> — The agent scans the task description for trigger keywords defined in the skill frontmatter.</li>
+      <li><strong>Skill loading</strong> — Matching skill content is injected into the agent's context.</li>
+      <li><strong>Execution</strong> — The agent follows the skill's process, using its checklist as a confidence guide.</li>
+      <li><strong>Confidence scoring</strong> — Checklist completion rate feeds directly into the task confidence score.</li>
+      <li><strong>Logging</strong> — Which skill was used, by which agent, is recorded in the audit trail.</li>
+    </ol>
+
+    <h2>Built-in Skills</h2>
+    <p>LabOS ships with a core set of skills covering the most common development workflows:</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>tdd</h4>
+        <p>Test-driven development. Enforces write-test-first for all feature and bugfix work.</p>
+      </div>
+      <div class="card">
+        <h4>brainstorming</h4>
+        <p>Structured ideation before implementation. Explores user intent and design options.</p>
+      </div>
+      <div class="card">
+        <h4>systematic-debugging</h4>
+        <p>Methodical bug investigation. Hypothesis → reproduce → isolate → fix → verify.</p>
+      </div>
+      <div class="card">
+        <h4>code-reviewer</h4>
+        <p>Reviews completed work against original requirements and coding standards.</p>
+      </div>
+      <div class="card">
+        <h4>writing-plans</h4>
+        <p>Produces structured implementation plans before touching any code.</p>
+      </div>
+      <div class="card">
+        <h4>verification-before-completion</h4>
+        <p>Requires running verification commands before claiming any task is done.</p>
+      </div>
+    </div>
+
+    <h2>Writing a Custom Skill</h2>
+    <p>Place your skill file in <code>~/.openclaw/skills/</code> (or your configured skills directory). The filename is the skill name.</p>
+    <pre># ~/.openclaw/skills/my-skill.md
+---
+name: my-skill
+description: What this skill does and when to use it
+trigger: "keyword1|keyword2"
+agent: openclaw          # preferred agent (optional)
+quality_threshold: 0.80  # minimum confidence to auto-proceed
+---
+
+# My Skill
+
+## Context
+Explain what situation this skill is for.
+
+## Process
+Step-by-step instructions the agent will follow.
+
+## Checklist
+- [ ] Step 1 done
+- [ ] Step 2 done
+- [ ] Output verified</pre>
+
+    <h2>Frontmatter Reference</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Required</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>name</code></td><td>Yes</td><td>Unique skill identifier (snake_case)</td></tr>
+        <tr><td><code>description</code></td><td>Yes</td><td>One-line description. Used for auto-matching and display.</td></tr>
+        <tr><td><code>trigger</code></td><td>No</td><td>Regex pattern on task text to auto-invoke. E.g. <code>"implement|feature"</code></td></tr>
+        <tr><td><code>agent</code></td><td>No</td><td>Preferred agent. Falls back to router selection if not available.</td></tr>
+        <tr><td><code>quality_threshold</code></td><td>No</td><td>Minimum confidence (0–1) to auto-proceed without human review. Default: 0.75</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Skills Marketplace</h2>
+    <p>The marketplace (coming in Phase 4) lets you publish skills and install community-contributed ones with a single command:</p>
+    <pre># Install a community skill
+labos skills install ldom1/legal-doc-review
+
+# Publish your skill
+labos skills publish my-skill --visibility public</pre>
+    <p>Skills are versioned, rated, and reviewed by the community. Revenue share: 80% to creator, 20% to LabOS infrastructure.</p>
+
+    <footer class="doc-footer">
+      <span>DomBot LabOS — MIT License</span>
+      <a href="/">← Back to dombot.tech</a>
+    </footer>
+  </main>
+</body>
+</html>
