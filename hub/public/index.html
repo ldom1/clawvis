@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LabOS — Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #09090b; --surface: #18181b; --border: #27272a;
+      --text: #fafafa; --muted: #71717a; --accent: #6366f1;
+    }
+    body.theme-light {
+      --bg: #fafafa; --surface: #ffffff; --border: #e4e4e7;
+      --text: #18181b; --muted: #71717a; --accent: #6366f1;
+    }
+    body.theme-light .card:hover { box-shadow: 0 10px 30px rgba(99,102,241,.18); }
+    body.theme-light .provider-inline { background: #f4f4f5; }
+    body.theme-light .system-card, body.theme-light .github-card { background: var(--surface); }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; padding: 2.5rem 1.5rem; -webkit-font-smoothing: antialiased; }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    header { text-align: center; margin-bottom: 3rem; position: relative; }
+    header h1 { font-size: 2rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+    header h1 span { color: var(--accent); }
+    header p { color: var(--muted); font-size: 0.85rem; }
+    .header-icons { position: absolute; top: 0; right: 0; display: flex; gap: 0.5rem; }
+    .header-icon {
+      width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--muted); text-decoration: none; transition: all 0.2s; cursor: pointer;
+    }
+    .header-icon:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,0.08); }
+    .header-icon svg { width: 16px; height: 16px; }
+    .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: #22c55e; margin-right: 5px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .system-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 1.1rem; padding: 1.5rem; margin-bottom: 2.5rem;
+    }
+    .system-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--text); }
+
+    .system-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .system-stat { display: flex; flex-direction: column; gap: 0.4rem; }
+    .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .stat-value { font-size: 1.3rem; font-weight: 600; color: var(--accent); }
+    .progress-bar { width: 100%; height: 5px; background: var(--border); border-radius: 2.5px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+    .stat-detail { font-size: 0.65rem; color: var(--muted); margin-top: 0.25rem; }
+
+    .system-divider { height: 1px; background: var(--border); margin: 1.2rem 0; }
+
+    .providers-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    .provider-inline {
+      background: #0f0f12; border: 1px solid var(--border);
+      border-radius: 0.8rem; padding: 1rem;
+    }
+    .provider-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; }
+    .provider-logo { font-size: 1.3rem; }
+    .provider-name { font-weight: 600; font-size: 0.9rem; }
+    .provider-subname { font-size: 0.65rem; color: var(--muted); }
+    .usage-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; font-size: 0.8rem; }
+    .usage-label { color: var(--muted); }
+    .usage-value { font-weight: 600; color: var(--text); }
+    .credits-display { font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+    .credits-label { font-size: 0.65rem; color: var(--muted); margin-top: 0.2rem; }
+    .updated-time { font-size: 0.6rem; color: var(--muted); margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border); }
+
+    .github-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 1.1rem; padding: 2rem; margin-bottom: 2.5rem;
+      text-align: center;
+    }
+    .github-avatar { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+    .github-username { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .github-intro { color: var(--muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1.5rem; }
+    .github-badge { display: inline-block; padding: 0.5rem 1rem; background: var(--border); border-radius: 6px; font-size: 0.85rem; margin: 0 0.5rem 0.5rem 0; }
+    .github-link { display: inline-block; margin-top: 1rem; padding: 0.6rem 1.2rem; background: var(--accent); color: var(--bg); border-radius: 6px; text-decoration: none; font-weight: 600; transition: opacity 0.2s; }
+    .github-link:hover { opacity: 0.9; }
+
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.9rem; padding-left: 2px;
+    }
+    .section-label {
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin: 0;
+    }
+    .toggle-btn {
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 4px;
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+    section { margin-bottom: 2.5rem; }
+    .section-content { transition: max-height 0.3s ease, opacity 0.3s ease; overflow: hidden; }
+    .section-content.collapsed { max-height: 0 !important; opacity: 0; margin: 0; }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 1.1rem; padding: 1.5rem; text-decoration: none;
+      color: var(--text); position: relative; display: flex; flex-direction: column;
+      gap: 0.75rem; transition: border-color .2s, transform .2s, box-shadow .2s; cursor: pointer;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(99,102,241,.12); }
+    .card-icon { font-size: 2rem; line-height: 1; }
+    .card-title { font-size: 1rem; font-weight: 600; }
+    .card-desc { color: var(--muted); font-size: 0.8rem; line-height: 1.55; flex: 1; }
+    .card-arrow { position: absolute; top: 1.25rem; right: 1.25rem; color: var(--muted); font-size: .9rem; transition: .2s; }
+    .card:hover .card-arrow { transform: translate(2px,-2px); color: var(--accent); }
+    .card-tags { display: flex; flex-wrap: wrap; gap: .35rem; padding-top: .65rem; border-top: 1px solid var(--border); margin-top: auto; }
+    .tag { font-size: .65rem; padding: .2rem .5rem; border-radius: 99px; background: #27272a; color: var(--muted); }
+
+    .tools-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
+    @media (max-width: 860px) { .tools-bar { grid-template-columns: 1fr; } }
+    .tool-tile {
+      background:
+        radial-gradient(900px 200px at -10% -30%, rgba(99,102,241,.18), rgba(99,102,241,0) 55%),
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0) 60%),
+        var(--surface);
+      border: 1px solid rgba(99,102,241,.22);
+      border-radius: 14px;
+      padding: 1.05rem 1.05rem 0.95rem;
+      text-decoration: none;
+      color: var(--text);
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s, transform .2s, box-shadow .2s;
+      display: flex;
+      gap: 0.9rem;
+      align-items: flex-start;
+      min-height: 92px;
+    }
+    .tool-tile::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--accent);
+      opacity: .85;
+    }
+    .tool-tile:hover { border-color: rgba(99,102,241,.55); transform: translateY(-1px); box-shadow: 0 14px 40px rgba(0,0,0,.30); }
+    .tool-icon { width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(99,102,241,.26); background: rgba(99,102,241,.10); display:flex; align-items:center; justify-content:center; font-size: 1.15rem; flex: 0 0 auto; margin-left: 4px; }
+    .tool-icon svg { width: 18px; height: 18px; }
+    .tool-meta { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+    .tool-name { font-size: .95rem; font-weight: 600; letter-spacing: -0.01em; }
+    .tool-desc { color: var(--muted); font-size: .78rem; line-height: 1.45; }
+    .tool-chiprow { display: flex; flex-wrap: wrap; gap: .35rem; padding-top: .55rem; margin-top: .45rem; border-top: 1px solid rgba(99,102,241,.18); }
+    .tool-chip { font-size: .62rem; padding: .18rem .45rem; border-radius: 999px; background: rgba(99,102,241,.10); color: rgba(199,202,255,.92); border: 1px solid rgba(99,102,241,.22); }
+    .tool-open { position: absolute; top: .95rem; right: .95rem; color: rgba(199,202,255,.9); font-size: .85rem; }
+
+    .empty-card {
+      border: 1px dashed var(--border);
+      background: rgba(255,255,255,.02);
+      border-radius: 1.1rem;
+      padding: 1.25rem;
+      color: var(--muted);
+      text-align: center;
+      font-size: .85rem;
+      line-height: 1.5;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .modal.open { display: flex; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); }
+    .modal-panel {
+      position: relative;
+      width: min(560px, 100%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.45);
+      padding: 1.1rem 1.1rem 1rem;
+    }
+    .modal-header { display:flex; align-items:center; justify-content: space-between; gap: 1rem; margin-bottom: .9rem; }
+    .modal-title { font-size: .9rem; font-weight: 600; letter-spacing: -0.01em; }
+    .modal-close {
+      width: 34px; height: 34px; display:flex; align-items:center; justify-content:center;
+      border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted);
+      cursor: pointer; transition: .2s; font-family: inherit;
+    }
+    .modal-close:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,0.08); }
+
+    .github-badge-mini {
+      position: absolute; top: 1.25rem; right: 3.2rem;
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 6px; cursor: pointer; transition: .2s; z-index: 10;
+    }
+    .github-badge-mini:hover { background: rgba(255,255,255,.1); transform: scale(1.15); }
+    .github-badge-mini svg { width: 14px; height: 14px; fill: var(--text); }
+    .card.tool:hover { border-color: #22c55e; box-shadow: 0 10px 30px rgba(34,197,94,.1); }
+    .card.tool:hover .card-arrow { color: #22c55e; }
+
+    footer { margin-top: 3rem; color: var(--muted); font-size: .7rem; text-align: center; }
+    footer code { background: var(--surface); border: 1px solid var(--border); padding: .15rem .4rem; border-radius: 4px; }
+
+    @media (max-width: 900px) {
+      body { padding: 1.8rem 1.1rem; }
+      header { margin-bottom: 2rem; padding-top: 0.5rem; }
+      header h1 { font-size: 1.6rem; margin-bottom: 0.6rem; }
+      header p { font-size: 0.8rem; }
+      .header-icons {
+        position: static;
+        justify-content: center;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+      }
+      .header-icon { width: 32px; height: 32px; }
+      .system-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 520px) {
+      .system-row { grid-template-columns: 1fr; }
+      .providers-row { grid-template-columns: 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1><span>LabOS</span></h1>
+    <p><span class="status-dot"></span>7 active services</p>
+    <div class="header-icons">
+      <a href="/openclaw/" class="header-icon" title="OpenClaw">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/><path d="M14 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/><path d="M8 15c0 2.2 1.8 4 4 4s4-1.8 4-4"/></svg>
+      </a>
+      <a href="/logs/" class="header-icon" title="Logs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </a>
+      <a href="/kanban/" class="header-icon" title="Kanban">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+          <line x1="7" y1="8" x2="17" y2="8"></line>
+          <line x1="7" y1="12" x2="14" y2="12"></line>
+          <line x1="7" y1="16" x2="12" y2="16"></line>
+        </svg>
+      </a>
+      <a href="/memory/" class="header-icon" title="DomBrain">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8.5 7.2C7 7.2 5.8 8.4 5.8 9.9c0 .9.4 1.7 1 2.3-.6.5-1 1.3-1 2.2 0 1.6 1.3 2.9 2.9 2.9"></path>
+          <path d="M15.5 7.2c1.5 0 2.7 1.2 2.7 2.7 0 .9-.4 1.7-1 2.3.6.5 1 1.3 1 2.2 0 1.6-1.3 2.9-2.9 2.9"></path>
+          <path d="M8.5 7.2C9 5.5 10.4 4.5 12 4.5s3 .9 3.5 2.7"></path>
+          <path d="M8.5 19.8C9 21.5 10.4 22.5 12 22.5s3-.9 3.5-2.7"></path>
+          <path d="M12 5.2v13.6"></path>
+          <path d="M10 10.2c.4-.3.9-.5 1.4-.5s1 .2 1.4.5"></path>
+          <path d="M10 15.2c.4.3.9.5 1.4.5s1-.2 1.4-.5"></path>
+        </svg>
+      </a>
+      <a href="/settings/" class="header-icon" title="Hub settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- SYSTEM CARD -->
+  <div class="system-card">
+    <div class="system-title">📊 System Status</div>
+
+    <div class="system-row">
+      <div class="system-stat">
+        <div class="stat-label">CPU</div>
+        <div class="stat-value" id="cpu-percent">—%</div>
+        <div class="progress-bar"><div class="progress-fill" id="cpu-fill" style="width:0%"></div></div>
+      </div>
+      <div class="system-stat">
+        <div class="stat-label">RAM</div>
+        <div class="stat-value" id="ram-percent">—%</div>
+        <div class="progress-bar"><div class="progress-fill" id="ram-fill" style="width:0%; background: #22c55e;"></div></div>
+        <div class="stat-detail" id="ram-detail">— GB</div>
+      </div>
+      <div class="system-stat">
+        <div class="stat-label">Disk</div>
+        <div class="stat-value" id="disk-percent">—%</div>
+        <div class="progress-bar"><div class="progress-fill" id="disk-fill" style="width:0%; background: #f59e0b;"></div></div>
+        <div class="stat-detail" id="disk-detail">— GB</div>
+      </div>
+      <div class="system-stat">
+        <div class="stat-label">Mammouth</div>
+        <div class="stat-value" id="mammouth-percent">—%</div>
+        <div class="progress-bar"><div class="progress-fill" id="mammouth-fill" style="width:0%; background: #8b5cf6;"></div></div>
+        <div class="stat-detail" id="mammouth-detail">— / —</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLS -->
+  <section data-section="tools">
+    <div class="section-header">
+      <div class="section-label">Core tools</div>
+    </div>
+    <div class="section-content" id="section-tools">
+      <div class="tools-bar">
+        <a class="tool-tile" href="/logs/">
+          <span class="tool-open">↗</span>
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+          </div>
+          <div class="tool-meta">
+            <div class="tool-name">Logs</div>
+            <div class="tool-desc">Full DomBot trace (search, filters, real-time stream).</div>
+            <div class="tool-chiprow"><span class="tool-chip">SSE</span><span class="tool-chip">Search</span><span class="tool-chip">Process</span></div>
+          </div>
+        </a>
+
+        <a class="tool-tile" href="/kanban/">
+          <span class="tool-open">↗</span>
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+              <line x1="7" y1="8" x2="17" y2="8"></line>
+              <line x1="7" y1="12" x2="14" y2="12"></line>
+              <line x1="7" y1="16" x2="12" y2="16"></line>
+            </svg>
+          </div>
+          <div class="tool-meta">
+            <div class="tool-name">Kanban</div>
+            <div class="tool-desc">Drive initiatives (priorities, execution, sync).</div>
+            <div class="tool-chiprow"><span class="tool-chip">Tasks</span><span class="tool-chip">Sync</span><span class="tool-chip">Ops</span></div>
+          </div>
+        </a>
+
+        <a class="tool-tile" href="http://localhost:3099" target="_blank">
+          <span class="tool-open">↗</span>
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2l3 3-6.5 6.5a2.1 2.1 0 0 0-.5.9L7 17l4.6-1.9a2.1 2.1 0 0 0 .9-.5L19 8l3 3V2z"></path>
+              <path d="M5 5h4"></path>
+              <path d="M5 9V5"></path>
+              <rect x="5" y="13" width="6" height="6" rx="1"></rect>
+            </svg>
+          </div>
+          <div class="tool-meta">
+            <div class="tool-name">Obsidian vault</div>
+            <div class="tool-desc">Open the PARA knowledge vault (Obsidian in browser).</div>
+            <div class="tool-chiprow"><span class="tool-chip">Memory</span><span class="tool-chip">PARA</span><span class="tool-chip">Obsidian</span></div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJETS -->
+  <section data-section="projets">
+    <div class="section-header">
+      <div class="section-label">Projects</div>
+      <button class="toggle-btn" onclick="toggleSection('projets')">hide</button>
+    </div>
+    <div class="section-content" id="section-projets">
+      <div class="grid-3" id="projects-grid">
+        <div class="empty-card" id="projects-empty">
+          No projects yet — create your first project.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- POC -->
+  <section data-section="poc">
+    <div class="section-header">
+      <div class="section-label">Experiments (POC)</div>
+      <button class="toggle-btn" onclick="toggleSection('poc')">hide</button>
+    </div>
+    <div class="section-content" id="section-poc">
+      <div class="grid-3" id="poc-grid">
+        <div class="empty-card" id="poc-empty">
+          No experiments yet — launch your first POC.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>LabOS <span style="opacity:.85">v0.1.0</span> · <a href="https://github.com/ldom1/hub" style="color:var(--accent)">hub repo</a></p>
+  </footer>
+</div>
+
+<script>
+function toggleSection(name) {
+  const el = document.getElementById('section-' + name);
+  const btn = el.parentElement.querySelector('.toggle-btn');
+  const collapsed = el.classList.toggle('collapsed');
+  btn.textContent = collapsed ? 'show' : 'hide';
+  localStorage.setItem('section-' + name, collapsed ? 'collapsed' : 'visible');
+}
+
+document.querySelectorAll('.section-content').forEach(el => {
+  const name = el.id.replace('section-', '');
+  const saved = localStorage.getItem('section-' + name);
+  const btn = el.parentElement.querySelector('.toggle-btn');
+  if (!btn) return;
+  if (saved === 'collapsed') {
+    el.classList.add('collapsed');
+    btn.textContent = 'show';
+  }
+});
+
+(function applyHubTheme() {
+  const theme = localStorage.getItem('hub-theme') || 'dark';
+  document.querySelectorAll('input[name="hub-theme"]').forEach(r => { r.checked = r.value === theme; });
+  if (theme === 'light') document.body.classList.add('theme-light');
+  else if (theme === 'system') {
+    document.body.classList.toggle('theme-light', window.matchMedia('(prefers-color-scheme: light)').matches);
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => document.body.classList.toggle('theme-light', e.matches));
+  } else document.body.classList.remove('theme-light');
+})();
+document.querySelectorAll('input[name="hub-theme"]').forEach(r => {
+  r.addEventListener('change', function() {
+    const v = this.value;
+    localStorage.setItem('hub-theme', v);
+    if (v === 'light') document.body.classList.add('theme-light');
+    else if (v === 'system') document.body.classList.toggle('theme-light', window.matchMedia('(prefers-color-scheme: light)').matches);
+    else document.body.classList.remove('theme-light');
+  });
+});
+
+(function applyEmptyStates() {
+  const projects = document.getElementById('projects-grid');
+  const pocs = document.getElementById('poc-grid');
+  const hasCard = (root) => !!root.querySelector('a.card');
+  const setEmpty = (root, emptyId) => {
+    const empty = document.getElementById(emptyId);
+    empty.style.display = hasCard(root) ? 'none' : 'block';
+  };
+  setEmpty(projects, 'projects-empty');
+  setEmpty(pocs, 'poc-empty');
+})();
+
+async function loadStats() {
+  try {
+    const response = await fetch('/api/system.json');
+    if (response.ok) {
+      const stats = await response.json();
+      if (stats.success) {
+        document.getElementById('cpu-percent').textContent = stats.cpu_percent + '%';
+        document.getElementById('cpu-fill').style.width = Math.min(stats.cpu_percent, 100) + '%';
+        document.getElementById('ram-percent').textContent = stats.ram_percent + '%';
+        document.getElementById('ram-fill').style.width = stats.ram_percent + '%';
+        document.getElementById('ram-detail').textContent = stats.ram_used_gb + ' / ' + stats.ram_total_gb + ' GB';
+
+        if (stats.disk_percent !== undefined) {
+          document.getElementById('disk-percent').textContent = stats.disk_percent + '%';
+          document.getElementById('disk-fill').style.width = stats.disk_percent + '%';
+          document.getElementById('disk-detail').textContent = stats.disk_used_gb + ' / ' + stats.disk_total_gb + ' GB';
+          const fill = document.getElementById('disk-fill');
+          if (stats.disk_percent > 90) fill.style.background = '#ef4444';
+          else if (stats.disk_percent > 75) fill.style.background = '#f59e0b';
+        }
+      }
+    }
+  } catch (e) { console.log('System stats unavailable', e); }
+
+  try {
+    const response = await fetch('/api/providers.json');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.mammouth_ai && data.mammouth_ai.credits) {
+        const c = data.mammouth_ai.credits;
+        const limit = typeof c.limit === 'number' ? c.limit : 0;
+        const avail = typeof c.available === 'number' ? c.available : 0;
+        const used = Math.max(0, limit - avail);
+        const pctConsumed = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+        const curr = (c.currency || 'EUR') === 'EUR' ? '€' : '$';
+        document.getElementById('mammouth-percent').textContent = pctConsumed + '%';
+        const fill = document.getElementById('mammouth-fill');
+        fill.style.width = pctConsumed + '%';
+        if (pctConsumed >= 65) fill.style.background = '#ef4444';
+        else if (pctConsumed >= 40) fill.style.background = '#f59e0b';
+        else fill.style.background = '#8b5cf6';
+        document.getElementById('mammouth-detail').textContent = curr + avail.toFixed(2) + ' / ' + curr + limit.toFixed(2) + (data.mammouth_ai.last_updated ? ' · ' + data.mammouth_ai.last_updated : '');
+      }
+    }
+  } catch (e) { console.log('Provider stats unavailable', e); }
+}
+
+loadStats();
+setInterval(loadStats, 30000);
+
+// SSE — Live log stream (kanban API)
+(function() {
+  const logContainer = document.getElementById('log-stream');
+  const logStream = new EventSource('/api/kanban/logs/stream');
+  logStream.onmessage = (e) => {
+    try {
+      const entry = JSON.parse(e.data);
+      if (!logContainer) return;
+      const el = document.createElement('div');
+      el.className = 'log-entry log-' + (entry.level || 'info').toLowerCase();
+      el.textContent = '[' + (entry.ts || new Date().toISOString()) + '] ' + (entry.agent || '') + ' ' + (entry.msg || e.data);
+      logContainer.prepend(el);
+      while (logContainer.children.length > 100) logContainer.lastChild.remove();
+    } catch(err) { /* ignore non-JSON */ }
+  };
+  logStream.onerror = () => console.warn('SSE log stream reconnecting...');
+})();
+</script>
+</body>
+</html>
