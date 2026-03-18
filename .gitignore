@@ -45,3 +45,4 @@ landing/dist/
 landing/.pnp.cjs
 landing/.pnp.loader.mjs
 
+.worktrees/
