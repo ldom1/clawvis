@@ -1198,6 +1198,7 @@ Dans `main_select()`, localiser la ligne `print(f"TASK_ID={task.id}")` et **ajou
     else:
         print("\nIS_AMBIGUOUS=false")
         print("✅ Tâche claire — tu peux implémenter.")
+```
 
 - [ ] **Step 6 : Mettre à jour `SKILL.md`**
 
