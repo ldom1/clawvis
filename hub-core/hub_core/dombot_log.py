@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,6 +26,7 @@ from typing import Any
 LOG_DIR = Path.home() / ".openclaw" / "logs"
 LOG_TEXT = LOG_DIR / "dombot.log"
 LOG_JSONL = LOG_DIR / "dombot.jsonl"
+DISCORD_SEND_SCRIPT = Path.home() / ".openclaw" / "skills" / "logger" / "scripts" / "discord-send.sh"
 
 
 def _write(level: str, process: str, model: str, action: str, message: str, metadata: dict) -> None:
@@ -58,6 +60,56 @@ def _write(level: str, process: str, model: str, action: str, message: str, meta
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except Exception:
         pass  # Never crash the caller over logging
+    _send_to_discord(level, process, action, message, metadata, text_line.strip())
+
+
+def _send_to_discord(
+    level: str,
+    process: str,
+    action: str,
+    message: str,
+    metadata: dict,
+    formatted_message: str,
+) -> None:
+    if not DISCORD_SEND_SCRIPT.exists():
+        return
+    target = _route_discord_channel(level, process, action, message, metadata)
+    if not target:
+        return
+    try:
+        subprocess.run(
+            [str(DISCORD_SEND_SCRIPT), target, formatted_message],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        pass
+
+
+def _route_discord_channel(
+    level: str,
+    process: str,
+    action: str,
+    message: str,
+    metadata: dict,
+) -> str:
+    process_l = (process or "").lower()
+    action_l = (action or "").lower()
+    message_l = (message or "").lower()
+    level_u = (level or "").upper()
+    meta_blob = json.dumps(metadata or {}, ensure_ascii=False).lower()
+    signal = f"{process_l} {action_l} {message_l} {meta_blob}"
+
+    if level_u in {"ERROR", "CRITICAL"} or "fail" in signal or "panic" in signal:
+        return "alerts"
+    if "innov" in signal or "idea" in signal or "curiosity" in signal:
+        return "innovations"
+    if "project" in signal or "hub" in signal or "kanban" in signal:
+        return "projects"
+    if process_l.startswith("cron:") or process_l.startswith("system:") or process_l == "system":
+        return "ops"
+    return "logs"
 
 
 def log(level: str, process: str, action: str, message: str, model: str = "", **metadata: Any) -> None:

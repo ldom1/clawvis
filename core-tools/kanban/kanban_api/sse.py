@@ -24,6 +24,7 @@ def _build_state() -> str:
 async def stream_kanban():
     """SSE endpoint: push full state on change, heartbeat otherwise."""
     async def event_generator():
+        yield ": ping\n\n"
         last_hash = ""
         while True:
             await asyncio.sleep(5)

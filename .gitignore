@@ -46,3 +46,9 @@ landing/.pnp.cjs
 landing/.pnp.loader.mjs
 
 .worktrees/
+
+########################
+# Claude
+########################
+
+docs/superpowers/*

@@ -1,4 +1,4 @@
-# DomBot LabOS — Full stack
+# ClawPilot — Full stack
 # WIP: services will be added progressively
 # See ARCHITECTURE.md for full design
 
@@ -12,6 +12,8 @@ services:
     volumes:
       - ./hub/public:/var/www/html
     env_file: .env
+    labels:
+      - "app=clawpilot"
 
   # kanban:  # coming in Phase Setup.1
   # openclaw: # coming in Phase Setup.1
