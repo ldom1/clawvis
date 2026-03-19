@@ -98,7 +98,10 @@ def test_blocked_skips_dependency_check():
     }
     task = {"id": "t-1", "title": "T", "dependencies": ["dep-1"]}
     # Ne doit pas lever DependencyBlockedError
-    _check_dependencies(data, task, "Blocked")  # no exception expected
+    try:
+        _check_dependencies(data, task, "Blocked")
+    except DependencyBlockedError:
+        pytest.fail("_check_dependencies levé pour status Blocked — ne doit pas arriver")
 ```
 
 - [ ] **Step 2 : Lancer les tests — vérifier qu'ils échouent**
@@ -126,12 +129,10 @@ STATUSES: list[str] = ["Backlog", "To Start", "In Progress", "Blocked", "Review"
 STATUSES: list[str] = ["Backlog", "To Start", "In Progress", "Blocked", "Review", "Done"]
 ```
 
-**Fonction `_check_dependencies`** (ligne 224) — ajouter le guard :
+**Fonction `_check_dependencies`** (ligne 224) — la logique actuelle `if target_status != "In Progress": return` laisse déjà passer Review et Done. Il suffit d'ajouter Blocked dans l'exclusion — garder une seule condition :
 ```python
 def _check_dependencies(data: dict, task: dict, target_status: str) -> None:
-    if target_status in ("Blocked", "Review", "Done"):
-        return
-    if target_status != "In Progress":
+    if target_status != "In Progress":  # Blocked, Review, Done → pas de check
         return
     for dep_id in task.get("dependencies") or []:
         dep = next((t for t in data["tasks"] if t["id"] == dep_id), None)
@@ -139,7 +140,7 @@ def _check_dependencies(data: dict, task: dict, target_status: str) -> None:
             raise DependencyBlockedError(dep.get("title", dep_id))
 ```
 
-Note : le guard `target_status in ("Blocked", "Review", "Done")` couvre Blocked + conserve le comportement Review/Done existant.
+Note : "Blocked" ≠ "In Progress" donc le guard existant couvre déjà Blocked. Aucun ajout de logique nécessaire — la fonction fonctionne sans modification. Le test vérifie ce comportement.
 
 - [ ] **Step 5 : Modifier `TASK_MODEL.md`**
 
@@ -237,12 +238,26 @@ Remplacer :
 
 - [ ] **Step 4 : Modifier `docker-compose.yml`**
 
-Pour chaque service, remplacer les labels et container_name :
+Le fichier a un seul service actif (`hub`). Remplacer le commentaire header et ajouter un label :
 ```yaml
-container_name: clawpilot-hub   # était: dombot-hub ou labos-hub
-labels:
-  - "app=clawpilot"
+# ClawPilot — Full stack
+# WIP: services will be added progressively
+
+version: '3.9'
+
+services:
+  hub:
+    build: ./hub
+    ports:
+      - "${HUB_PORT:-8088}:80"
+    volumes:
+      - ./hub/public:/var/www/html
+    env_file: .env
+    labels:
+      - "app=clawpilot"
 ```
+
+**Ne pas** renommer le logo "DomBot.tech" dans `landing/index.html` — c'est le nom de domaine, pas le produit.
 
 - [ ] **Step 5 : Build landing pour vérifier aucune erreur**
 
@@ -271,16 +286,16 @@ git commit -m "feat: rename dombot-labos → ClawPilot (README, landing, docker)
 
 - [ ] **Step 1 : Remplacer `renderGantt()` dans `index.html`**
 
-Localiser la fonction `renderGantt(filtered)` (ligne ~497) et la remplacer intégralement :
+Localiser la fonction `renderGantt(filtered)` (ligne ~497) et la remplacer intégralement.
+
+**Stratégie** : insérer la structure dans le DOM d'abord, puis calculer `offsetWidth` pour les positions en pixels (évite le problème `calc(% * %)` invalide en CSS).
 
 ```js
 function renderGantt(filtered) {
   const board = document.getElementById('board');
   board.innerHTML = '';
+  const LABEL_W = 200;
 
-  const LABEL_W = 200;  // px réservés pour le label gauche
-
-  // Calcul start/end selon les 4 cas du spec
   function getRange(t) {
     const end = t.end_date || t.timeline;
     if (!end) return null;
@@ -292,22 +307,20 @@ function renderGantt(filtered) {
   const excluded = filtered.length - tasksWithRange.length;
 
   if (!tasksWithRange.length) {
-    board.innerHTML = '<div class="column" style="grid-column:1/-1;align-items:center;justify-content:center;"><div class="empty-col">Aucune tâche avec date de fin pour ce filtre.</div></div>';
+    board.innerHTML = '<div class="column" style="grid-column:1/-1"><div class="empty-col">Aucune tâche avec date de fin pour ce filtre.</div></div>';
     return;
   }
 
-  const allStarts = tasksWithRange.map(x => x.range.start.getTime());
-  const allEnds   = tasksWithRange.map(x => x.range.end.getTime());
+  const allMs = tasksWithRange.flatMap(x => [x.range.start.getTime(), x.range.end.getTime()]);
   const padMs = 3 * 24 * 60 * 60 * 1000;
-  const rangeStart = new Date(Math.min(...allStarts) - padMs);
-  const rangeEnd   = new Date(Math.max(...allEnds)   + padMs);
+  const rangeStart = new Date(Math.min(...allMs) - padMs);
+  const rangeEnd   = new Date(Math.max(...allMs) + padMs);
   const totalMs    = Math.max(rangeEnd - rangeStart, 24 * 60 * 60 * 1000);
-
-  // Axe en semaines
-  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const weekMs     = 7 * 24 * 60 * 60 * 1000;
   const totalWeeks = totalMs / weekMs;
-  const tickStep = Math.max(1, Math.ceil(totalWeeks / 10));
+  const tickStep   = Math.max(1, Math.ceil(totalWeeks / 10));
 
+  // Construire la structure DOM
   const container = document.createElement('div');
   container.className = 'column';
   container.style.gridColumn = '1 / -1';
@@ -319,63 +332,63 @@ function renderGantt(filtered) {
   gantt.className = 'gantt-container';
   const inner = document.createElement('div');
   inner.className = 'gantt-inner';
-
-  // Axe temporel
   const axis = document.createElement('div');
   axis.className = 'gantt-axis';
-  for (let w = 0; w <= totalWeeks; w += tickStep) {
-    const d = new Date(rangeStart.getTime() + w * weekMs);
-    const pct = Math.min(100, (d - rangeStart) / totalMs * 100);
-    const tick = document.createElement('div');
-    tick.className = 'gantt-axis-tick';
-    tick.style.left = `calc(${LABEL_W}px + ${pct}% * (100% - ${LABEL_W}px) / 100)`;
-    tick.innerHTML = `<div class="gantt-axis-tick-line"></div><div>${d.toISOString().slice(5,10)}</div>`;
-    axis.appendChild(tick);
-  }
-
-  // Lignes de tâches
   const rows = document.createElement('div');
   rows.className = 'gantt-rows';
+
   tasksWithRange.sort((a,b) => a.range.start - b.range.start);
 
+  // Pré-créer les barres et stocker les données de position
+  const barData = [];
   tasksWithRange.forEach(({ t, range }) => {
     const row = document.createElement('div');
     row.className = 'gantt-row';
-
     const label = document.createElement('div');
     label.className = 'gantt-label';
-    label.style.maxWidth = LABEL_W + 'px';
     label.textContent = t.title;
     row.appendChild(label);
-
-    const startPct = (range.start - rangeStart) / totalMs * 100;
-    const durationPct = Math.max(0, (range.end - range.start) / totalMs * 100);
-
     const bar = document.createElement('div');
     bar.className = 'gantt-bar';
     bar.dataset.status = t.status;
-    // Position relative à la zone de chart (après le label)
     bar.style.position = 'absolute';
-    bar.style.left = `calc(${LABEL_W}px + ${startPct}% * (100% - ${LABEL_W}px) / 100)`;
-    bar.style.width = `calc(max(8px, ${durationPct}% * (100% - ${LABEL_W}px) / 100))`;
     bar.style.top = '50%';
     bar.style.transform = 'translateY(-50%)';
     bar.onclick = () => openDetail(t);
-
     const durationDays = Math.round((range.end - range.start) / (24*60*60*1000));
-    bar.innerHTML = durationDays >= 3
-      ? `<span>${durationDays}j</span>`
-      : '';
-
+    if (durationDays >= 3) bar.innerHTML = `<span>${durationDays}j</span>`;
     row.appendChild(bar);
     rows.appendChild(row);
+    barData.push({ bar, range });
   });
 
   inner.appendChild(axis);
   inner.appendChild(rows);
   gantt.appendChild(inner);
   container.appendChild(gantt);
-  board.appendChild(container);
+  board.appendChild(container);  // ← INSERT FIRST to get offsetWidth
+
+  // Calculer les positions en pixels APRÈS insertion dans le DOM
+  const chartWidth = Math.max(1, inner.offsetWidth - LABEL_W);
+
+  // Ticks de l'axe
+  for (let w = 0; w <= totalWeeks; w += tickStep) {
+    const d = new Date(rangeStart.getTime() + w * weekMs);
+    const px = LABEL_W + Math.min(1, (d - rangeStart) / totalMs) * chartWidth;
+    const tick = document.createElement('div');
+    tick.className = 'gantt-axis-tick';
+    tick.style.left = px + 'px';
+    tick.innerHTML = `<div class="gantt-axis-tick-line"></div><div>${d.toISOString().slice(5,10)}</div>`;
+    axis.appendChild(tick);
+  }
+
+  // Positions des barres
+  barData.forEach(({ bar, range }) => {
+    const left = LABEL_W + (range.start.getTime() - rangeStart.getTime()) / totalMs * chartWidth;
+    const width = Math.max(8, (range.end.getTime() - range.start.getTime()) / totalMs * chartWidth);
+    bar.style.left = left + 'px';
+    bar.style.width = width + 'px';
+  });
 }
 ```
 
@@ -677,11 +690,15 @@ def test_compute_weekly_stats_weeks():
 
 
 def test_parse_git_log_valid():
-    raw = "2026-03-19|hub|feat: add blocked status|ldom1\n2026-03-18|kanban|fix: gantt bars|ldom1\n"
+    # git log --format=%as|%s|%an produit 3 champs : date|sujet|auteur
+    # Le repo est injecté par parse_git_log, pas présent dans la sortie git
+    raw = "2026-03-19|feat: add blocked status|ldom1\n2026-03-18|fix: gantt bars|ldom1\n"
     commits = parse_git_log(raw, repo="hub")
     assert len(commits) == 2
-    assert commits[0]["repo"] == "hub"
+    assert commits[0]["repo"] == "hub"   # injecté par le parseur
     assert commits[0]["message"] == "feat: add blocked status"
+    assert commits[0]["author"] == "ldom1"
+    assert commits[0]["date"] == "2026-03-19"
 
 
 def test_parse_git_log_empty():
@@ -1124,11 +1141,15 @@ Attendu : FAIL (`Task has no attribute 'is_ambiguous'`)
 
 - [ ] **Step 3 : Ajouter `is_ambiguous` dans `selector.py`**
 
-Dans la classe `Task`, après la propriété `is_eligible` :
+**a) Au niveau module**, après `AGENT_ASSIGNEES = {"DomBot"}` (ligne ~13), ajouter :
 
 ```python
 _VAGUE_WORDS = frozenset(["améliorer", "fix", "update", "check", "refactor"])
+```
 
+**b) Dans la classe `Task`**, après la propriété `is_eligible`, ajouter :
+
+```python
 @property
 def is_ambiguous(self) -> bool:
     """True si la tâche nécessite une clarification avant implémentation."""
@@ -1158,19 +1179,9 @@ Attendu : tous les tests passent (8 anciens + 7 nouveaux = 15 PASS)
 
 - [ ] **Step 5 : Modifier `__main__.py`**
 
-Dans `main_select()`, après `print(format_task_context(task))`, ajouter l'étape 1bis :
+Dans `main_select()`, localiser la ligne `print(f"TASK_ID={task.id}")` et **ajouter le bloc suivant immédiatement après** (ne pas remplacer la fonction entière) :
 
 ```python
-def main_select() -> None:
-    # ... code existant jusqu'à task = select_task(...)
-    if task is None:
-        # ... code existant
-        return
-
-    print(format_task_context(task))
-    print(f"\n---\nPROJET_PRIORITAIRE={project or PRIORITY_PROJECT or '(none)'}")
-    print(f"TASK_ID={task.id}")
-
     # ── Étape 1bis : Évaluation d'ambiguïté ──────────────────────────
     if task.is_ambiguous:
         print("\n⚠️  TÂCHE AMBIGUË — clarification requise avant implémentation.")
@@ -1187,9 +1198,6 @@ def main_select() -> None:
     else:
         print("\nIS_AMBIGUOUS=false")
         print("✅ Tâche claire — tu peux implémenter.")
-```
-
-Note : les appels Telegram et mise à jour des notes sont faits par DomBot manuellement après avoir lu ce output. Le script indique clairement la procédure.
 
 - [ ] **Step 6 : Mettre à jour `SKILL.md`**
 
