@@ -1,4 +1,4 @@
-"""LabOS Hub Core — metrics, providers, tokens, agents, and security."""
+"""ClawPilot Hub Core — metrics, providers, tokens, agents, and security."""
 
 from .security import (
     AgentIdentity,

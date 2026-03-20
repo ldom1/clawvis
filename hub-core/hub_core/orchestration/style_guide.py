@@ -1,4 +1,4 @@
-"""LabOS Style Guide — Unified voice management using reverse-prompt."""
+"""ClawPilot Style Guide — Unified voice management using reverse-prompt."""
 
 import json
 import os
