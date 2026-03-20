@@ -1,4 +1,5 @@
 """Kanban REST routes."""
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -22,6 +23,7 @@ from .core import (
     update_meta,
 )
 from .models import TaskCreate, TaskUpdate, CommentCreate, DependenciesUpdate, SplitTaskRequest, MetaUpdate
+from .weekly_stats import get_weekly_stats_data
 
 CODIR_FILE = Path.home() / ".openclaw/workspace/memory/kanban/CODIR.md"
 router = APIRouter()
@@ -40,8 +42,12 @@ def get_archive():
 @router.get("/stats")
 def stats():
     return get_stats()
-
-
+@router.get("/stats/weekly")
+async def get_weekly_stats():
+    data = list_active_tasks()
+    tasks = data["tasks"]
+    lab_repos = os.environ.get("LAB_REPOS", "")
+    return await get_weekly_stats_data(tasks, lab_repos)
 @router.get("/meta")
 def get_meta_endpoint():
     return get_meta()

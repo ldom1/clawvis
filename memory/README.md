@@ -1,6 +1,6 @@
 # Vault (Obsidian)
 
-This folder contains the default DomBot LabOS Obsidian vault using the PARA approach:
+This folder contains the default ClawPilot Obsidian vault using the PARA approach:
 
 - Projects — active outcomes you are working on.
 - Areas — ongoing responsibilities you need to maintain.

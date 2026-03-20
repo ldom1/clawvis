@@ -9,6 +9,7 @@ description = "Kanban & Logs API (FastAPI)"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.100",
+    "pydantic>=2.12.5",
     "pytest-asyncio>=1.3.0",
     "uvicorn[standard]>=0.22",
 ]

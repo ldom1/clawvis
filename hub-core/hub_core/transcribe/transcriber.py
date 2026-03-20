@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Audio transcription using Faster Whisper (open-source, local). No API key required.
    For Telegram voice in OpenClaw: use tools.media.audio.models with the CLI entry
-   pointing to Lab/hub/scripts/transcribe-audio.sh."""
+   pointing to Lab/dombot-labos/hub-core/transcribe-audio.sh."""
 
 from pathlib import Path
 from typing import Optional
@@ -11,8 +11,7 @@ from loguru import logger
 try:
     from faster_whisper import WhisperModel
 except ImportError:
-    logger.error("faster-whisper not installed. Run: uv pip install faster-whisper")
-    raise
+    WhisperModel = None
 
 
 def transcribe(audio_path: str, language: str = "fr", model_size: str = "base") -> Optional[str]:
@@ -31,6 +30,9 @@ def transcribe(audio_path: str, language: str = "fr", model_size: str = "base") 
     
     if not path.exists():
         logger.error("Audio file not found: {}", audio_path)
+        return None
+    if WhisperModel is None:
+        logger.error("faster-whisper not installed. Run: uv pip install faster-whisper")
         return None
     
     try:

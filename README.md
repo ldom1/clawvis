@@ -1,6 +1,7 @@
-# DomBot LabOS
+# ClawPilot
 
-> Your Personal AI Agent Lab — Open Source · Self-Hosted · AI-Native
+> Your personal AI agent OS — Matrix-grade orchestration, on your machine.
+> Open Source · Self-Hosted · AI-Native
 
 Deploy your own autonomous AI agent infrastructure in minutes.
 Hub, Kanban, multi-agent routing (OpenClaw / Claude / Gemini), shared PARA memory. On your machine.

@@ -6,6 +6,7 @@
 - **title** (`str`) : titre court de la tâche.
 - **project** (`str`) : nom du projet (peut être vide).
 - **status** (`\"Backlog\" | \"To Start\" | \"In Progress\" | \"Review\" | \"Done\" | \"Archived\"`).
+- **status** (`\"Backlog\" | \"To Start\" | \"In Progress\" | \"Blocked\" | \"Review\" | \"Done\" | \"Archived\"`).
 - **priority** (`\"Critical\" | \"High\" | \"Medium\" | \"Low\"`, défaut `\"Medium\"`).
 - **effort_hours** (`float | null`) : estimation d’effort.
 - **description** (`str`) : description principale de la tâche.
@@ -48,7 +49,7 @@ Lors de la sauvegarde, les tâches sont normalisées ainsi :
    - les dépendances vers des IDs inexistants ou auto‑références sont supprimées.
 2. **Tri** :
    - tri par `(project, status, start_date/timeline, created)` :
-     - `status` dans l’ordre `Backlog → To Start → In Progress → Review → Done → Archived`.
+     - `status` dans l’ordre `Backlog → To Start → In Progress → Blocked → Review → Done → Archived`.
      - puis par `start_date` si définie, sinon `timeline`, puis `created`.
 
 L’API `/tasks` retourne toujours les tâches actives (non `Archived`) avec ce tri appliqué, ainsi que :

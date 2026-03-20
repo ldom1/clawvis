@@ -4,6 +4,6 @@
 # Usage: transcribe-audio.sh <path-to-audio>
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CORE_DIR="$SCRIPT_DIR/../core"
+CORE_DIR="$SCRIPT_DIR/../hub-core"
 [[ -n "${1:-}" ]] || { echo "Usage: $0 <audio-file>" >&2; exit 1; }
 cd "$CORE_DIR" && uv run python -m hub_core transcribe "$1" -l fr

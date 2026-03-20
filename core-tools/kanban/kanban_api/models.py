@@ -5,9 +5,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Status = Literal["Backlog", "To Start", "In Progress", "Review", "Done", "Archived"]
+Status = Literal["Backlog", "To Start", "In Progress", "Blocked", "Review", "Done", "Archived"]
 Priority = Literal["Critical", "High", "Medium", "Low"]
-STATUSES: list[Status] = ["Backlog", "To Start", "In Progress", "Review", "Done", "Archived"]
+STATUSES: list[str] = ["Backlog", "To Start", "In Progress", "Blocked", "Review", "Done", "Archived"]
 
 
 class Task(BaseModel):

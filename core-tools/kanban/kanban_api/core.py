@@ -14,12 +14,12 @@ from .models import (
     TaskCreate,
     TaskUpdate,
     Status,
+    STATUSES,
     SplitTaskRequest,
     MetaUpdate,
 )
 
 TASKS_FILE = Path.home() / ".openclaw/workspace/memory/kanban/tasks.json"
-STATUSES: list[Status] = ["Backlog", "To Start", "In Progress", "Review", "Done"]
 _kanban_dir = str(TASKS_FILE.parent)
 if _kanban_dir not in sys.path:
     sys.path.insert(0, _kanban_dir)
@@ -33,7 +33,7 @@ _LOGGER_DIR = str(Path.home() / ".openclaw/skills/logger/core")
 
 
 def _log(level: str, action: str, message: str, metadata: dict | None = None):
-    cmd = ["uv", "run", "--directory", _LOGGER_DIR, "dombot-log", level, "kanban-api", "system", action, message]
+    cmd = ["uv", "run", "--directory", _LOGGER_DIR, "dombot-log", level, "project:kanban-api", "system", action, message]
     if metadata:
         cmd.append(json.dumps(metadata))
     try:

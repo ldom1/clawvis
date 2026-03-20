@@ -1,4 +1,4 @@
-# Contributing to DomBot LabOS
+# Contributing to ClawPilot
 
 - Open an issue before large changes.
 - Keep PRs small and focused.
