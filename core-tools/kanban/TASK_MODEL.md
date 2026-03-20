@@ -5,7 +5,6 @@
 - **id** (`str`) : identifiant unique `task-xxxxxxxx`.
 - **title** (`str`) : titre court de la tâche.
 - **project** (`str`) : nom du projet (peut être vide).
-- **status** (`\"Backlog\" | \"To Start\" | \"In Progress\" | \"Review\" | \"Done\" | \"Archived\"`).
 - **status** (`\"Backlog\" | \"To Start\" | \"In Progress\" | \"Blocked\" | \"Review\" | \"Done\" | \"Archived\"`).
 - **priority** (`\"Critical\" | \"High\" | \"Medium\" | \"Low\"`, défaut `\"Medium\"`).
 - **effort_hours** (`float | null`) : estimation d’effort.
