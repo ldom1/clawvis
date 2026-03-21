@@ -52,3 +52,10 @@ landing/.pnp.loader.mjs
 ########################
 
 docs/superpowers/*
+
+########################
+# Private instance
+########################
+
+instances/ldom/
+instances/ldom/.env.local

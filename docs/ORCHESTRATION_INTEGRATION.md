@@ -84,7 +84,7 @@ hub-core/
 ### Step 1: Verify Installation
 
 ```bash
-cd ~/Lab/dombot-labos/hub-core
+cd ~/Lab/clawvis/hub-core
 python3 test_orchestration.py
 
 # Output:
@@ -329,7 +329,7 @@ from loguru import logger
 ### Run Tests
 
 ```bash
-cd ~/Lab/dombot-labos/hub-core
+cd ~/Lab/clawvis/hub-core
 python3 test_orchestration.py
 ```
 

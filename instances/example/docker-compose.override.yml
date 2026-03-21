@@ -1,0 +1,16 @@
+# docker-compose.override.yml — Instance template
+# Copy to instances/ldom/ and customize
+version: "3.8"
+services:
+  hub:
+    volumes:
+      - ./instances/ldom/public:/srv/hub/public:ro
+    ports:
+      - "8088:80"
+  # Uncomment to add Authelia SSO:
+  # authelia:
+  #   image: authelia/authelia:latest
+  #   volumes:
+  #     - ./instances/ldom/authelia:/config
+  #   ports:
+  #     - "9091:9091"

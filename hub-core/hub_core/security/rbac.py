@@ -1,4 +1,4 @@
-"""Role-Based Access Control (RBAC) for LabOS agent capabilities."""
+"""Role-Based Access Control (RBAC) for Clawvis agent capabilities."""
 
 import logging
 from functools import wraps

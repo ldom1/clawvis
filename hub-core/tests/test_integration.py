@@ -1,7 +1,7 @@
 """Integration test: agent identity, RBAC, network policy, adapters, and registry.
 
 Usage:
-  cd ~/Lab/dombot-labos/hub-core
+  cd ~/Lab/clawvis/hub-core
   AGENT_ID=labos-orchestrator AGENT_ROLE=ORCHESTRATOR \\
   NETWORK_MODE=allowlist NETWORK_ALLOWLIST=api.anthropic.com,api.openai.com \\
   uv run pytest tests/test_integration.py -v
