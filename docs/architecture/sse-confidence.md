@@ -57,7 +57,7 @@ Cette convention est unifiée UI (JS), Python (selector.py), et SKILL.md.
 
 | Composant | Fichier |
 |-----------|---------|
-| SSE endpoint | `core-tools/kanban/kanban_api/sse.py` |
+| SSE endpoint | `kanban/kanban_api/sse.py` |
 | nginx streaming | `Lab/hub/nginx.conf` (bloc `/api/kanban/`) |
 | Kanban board UI | `Lab/hub/public/kanban/index.html` |
 | Selector filtre | `.openclaw/skills/kanban-implementer/core/kanban_implementer/selector.py` |
