@@ -256,7 +256,7 @@ Create style guides per language.
 
 - **reverse-prompt skill:** `~/.openclaw/skills/reverse-prompt/`
 - **LabOS SKILL.md:** `memory/projects/labos.md`
-- **Hub Core:** `~/Lab/dombot-labos/hub-core/`
+- **Hub Core:** `~/Lab/clawvis/hub-core/`
 
 ---
 

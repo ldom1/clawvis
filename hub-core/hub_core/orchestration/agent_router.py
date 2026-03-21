@@ -1,4 +1,4 @@
-"""ClawPilot Agent Router — Route tasks through agents with unified style guide."""
+"""Clawvis Agent Router — Route tasks through agents with unified style guide."""
 
 from dataclasses import dataclass
 from typing import Dict, Optional, Any

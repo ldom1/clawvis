@@ -1,4 +1,4 @@
-"""Network policy enforcement for ClawPilot agents.
+"""Network policy enforcement for Clawvis agents.
 
 Modes: unrestricted / restricted (essential domains) / allowlist (essential + custom).
 In Docker with NET_ADMIN, iptables rules are applied; otherwise, policy is logged only.

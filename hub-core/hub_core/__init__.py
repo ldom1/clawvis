@@ -1,4 +1,4 @@
-"""ClawPilot Hub Core — metrics, providers, tokens, agents, and security."""
+"""Clawvis Hub Core — metrics, providers, tokens, agents, and security."""
 
 from .security import (
     AgentIdentity,

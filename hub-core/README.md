@@ -88,7 +88,7 @@ In `~/.openclaw/workspace/crons/` (or via the `CronCreate` tool):
 {
   "name": "hub-refresh",
   "schedule": "*/5 * * * *",
-  "command": "cd ~/Lab/dombot-labos/hub-core && uv run python -m hub_core.main",
+  "command": "cd ~/Lab/clawvis/hub-core && uv run python -m hub_core.main",
   "description": "Refresh hub state every 5 minutes"
 }
 ```

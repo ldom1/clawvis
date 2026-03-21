@@ -1,4 +1,4 @@
-"""Agent identity and capability management for ClawPilot.
+"""Agent identity and capability management for Clawvis.
 
 Each agent has an explicit identity (e.g., labos-orchestrator@labos.local),
 a role, and a capability set. Actions are auditable. No delegation.

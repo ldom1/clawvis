@@ -1,4 +1,4 @@
-# Contributing to ClawPilot
+# Contributing to Clawvis
 
 - Open an issue before large changes.
 - Keep PRs small and focused.

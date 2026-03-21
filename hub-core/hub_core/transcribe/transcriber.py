@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Audio transcription using Faster Whisper (open-source, local). No API key required.
    For Telegram voice in OpenClaw: use tools.media.audio.models with the CLI entry
-   pointing to Lab/dombot-labos/hub-core/transcribe-audio.sh."""
+   pointing to Lab/clawvis/hub-core/transcribe-audio.sh."""
 
 from pathlib import Path
 from typing import Optional
