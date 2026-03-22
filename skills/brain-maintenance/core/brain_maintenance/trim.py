@@ -108,6 +108,6 @@ def main() -> int:
     log_file.write_text(json.dumps(report, indent=2), encoding="utf-8")
     if report["budget_status"] != "OK":
         log_warning("trim:over", f"Total {report['total_tokens']} tokens")
-    log_info("trim:complete", str(log_file))
-    print(f"✅ Audit saved: {log_file}\n")
+    log_info("trim:complete", f"Audit saved: {log_file.name}")
+    print(f"✅ Audit saved: {log_file.name}\n")
     return 0 if report["budget_status"] == "OK" else 1

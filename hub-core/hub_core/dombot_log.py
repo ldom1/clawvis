@@ -60,7 +60,59 @@ def _write(level: str, process: str, model: str, action: str, message: str, meta
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except Exception:
         pass  # Never crash the caller over logging
-    _send_to_discord(level, process, action, message, metadata, text_line.strip())
+    _send_to_discord(level, process, action, message, metadata)
+
+
+def _should_skip_discord(level: str, action: str) -> bool:
+    """Filter noisy/intermediate actions — keep only meaningful events."""
+    if (level or "").upper() in {"ERROR", "CRITICAL"}:
+        return False
+    a = (action or "").lower()
+    # agent:identity = internal bootstrap, not user-relevant
+    if a == "agent:identity":
+        return True
+    # hub:refresh = intermediate state, hub:complete is sufficient
+    if a == "hub:refresh":
+        return True
+    # cron:start = too noisy, cron:complete is enough
+    if a == "cron:start":
+        return True
+    return False
+
+
+def _format_human(level: str, process: str, action: str, message: str, metadata: dict) -> str:
+    """Human-readable Discord message with emoji, no timestamps or internal paths."""
+    import re as _re
+    a = (action or "").lower()
+    lvl = (level or "INFO").upper()
+
+    if lvl in ("ERROR", "CRITICAL") or "fail" in a:
+        emoji = "\u274c"
+    elif lvl == "WARNING":
+        emoji = "\u26a0\ufe0f"
+    elif "complete" in a or "done" in a or "success" in a or "ready" in a:
+        emoji = "\u2705"
+    elif "start" in a:
+        emoji = "\u25b6\ufe0f"
+    elif "hub" in a:
+        emoji = "\U0001f4ca"
+    else:
+        emoji = "\u2139\ufe0f"
+
+    name = process or ""
+    for prefix in ("cron:", "skill:", "hub-core", "agent:", "subagent:"):
+        name = name.replace(prefix, "")
+    name = name.strip("-").replace("-", " ").replace("_", " ").title() or "Hub Core"
+
+    short = _re.sub(r"\s*\(log_file=[^)]+\)", "", message)
+
+    text = f"{emoji} **{name}** \u2014 {short}"
+    if metadata:
+        useful = {"cpu", "ram", "exit_code", "status", "mammouth_credits", "claude_usage"}
+        parts = [f"{k}={v}" for k, v in metadata.items() if k in useful]
+        if parts:
+            text += f"\n`{', '.join(parts)}`"
+    return text
 
 
 def _send_to_discord(
@@ -69,16 +121,18 @@ def _send_to_discord(
     action: str,
     message: str,
     metadata: dict,
-    formatted_message: str,
 ) -> None:
     if not DISCORD_SEND_SCRIPT.exists():
+        return
+    if _should_skip_discord(level, action):
         return
     target = _route_discord_channel(level, process, action, message, metadata)
     if not target:
         return
+    human_msg = _format_human(level, process, action, message, metadata)
     try:
         subprocess.run(
-            [str(DISCORD_SEND_SCRIPT), target, formatted_message],
+            [str(DISCORD_SEND_SCRIPT), target, human_msg],
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
