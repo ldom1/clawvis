@@ -5,6 +5,10 @@ set -euo pipefail
 OPENCLAW_LOGS="${OPENCLAW_LOGS:-$HOME/.openclaw/logs}"
 mkdir -p "$OPENCLAW_LOGS"
 
+# Load instance secrets (TELEGRAM_TARGET_ID, etc.)
+ENV_LOCAL="${HUB_ROOT:-$HOME/Lab/hub-ldom/instances/ldom}/.env.local"
+[ -f "$ENV_LOCAL" ] && set -a && . "$ENV_LOCAL" && set +a
+
 trap 'e=$?; [ $e -ne 0 ] && uv run --directory ~/.openclaw/skills/logger/core dombot-log "ERROR" "cron:morning-briefing" "system" "cron:fail" "Script failed (exit $e)" 2>/dev/null || true; exit $e' EXIT
 
 uv run --directory ~/.openclaw/skills/logger/core \
