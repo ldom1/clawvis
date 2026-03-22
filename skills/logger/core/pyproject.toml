@@ -1,0 +1,55 @@
+[project]
+name = "dombot-logger"
+version = "0.1.0"
+description = "Unified structured logging for DomBot agents"
+requires-python = ">=3.11"
+dependencies = [
+    "loguru",
+    "pydantic>=2.0",
+    "python-dotenv",
+    "discord.py",
+    "typer",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "pylint>=3.3.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+warn_unused_ignores = true
+
+[tool.pylint.main]
+max-line-length = 100
+
+[tool.pylint.messages_control]
+disable = [
+    "C0114", "C0115", "C0116",
+    "C0301", "C0415", "C0103", "W0603", "R0913", "R0917",
+    "W0718", "E0401", "E1101", "C0305", "W1510",
+]
+
+[project.scripts]
+dombot-log = "dombot_logger:cli_main"
+discord-cli = "dombot_logger.discord_cli:app"
+discord_cli = "dombot_logger.discord_cli:app"

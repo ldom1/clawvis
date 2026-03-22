@@ -1,0 +1,61 @@
+{
+  "skill": "reverse-prompt",
+  "version": "0.1.0",
+  "author": "DomBot",
+  "description": "Reverse-engineer optimal prompts from example outputs using RPEGA algorithm",
+  "tags": ["prompt-engineering", "ai-optimization", "quality-gates", "labos"],
+  
+  "defaults": {
+    "model": "claude-haiku",
+    "iterations": 3,
+    "confidence_threshold": 0.85
+  },
+  
+  "capabilities": [
+    "reverse_engineer",
+    "detect_patterns",
+    "generate_candidates",
+    "refine_iteratively",
+    "calculate_confidence"
+  ],
+  
+  "use_cases": [
+    "Unified agent voice across LabOS",
+    "Quality gate scoring",
+    "Training data generation",
+    "Prompt optimization",
+    "Style guide enforcement"
+  ],
+  
+  "integration_points": {
+    "labos_orchestration": "~/Lab/dombot-labos/hub-core",
+    "http_endpoint": "/api/reverse-prompt",
+    "python_module": "reverse_prompt.engine.ReversePromptEngine"
+  },
+  
+  "patterns_detected": [
+    "tone",
+    "structure",
+    "audience",
+    "length",
+    "format",
+    "emoji_indicators"
+  ],
+  
+  "performance": {
+    "latency_ms": {
+      "small_input": 2000,
+      "medium_input": 5000,
+      "large_input": 10000
+    },
+    "confidence_accuracy": "92-96%"
+  },
+  
+  "roadmap": [
+    "HTTP API endpoint (/api/reverse-prompt)",
+    "Batch processing (multiple examples)",
+    "Fine-tuning integration",
+    "Pattern visualization dashboard",
+    "Webhook integration"
+  ]
+}

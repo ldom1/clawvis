@@ -1,0 +1,17 @@
+[project]
+name = "reverse-prompt"
+version = "0.1.0"
+description = "Reverse-engineer prompts from example outputs using Claude"
+authors = [{name = "DomBot", email = "dombot@openclaw.local"}]
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.35.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["core"]
+include = ["reverse_prompt*"]
