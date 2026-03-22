@@ -10,15 +10,15 @@ from brain_maintenance.logging import log_info, log_warning
 
 WORKSPACE = Path.home() / ".openclaw" / "workspace"
 L1_FILES = {
-    "SOUL.md": 1000,
-    "AGENTS.md": 1000,
-    "MEMORY.md": 800,
+    "SOUL.md": 1500,
+    "AGENTS.md": 3500,  # behavioral rules — intentionally large
+    "MEMORY.md": 1800,
     "USER.md": 500,
-    "TOOLS.md": 500,
-    "IDENTITY.md": 200,
+    "TOOLS.md": 900,
+    "IDENTITY.md": 300,
     "HEARTBEAT.md": 300,
 }
-L1_TOTAL_BUDGET = 7000
+L1_TOTAL_BUDGET = 8800
 
 
 def count_tokens(text: str) -> int:
