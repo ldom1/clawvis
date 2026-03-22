@@ -1,0 +1,42 @@
+.env
+__pycache__/
+.pytest_cache/
+
+# Local runtime data (created by discord-cli create-channels)
+.local/
+
+# Python bytecode/cache
+*.py[cod]
+*.pyo
+*.pyd
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Type/check/lint/test caches
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Reports / local editor state
+pylint-report.txt
+.idea/
+.vscode/
