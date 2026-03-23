@@ -5,9 +5,6 @@ on:
     branches: ["**"]
   pull_request:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          submodules: false
 
       - name: Setup Node
         uses: actions/setup-node@v4

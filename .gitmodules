@@ -1,0 +1,7 @@
+[submodule "skills/ruflo"]
+	path = skills/ruflo
+	url = https://github.com/ldom1/ruflo.git
+
+[submodule "skills/self-improvement"]
+	path = skills/self-improvement
+	url = https://github.com/peterskoett/self-improving-agent.git
