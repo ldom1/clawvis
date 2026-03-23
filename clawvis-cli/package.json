@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "bin": {
-    "clawvisx": "./cli.mjs"
+    "clawvis": "./cli.mjs"
   },
   "scripts": {
     "start": "node ./cli.mjs --help"

@@ -75,15 +75,15 @@ async function runInstallInteractive() {
         languageChoice: "Choix / Choice",
         instanceName: "Nom de l'instance",
         modeTitle: "Mode:",
-        mode1Name: "Production (Recommended)",
+        mode1Name: "Simple (Recommande)",
         mode1Desc:
-          "Pour utiliser Clawvis au quotidien sur ton ordinateur, avec une experience complete prete a l'emploi.",
-        mode2Name: "Production (Docker)",
-        mode2Desc: "Pour un environnement stable et reproductible, base sur docker. Necessite d'avoir Docker installe.",
+          "Installation rapide en une commande. Ports et chemins configures automatiquement. Necessite Docker.",
+        mode2Name: "Serveur / Avance (Docker)",
+        mode2Desc: "Pour un deploiement sur serveur ou VPS. Permet de configurer ports et chemins manuellement.",
         mode3Name: "Dev (contribution)",
-        mode3Desc: "Pour developper et contribuer au projet avec une boucle de travail rapide, base sur Docker.",
+        mode3Desc: "Pour developper et contribuer au projet. Stack complete : npm, uv, kanban API.",
         mode4Name: "Dev light",
-        mode4Desc: "Pour decouvrir et explorer l'outil sans configurer de runtime IA.",
+        mode4Desc: "Pour decouvrir l'outil sans configurer de runtime IA.",
         choice: "Choix",
         projectsRoot: "Dossier projets",
         hubPort: "Port Hub",
@@ -117,12 +117,13 @@ async function runInstallInteractive() {
         languageChoice: "Choix / Choice",
         instanceName: "Instance name",
         modeTitle: "Mode:",
-        mode1Name: "Production (Recommended)",
-        mode1Desc: "Use Clawvis daily on your computer, with a complete ready-to-go experience.",
-        mode2Name: "Production (Docker)",
-        mode2Desc: "A stable and reproducible setup based on Docker. Docker is required.",
+        mode1Name: "Simple (Recommended)",
+        mode1Desc:
+          "One-command setup with automatic defaults. Requires Docker.",
+        mode2Name: "Server / Advanced (Docker)",
+        mode2Desc: "For server or VPS deployments. Lets you configure ports and paths manually.",
         mode3Name: "Dev (contribution)",
-        mode3Desc: "Develop and contribute with a fast workflow, based on Docker.",
+        mode3Desc: "Full dev stack to develop and contribute: npm, uv, kanban API.",
         mode4Name: "Dev light",
         mode4Desc: "Explore the tool without setting up the primary AI runtime.",
         choice: "Choice",
@@ -200,7 +201,7 @@ async function runInstallInteractive() {
     let hubPort = "8088";
     let memoryPort = "3099";
     let kanbanApiPort = "8090";
-    if (mode === "dev") {
+    if (modePick >= 2) {
       hubPort = await ask(t("hubPort"), hubPort);
       memoryPort = await ask(t("brainPort"), memoryPort);
       kanbanApiPort = await ask(t("kanbanApiPort"), kanbanApiPort);
@@ -213,7 +214,7 @@ async function runInstallInteractive() {
     let claudeApiKey = "";
     let mistralApiKey = "";
 
-    const skipPrimary = modePick === 4 ? true : mode === "dev" ? await yn(t("skipPrimaryPrompt"), true) : false;
+    const skipPrimary = modePick === 4 ? true : modePick === 3 ? await yn(t("skipPrimaryPrompt"), true) : false;
     if (!skipPrimary) {
       console.log("");
       console.log(t("providerPrompt"));
