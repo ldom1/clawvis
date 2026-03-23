@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+          cache-dependency-path: "hub/yarn.lock"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate shell scripts
+        run: |
+          bash -n scripts/start.sh
+          bash -n scripts/deploy.sh
+          bash -n scripts/upgrade.sh
+          bash -n clawvis
+          bash -n scripts/init-memory.sh
+          bash -n scripts/lifecycle.sh
+
+      - name: Install Hub deps
+        run: |
+          corepack enable
+          yarn --cwd hub install --frozen-lockfile
+
+      - name: Hub format check
+        run: yarn --cwd hub format:check
+
+      - name: Hub tests
+        run: yarn --cwd hub test
+
+      - name: Hub build
+        run: yarn --cwd hub build
+
+      - name: Python compile check
+        run: python -m compileall kanban/kanban_api
+
+      - name: License check
+        run: |
+          test -f LICENSE
+          grep -q "^MIT License$" LICENSE
+          grep -q "^Permission is hereby granted, free of charge" LICENSE

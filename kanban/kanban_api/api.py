@@ -21,8 +21,26 @@ from .core import (
     split_task,
     get_meta,
     update_meta,
+    get_hub_settings,
+    update_hub_settings,
+    create_project,
+    list_projects,
+    get_project,
+    list_memory_project_files,
+    read_memory_project_file,
+    save_memory_project_file,
 )
-from .models import TaskCreate, TaskUpdate, CommentCreate, DependenciesUpdate, SplitTaskRequest, MetaUpdate
+from .models import (
+    TaskCreate,
+    TaskUpdate,
+    CommentCreate,
+    DependenciesUpdate,
+    SplitTaskRequest,
+    MetaUpdate,
+    HubSettingsUpdate,
+    ProjectCreate,
+    MemoryFileSave,
+)
 from .weekly_stats import get_weekly_stats_data
 
 CODIR_FILE = Path.home() / ".openclaw/workspace/memory/kanban/CODIR.md"
@@ -56,6 +74,60 @@ def get_meta_endpoint():
 @router.post("/tasks")
 def create_task_endpoint(body: TaskCreate):
     return create_task(body)
+
+
+@router.get("/hub/settings")
+def get_hub_settings_endpoint():
+    return get_hub_settings()
+
+
+@router.put("/hub/settings")
+def update_hub_settings_endpoint(body: HubSettingsUpdate):
+    return update_hub_settings(body)
+
+
+@router.get("/hub/projects")
+def list_projects_endpoint():
+    return list_projects()
+
+
+@router.post("/hub/projects")
+def create_project_endpoint(body: ProjectCreate):
+    try:
+        return create_project(body)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
+@router.get("/hub/projects/{project_slug}")
+def get_project_endpoint(project_slug: str):
+    try:
+        return get_project(project_slug)
+    except KeyError:
+        raise HTTPException(404, "Project not found")
+
+
+@router.get("/memory/projects")
+def list_memory_projects_endpoint():
+    return list_memory_project_files()
+
+
+@router.get("/memory/projects/{filename}")
+def read_memory_project_endpoint(filename: str):
+    try:
+        return read_memory_project_file(filename)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except KeyError:
+        raise HTTPException(404, "Memory file not found")
+
+
+@router.put("/memory/projects")
+def save_memory_project_endpoint(body: MemoryFileSave):
+    try:
+        return save_memory_project_file(body.filename, body.content)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.get("/codir")

@@ -5,8 +5,9 @@ Each deployment of Clawvis is an "instance" — a copy of Clawvis customized for
 ## Create your instance
 
 ```bash
-cp -r instances/example instances/ldom   # use your name
-echo "instances/ldom/.env.local" >> .gitignore
+./install.sh
+# installer asks your instance name and renames:
+# instances/example -> instances/<your_name>
 ```
 
 For a private fork (recommended):
@@ -15,8 +16,8 @@ git clone https://github.com/lgiron/clawvis hub-ldom
 cd hub-ldom
 git remote rename origin upstream
 git remote add origin git@github.com:YOURNAME/hub-ldom.git
-cp -r instances/example instances/ldom
-echo "instances/ldom/.env.local" >> .gitignore
+# run installer and set your instance name
+./install.sh
 git push -u origin main
 ```
 
@@ -27,6 +28,6 @@ git push -u origin main
 | nginx config (personal) | `instances/ldom/nginx/nginx.conf` | Your routes |
 | Authelia | `instances/ldom/authelia/` | Your SSO |
 | Scripts | `instances/ldom/scripts/` | Your ops scripts |
-| Served content | `instances/ldom/public/` | Your dashboard HTML |
+| Instance memory | `instances/<name>/memory/` | Canonical Brain + project SoT |
 | API keys | `instances/ldom/.env.local` | Never committed |
 | Generic hub code | `hub/`, `hub-core/`, `kanban/` | Shared — contribute back |

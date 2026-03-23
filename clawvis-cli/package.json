@@ -1,0 +1,18 @@
+{
+  "name": "clawvis-cli",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "clawvis": "./cli.mjs"
+  },
+  "scripts": {
+    "start": "node ./cli.mjs --help"
+  },
+  "dependencies": {
+    "boxen": "^8.0.1",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "figlet": "^1.11.0",
+    "gradient-string": "^3.0.0"
+  }
+}
