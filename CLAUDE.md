@@ -10,6 +10,15 @@ Primary goal:
 - keep all user-specific behavior inside one instance folder
 - Forbidden local edits in root files unless contributing upstream
 
+## Design Philosophy — Adoptability First
+
+**Clawvis must be easy to adopt.** Every friction point in install, onboarding, or UX is a blocker.
+
+- Install = 1 command, no technical knowledge required (mode "Simple" is the default)
+- Labels and prompts must use plain language, no Docker/nginx/uv jargon for end users
+- Technical options (server deployment, port config, dev stack) exist but are not the default path
+- When in doubt, choose the simpler approach for the user-facing layer
+
 ## Repository Contract
 
 Two layers must stay separated:
