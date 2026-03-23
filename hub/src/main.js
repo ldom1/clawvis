@@ -455,7 +455,6 @@ function wireSystemStatus() {
         }
       }
     } catch (e) {}
-
   }
 
   loadStats();
@@ -507,7 +506,9 @@ async function wireMemoryEditor() {
     }
   }
   async function loadFile(filename) {
-    const res = await fetch(`/api/kanban/memory/projects/${encodeURIComponent(filename)}`);
+    const res = await fetch(
+      `/api/kanban/memory/projects/${encodeURIComponent(filename)}`,
+    );
     if (!res.ok) return;
     const payload = await res.json();
     name.value = payload.filename;
