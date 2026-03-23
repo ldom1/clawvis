@@ -49,3 +49,9 @@ jobs:
 
       - name: Python compile check
         run: python -m compileall kanban/kanban_api
+
+      - name: License check
+        run: |
+          test -f LICENSE
+          grep -q "^MIT License$" LICENSE
+          grep -q "^Permission is hereby granted, free of charge" LICENSE
