@@ -15,29 +15,36 @@
 
 Clawvis provides the core Hub + Kanban + Brain runtime contract, while each user deployment is isolated in its own instance folder and memory root.
 
-## Install (recommended)
+## Install
+
+**One-liner (recommended):**
 
 ```bash
-git clone https://github.com/lgiron/clawvis
-cd clawvis
-chmod +x clawvis
-mkdir -p ~/.local/bin
-ln -sf "$PWD/clawvis" ~/.local/bin/clawvis
-export PATH="$HOME/.local/bin:$PATH"
-clawvis install
+curl -fsSL https://raw.githubusercontent.com/lgiron/clawvis/main/get.sh | bash
 ```
 
-`clawvis install` guides:
-- instance naming (`instances/<name>`)
-- provider selection (OpenClaw / Claude / Mistral)
-- memory initialization (instance-scoped)
-- run mode (docker or local dev)
-
-## Quick Start
+**Ou avec git :**
 
 ```bash
-clawvis install --non-interactive --instance demo --provider claude --claude-api-key "sk-ant-..." --mode docker
+git clone https://github.com/lgiron/clawvis && cd clawvis && ./install.sh
+```
+
+`install.sh` s'occupe de tout :
+- création du symlink `~/.local/bin/clawvis`
+- injection du PATH dans ton shell profile
+- wizard de configuration (instance, provider, mode)
+
+Après l'install, recharge ton shell puis vérifie :
+
+```bash
+source ~/.bashrc   # ou source ~/.zshrc
 clawvis doctor
+```
+
+**Non-interactif :**
+
+```bash
+./install.sh --non-interactive --instance demo --provider claude --claude-api-key "sk-ant-..." --mode docker
 ```
 
 Main URLs (defaults):

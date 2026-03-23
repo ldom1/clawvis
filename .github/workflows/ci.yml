@@ -30,6 +30,8 @@ jobs:
           bash -n scripts/deploy.sh
           bash -n scripts/upgrade.sh
           bash -n clawvis
+          bash -n install.sh
+          bash -n get.sh
           bash -n scripts/init-memory.sh
           bash -n scripts/lifecycle.sh
 

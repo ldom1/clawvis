@@ -39,8 +39,24 @@ ensure_cli_shim() {
   case ":${PATH}:" in
     *":${bin_dir}:"*) ;;
     *)
-      warn "Add ${bin_dir} to PATH to use 'clawvis' globally."
-      echo "Run: export PATH=\"${bin_dir}:\$PATH\""
+      local export_line="export PATH=\"${bin_dir}:\$PATH\""
+      local rc_file=""
+      if [ -f "${HOME}/.zshrc" ] && [ "${SHELL:-}" = "/bin/zsh" -o "${SHELL:-}" = "/usr/bin/zsh" ]; then
+        rc_file="${HOME}/.zshrc"
+      elif [ -f "${HOME}/.bashrc" ]; then
+        rc_file="${HOME}/.bashrc"
+      elif [ -f "${HOME}/.zshrc" ]; then
+        rc_file="${HOME}/.zshrc"
+      fi
+      if [ -n "${rc_file}" ]; then
+        if ! grep -qF "${bin_dir}" "${rc_file}" 2>/dev/null; then
+          printf "\n# Added by clawvis installer\n%s\n" "${export_line}" >> "${rc_file}"
+          warn "Added ${bin_dir} to PATH in ${rc_file}. Run: source ${rc_file}"
+        fi
+      else
+        warn "Add to your shell profile: ${export_line}"
+      fi
+      export PATH="${bin_dir}:${PATH}"
       ;;
   esac
 }

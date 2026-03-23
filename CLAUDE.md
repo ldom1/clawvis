@@ -19,6 +19,16 @@ Primary goal:
 - Technical options (server deployment, port config, dev stack) exist but are not the default path
 - When in doubt, choose the simpler approach for the user-facing layer
 
+## Adoption & Installation — Règles absolues
+
+- **Point d'entrée unique :** `get.sh` (one-liner) ou `./install.sh` — jamais `clawvis install` comme premier contact
+- `clawvis install` = raccourci post-install pour re-run le wizard, PAS le bootstrap initial
+- `install.sh` gère tout : chmod, symlink `~/.local/bin/clawvis`, injection PATH dans le shell profile, wizard
+- Un nouvel utilisateur ne doit jamais taper plus d'une commande pour démarrer
+- README : montrer `get.sh` one-liner EN PREMIER, `git clone + ./install.sh` en fallback
+- Toute friction dans l'onboarding est un bug, pas un "nice to have"
+- `get.sh` clone dans `~/.clawvis` par défaut, surridable via `CLAWVIS_DIR`
+
 ## Repository Contract
 
 Two layers must stay separated:
