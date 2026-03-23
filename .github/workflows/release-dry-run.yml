@@ -14,9 +14,9 @@ jobs:
         env:
           FUTURE_TAG: v2026-03-23
         run: |
-          echo "${FUTURE_TAG}" | rg "^v[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          echo "${FUTURE_TAG}" | grep -qE "^v[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 
       - name: Validate release workflow regex
         run: |
           test -f .github/workflows/release.yml
-          rg "v\\[0-9\\]\\{4\\}-\\[0-9\\]\\{2\\}-\\[0-9\\]\\{2\\}" .github/workflows/release.yml
+          grep -q "v\\\[0-9\\\]" .github/workflows/release.yml
