@@ -4,81 +4,110 @@
   <img src="./hub/public/clawvis-mascot.svg" alt="Clawvis mascot" width="160" />
 </p>
 
-[![CI](https://github.com/lgiron/clawvis/actions/workflows/ci.yml/badge.svg)](https://github.com/lgiron/clawvis/actions/workflows/ci.yml)
-[![Release](https://github.com/lgiron/clawvis/actions/workflows/release.yml/badge.svg)](https://github.com/lgiron/clawvis/actions/workflows/release.yml)
-[![Release Dry Run](https://github.com/lgiron/clawvis/actions/workflows/release-dry-run.yml/badge.svg)](https://github.com/lgiron/clawvis/actions/workflows/release-dry-run.yml)
-[![License Check](https://github.com/lgiron/clawvis/actions/workflows/license.yml/badge.svg)](https://github.com/lgiron/clawvis/actions/workflows/license.yml)
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+<p align="center">
+  <strong>Your personal AI workspace — Hub, Kanban, Memory, Skills. One command to start.</strong>
+</p>
 
-> Shared core platform for instance-scoped Clawvis deployments.
-> Keep core updatable. Keep user customizations in `instances/<instance_name>/`.
+<p align="center">
+  <a href="https://github.com/lgiron/clawvis/actions/workflows/ci.yml"><img src="https://github.com/lgiron/clawvis/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/lgiron/clawvis/actions/workflows/release.yml"><img src="https://github.com/lgiron/clawvis/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT">
+</p>
 
-Clawvis provides the core Hub + Kanban + Brain runtime contract, while each user deployment is isolated in its own instance folder and memory root.
+---
+
+Clawvis gives you a self-hosted control center for your AI agents: a dashboard Hub, a Kanban board with confidence scoring, a searchable memory Brain, and a pluggable skills system — all wired to your preferred AI runtime (Claude, Mistral, or self-hosted OpenClaw).
+
+Your customizations stay in `instances/<your-name>/` and are never touched by core updates.
 
 ## Install
-
-**One-liner (recommended):**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/lgiron/clawvis/main/get.sh | bash
 ```
 
-**Ou avec git :**
+That's it. The installer handles the symlink, PATH, and guides you through the setup wizard.
+
+After install, reload your shell and verify:
+
+```bash
+source ~/.bashrc   # or source ~/.zshrc
+clawvis doctor
+```
+
+**With git:**
 
 ```bash
 git clone https://github.com/lgiron/clawvis && cd clawvis && ./install.sh
 ```
 
-`install.sh` s'occupe de tout :
-- création du symlink `~/.local/bin/clawvis`
-- injection du PATH dans ton shell profile
-- wizard de configuration (instance, provider, mode)
-
-Après l'install, recharge ton shell puis vérifie :
+**Non-interactive (CI / scripted):**
 
 ```bash
-source ~/.bashrc   # ou source ~/.zshrc
-clawvis doctor
+./install.sh --non-interactive --instance myname --provider claude --claude-api-key "sk-ant-..." --mode docker
 ```
 
-**Non-interactif :**
+## What you get
+
+| Service | URL (default) | Description |
+|---------|--------------|-------------|
+| Hub | `http://localhost:8088` | Dashboard — agent activity, logs, status |
+| Kanban | `http://localhost:8088/kanban/` | Task board with Kahneman-style confidence scoring |
+| Brain | `http://localhost:8088/memory/` | Searchable PARA memory vault |
+| Logs | `http://localhost:8088/logs/` | Live SSE log stream |
+
+## Daily use
 
 ```bash
-./install.sh --non-interactive --instance demo --provider claude --claude-api-key "sk-ant-..." --mode docker
+clawvis start          # start the stack
+clawvis doctor         # health check all services
+clawvis update wizard  # interactive upgrade
+clawvis backup create  # snapshot your instance before updates
 ```
 
-Main URLs (defaults):
-- Hub: `http://localhost:8088`
-- Logs: `http://localhost:8088/logs/`
-- Kanban: `http://localhost:8088/kanban/`
-- Brain: `http://localhost:8088/memory/` (runtime on `http://localhost:3099`)
+## Stay up to date
 
-## Update lifecycle
-
-Versioned updates:
+Core updates never touch your instance data:
 
 ```bash
 clawvis update status
-clawvis update wizard
-# or
 clawvis update --tag v2026-03-23
+# or
+clawvis update --channel stable
 ```
 
-Backup / restore:
+Rollback anytime:
 
 ```bash
-clawvis backup create --json
 clawvis backup list
 clawvis restore <backup-id>
 ```
 
-## Architecture behavior
+## Providers
 
-- Work instance-specific only under `instances/<name>/`.
-- Keep core reusable in root (`hub`, `kanban`, `hub-core`, `skills`).
-- Memory source of truth is instance-scoped (`MEMORY_ROOT`, default `instances/<name>/memory`).
+Choose your AI runtime during install — switch anytime in `.env`:
 
-## What's Inside
+| Provider | Variable |
+|----------|----------|
+| Claude (Anthropic) | `CLAUDE_API_KEY` |
+| Mistral | `MISTRAL_API_KEY` |
+| OpenClaw (self-hosted) | `OPENCLAW_BASE_URL` + `OPENCLAW_API_KEY` |
+
+## Private instance (fork pattern)
+
+Run your own private fork that stays upgradeable from upstream:
+
+```bash
+git clone https://github.com/lgiron/clawvis hub-myname
+cd hub-myname
+git remote rename origin upstream
+git remote add origin git@github.com:YOURNAME/hub-myname.git
+./install.sh
+```
+
+All your customizations go in `instances/myname/` — merge upstream updates freely.
+
+## What's inside
 
 | Directory | Purpose |
 |-----------|---------|
@@ -87,26 +116,7 @@ clawvis restore <backup-id>
 | `kanban/` | Task board API with confidence scoring |
 | `skills/` | Pre-configured agent skills |
 | `openclaw/` | OpenClaw wrapper + config |
-| `vault-template/` | Obsidian PARA vault template |
-| `instances/` | Per-instance config (fork `instances/example/`) |
-
-## Private Instance (hub-ldom pattern)
-
-```bash
-git clone https://github.com/lgiron/clawvis hub-ldom
-cd hub-ldom
-git remote rename origin upstream
-git remote add origin git@github.com:YOURNAME/hub-ldom.git
-clawvis install
-```
-
-## Architecture
-
-**Layer 1 — Operational:** Hub + Kanban + Logs with confidence scoring (Kahneman-inspired)
-
-**Layer 2 — Orchestration:** Multi-agent routing — route tasks to best agent by cost & quality
-
-**Layer 3 — Accessibility:** One-click deploy, Web UI setup, no CLI required
+| `instances/` | Your instance config — never overwritten by updates |
 
 ## License
 
