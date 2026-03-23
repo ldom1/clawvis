@@ -57,5 +57,8 @@ docs/superpowers/*
 # Private instance
 ########################
 
-instances/ldom/
-instances/ldom/.env.local
+# Ignore all instance runtime/private data by default.
+instances/*
+# Keep template/test instances tracked.
+!instances/example/
+!instances/example/**

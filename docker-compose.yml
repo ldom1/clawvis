@@ -9,11 +9,32 @@ services:
     build: ./hub
     ports:
       - "${HUB_PORT:-8088}:80"
-    volumes:
-      - ./hub/public:/var/www/html
     env_file: .env
     labels:
       - "app=clawpilot"
+
+  memory:
+    image: ghcr.io/sytone/obsidian-remote:latest
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    ports:
+      - "${MEMORY_PORT:-3099}:8080"
+    volumes:
+      # obsidian-remote attend un dossier de vaults + un dossier de config.
+      - ./${MEMORY_ROOT:-instances/example/memory}:/vaults
+      - ./${MEMORY_CONFIG_ROOT:-instances/${INSTANCE_NAME:-example}/obsidian-config}:/config
+    environment:
+      - TZ=${TZ:-UTC}
+
+  hub-vite:
+    image: node:20-alpine
+    profiles: ["dev"]
+    working_dir: /app/hub
+    command: sh -c "corepack enable && yarn install --frozen-lockfile && yarn build && yarn dev --host 0.0.0.0 --port ${HUB_VITE_PORT:-5173}"
+    volumes:
+      - ./:/app
+    ports:
+      - "${HUB_VITE_PORT:-5173}:${HUB_VITE_PORT:-5173}"
+    env_file: .env
 
   # kanban:  # coming in Phase Setup.1
   # openclaw: # coming in Phase Setup.1

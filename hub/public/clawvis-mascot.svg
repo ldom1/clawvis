@@ -1,0 +1,194 @@
+    <svg viewBox="0 0 300 370" xmlns="http://www.w3.org/2000/svg" fill="none">
+
+      <!-- ============ PINCE GAUCHE ============ -->
+      <!-- Bras/manche -->
+      <path d="M 96 210 Q 76 214 62 222 Q 57 220 58 228 Q 60 236 68 231 Q 82 226 100 218 Z"
+            fill="#6D28D9" stroke="#111" stroke-width="2.2"/>
+      <!-- Segment carpus -->
+      <ellipse cx="52" cy="238" rx="13" ry="9"
+               fill="#E84040" stroke="#111" stroke-width="2"
+               transform="rotate(-12 52 238)"/>
+      <!-- Paume principale (propodus) -->
+      <ellipse cx="35" cy="254" rx="19" ry="13"
+               fill="#E84040" stroke="#111" stroke-width="2.4"
+               transform="rotate(-18 35 254)"/>
+      <!-- Pince supérieure (doigt fixe) -->
+      <path d="M 24 246 Q 11 232 8 223 Q 7 215 17 217 Q 25 219 28 232 L 27 246 Z"
+            fill="#E84040" stroke="#111" stroke-width="2.4" stroke-linejoin="round"/>
+      <!-- Pince inférieure (dactyle) -->
+      <path d="M 24 262 Q 11 276 8 285 Q 7 293 17 291 Q 25 289 28 276 L 27 262 Z"
+            fill="#C83030" stroke="#111" stroke-width="2.4" stroke-linejoin="round"/>
+      <!-- Ligne entre les pinces -->
+      <line x1="22" y1="254" x2="10" y2="254" stroke="#C03030" stroke-width="1.5" opacity=".7"/>
+      <!-- Texture / nervures -->
+      <path d="M 32 249 Q 20 244 14 238" stroke="#C03030" stroke-width="1.3" opacity=".6"/>
+      <path d="M 32 258 Q 20 263 14 267" stroke="#C03030" stroke-width="1.3" opacity=".5"/>
+      <circle cx="40" cy="249" r="2" fill="#C03030" opacity=".5"/>
+      <circle cx="46" cy="246" r="2" fill="#C03030" opacity=".5"/>
+
+      <!-- ============ PINCE DROITE ============ -->
+      <!-- Bras/manche -->
+      <path d="M 204 210 Q 224 214 238 222 Q 243 220 242 228 Q 240 236 232 231 Q 218 226 200 218 Z"
+            fill="#6D28D9" stroke="#111" stroke-width="2.2"/>
+      <!-- Segment carpus -->
+      <ellipse cx="248" cy="238" rx="13" ry="9"
+               fill="#E84040" stroke="#111" stroke-width="2"
+               transform="rotate(12 248 238)"/>
+      <!-- Paume principale -->
+      <ellipse cx="265" cy="254" rx="19" ry="13"
+               fill="#E84040" stroke="#111" stroke-width="2.4"
+               transform="rotate(18 265 254)"/>
+      <!-- Pince supérieure -->
+      <path d="M 276 246 Q 289 232 292 223 Q 293 215 283 217 Q 275 219 272 232 L 273 246 Z"
+            fill="#E84040" stroke="#111" stroke-width="2.4" stroke-linejoin="round"/>
+      <!-- Pince inférieure -->
+      <path d="M 276 262 Q 289 276 292 285 Q 293 293 283 291 Q 275 289 272 276 L 273 262 Z"
+            fill="#C83030" stroke="#111" stroke-width="2.4" stroke-linejoin="round"/>
+      <!-- Ligne entre les pinces -->
+      <line x1="278" y1="254" x2="290" y2="254" stroke="#C03030" stroke-width="1.5" opacity=".7"/>
+      <!-- Texture -->
+      <path d="M 268 249 Q 280 244 286 238" stroke="#C03030" stroke-width="1.3" opacity=".6"/>
+      <path d="M 268 258 Q 280 263 286 267" stroke="#C03030" stroke-width="1.3" opacity=".5"/>
+      <circle cx="260" cy="249" r="2" fill="#C03030" opacity=".5"/>
+      <circle cx="254" cy="246" r="2" fill="#C03030" opacity=".5"/>
+
+      <!-- ============ CORPS (robe royale) ============ -->
+      <!-- Robe principale -->
+      <path d="M 97 198 Q 85 244 80 360 L 220 360 Q 215 244 203 198 Q 188 186 150 184 Q 112 186 97 198 Z"
+            fill="#6D28D9" stroke="#111" stroke-width="2.4"/>
+      <!-- Ombres sur les côtés de la robe -->
+      <path d="M 97 198 Q 85 244 80 360 Q 93 354 97 305 Q 101 260 104 215 Z"
+            fill="#5B21B6" opacity=".45"/>
+      <path d="M 203 198 Q 215 244 220 360 Q 207 354 203 305 Q 199 260 196 215 Z"
+            fill="#5B21B6" opacity=".45"/>
+
+      <!-- Liseré doré central -->
+      <path d="M 150 192 L 150 352" stroke="#FFD700" stroke-width="2.8" opacity=".7"/>
+
+      <!-- Boutons dorés -->
+      <circle cx="150" cy="218" r="5" fill="#FFD700" stroke="#111" stroke-width="1.5"/>
+      <circle cx="150" cy="244" r="5" fill="#FFD700" stroke="#111" stroke-width="1.5"/>
+      <circle cx="150" cy="270" r="5" fill="#FFD700" stroke="#111" stroke-width="1.5"/>
+      <circle cx="150" cy="296" r="5" fill="#FFD700" stroke="#111" stroke-width="1.5"/>
+
+      <!-- Fleur de lys gauche (petite) -->
+      <g opacity=".7" transform="translate(116, 218)">
+        <rect x="-3" y="-14" width="6" height="16" rx="3" fill="#FFD700"/>
+        <circle cx="0" cy="-16" r="5" fill="#FFD700"/>
+        <ellipse cx="-7" cy="-5" rx="6" ry="4" fill="#FFD700" transform="rotate(-30 -7 -5)"/>
+        <ellipse cx="7" cy="-5" rx="6" ry="4" fill="#FFD700" transform="rotate(30 7 -5)"/>
+      </g>
+      <!-- Fleur de lys droite -->
+      <g opacity=".7" transform="translate(184, 218)">
+        <rect x="-3" y="-14" width="6" height="16" rx="3" fill="#FFD700"/>
+        <circle cx="0" cy="-16" r="5" fill="#FFD700"/>
+        <ellipse cx="-7" cy="-5" rx="6" ry="4" fill="#FFD700" transform="rotate(-30 -7 -5)"/>
+        <ellipse cx="7" cy="-5" rx="6" ry="4" fill="#FFD700" transform="rotate(30 7 -5)"/>
+      </g>
+
+      <!-- Bordure hermine (bas de robe) -->
+      <path d="M 80 360 L 220 360 L 215 338 Q 190 347 150 345 Q 110 347 85 338 Z"
+            fill="white" stroke="#111" stroke-width="1.5"/>
+      <!-- Points hermine -->
+      <circle cx="104" cy="347" r="4.5" fill="#111"/>
+      <circle cx="125" cy="350" r="4.5" fill="#111"/>
+      <circle cx="150" cy="351" r="4.5" fill="#111"/>
+      <circle cx="175" cy="350" r="4.5" fill="#111"/>
+      <circle cx="196" cy="347" r="4.5" fill="#111"/>
+
+      <!-- ============ COU ============ -->
+      <rect x="132" y="178" width="36" height="18" rx="9"
+            fill="#FFDBA8" stroke="#111" stroke-width="2"/>
+
+      <!-- Collerette (petite fraise à la française !) -->
+      <path d="M 112 185 Q 128 176 144 182 Q 136 194 118 191 Z"
+            fill="white" stroke="#111" stroke-width="1.6"/>
+      <path d="M 188 185 Q 172 176 156 182 Q 164 194 182 191 Z"
+            fill="white" stroke="#111" stroke-width="1.6"/>
+      <ellipse cx="150" cy="184" rx="9" ry="7"
+               fill="white" stroke="#111" stroke-width="1.6"/>
+
+      <!-- ============ TÊTE ============ -->
+      <circle cx="150" cy="120" r="60"
+              fill="#FFDBA8" stroke="#111" stroke-width="3"/>
+
+      <!-- ============ VISAGE ============ -->
+      <!-- Sourcils expressifs -->
+      <path d="M 118 103 Q 128 96 138 101" stroke="#6B3A2A" stroke-width="3.8"
+            stroke-linecap="round"/>
+      <path d="M 162 101 Q 172 96 182 103" stroke="#6B3A2A" stroke-width="3.8"
+            stroke-linecap="round"/>
+
+      <!-- Œil gauche -->
+      <circle cx="131" cy="114" r="11" fill="white" stroke="#111" stroke-width="1.5"/>
+      <circle cx="133" cy="116" r="7"   fill="#4A3030"/>
+      <circle cx="133" cy="116" r="4"   fill="#1A1A1A"/>
+      <circle cx="136" cy="113" r="2.5" fill="white"/>
+
+      <!-- Œil droit -->
+      <circle cx="169" cy="114" r="11" fill="white" stroke="#111" stroke-width="1.5"/>
+      <circle cx="171" cy="116" r="7"   fill="#4A3030"/>
+      <circle cx="171" cy="116" r="4"   fill="#1A1A1A"/>
+      <circle cx="174" cy="113" r="2.5" fill="white"/>
+
+      <!-- Nez -->
+      <path d="M 148 128 Q 150 135 152 128" stroke="#CC8855"
+            stroke-width="2.2" stroke-linecap="round"/>
+
+      <!-- Moustache à la française (glorieuse et bouclée !) -->
+      <path d="M 126 138 Q 133 132 143 137 Q 147 139 150 137"
+            stroke="#6B3A2A" stroke-width="3.8" stroke-linecap="round"/>
+      <path d="M 150 137 Q 153 139 157 137 Q 167 132 174 138"
+            stroke="#6B3A2A" stroke-width="3.8" stroke-linecap="round"/>
+      <!-- Boucles de la moustache -->
+      <path d="M 126 138 Q 119 141 122 146 Q 125 150 130 147"
+            stroke="#6B3A2A" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 174 138 Q 181 141 178 146 Q 175 150 170 147"
+            stroke="#6B3A2A" stroke-width="3" stroke-linecap="round"/>
+
+      <!-- Sourire -->
+      <path d="M 134 152 Q 150 164 166 152"
+            stroke="#6B3A2A" stroke-width="2.6" stroke-linecap="round"/>
+
+      <!-- Joues roses -->
+      <circle cx="118" cy="128" r="13" fill="#FFB3A0" opacity=".32"/>
+      <circle cx="182" cy="128" r="13" fill="#FFB3A0" opacity=".32"/>
+
+      <!-- Barbiche royale (petite) -->
+      <path d="M 143 165 Q 150 171 157 165 Q 154 175 150 176 Q 146 175 143 165 Z"
+            fill="#6B3A2A" opacity=".72"/>
+
+      <!-- ============ COURONNE ============ -->
+      <!-- Bandeau de la couronne -->
+      <rect x="82" y="62" width="136" height="32" rx="8"
+            fill="#FFD700" stroke="#111" stroke-width="2.5"/>
+      <!-- Ligne de décoration du bandeau -->
+      <line x1="82" y1="78" x2="218" y2="78" stroke="#FFA500" stroke-width="2" opacity=".55"/>
+
+      <!-- Pic gauche -->
+      <path d="M 94 62 L 86 34 L 114 50 Z"
+            fill="#FFD700" stroke="#111" stroke-width="2.5" stroke-linejoin="round"/>
+
+      <!-- Pic central (fleur de lys) -->
+      <!-- Tige -->
+      <rect x="147" y="28" width="6" height="36" rx="3"
+            fill="#FFD700" stroke="#111" stroke-width="2"/>
+      <!-- Bulbe supérieur -->
+      <circle cx="150" cy="22" r="10"
+              fill="#FFD700" stroke="#111" stroke-width="2.5"/>
+      <!-- Ailes gauche/droite de la fleur de lys -->
+      <path d="M 142 44 Q 128 40 126 30 Q 125 22 134 25 Q 140 28 142 40 Z"
+            fill="#FFD700" stroke="#111" stroke-width="2"/>
+      <path d="M 158 44 Q 172 40 174 30 Q 175 22 166 25 Q 160 28 158 40 Z"
+            fill="#FFD700" stroke="#111" stroke-width="2"/>
+
+      <!-- Pic droit -->
+      <path d="M 206 62 L 214 34 L 186 50 Z"
+            fill="#FFD700" stroke="#111" stroke-width="2.5" stroke-linejoin="round"/>
+
+      <!-- Gemmes de la couronne -->
+      <circle cx="105" cy="73" r="6" fill="#FF3366" stroke="#111" stroke-width="1.5"/>
+      <circle cx="150" cy="70" r="6" fill="#33AAFF" stroke="#111" stroke-width="1.5"/>
+      <circle cx="195" cy="73" r="6" fill="#44EE99" stroke="#111" stroke-width="1.5"/>
+
+    </svg>

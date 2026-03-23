@@ -82,3 +82,25 @@ class MetaUpdate(BaseModel):
     vision: str | None = None
     description: str | None = None
     pr_links: list[str] | None = None
+
+
+TemplateType = Literal["python", "vite", "nextjs", "empty"]
+ProjectStage = Literal["PoC", "MVP", "Production"]
+
+
+class HubSettingsUpdate(BaseModel):
+    projects_root: str
+
+
+class ProjectCreate(BaseModel):
+    description: str = Field(min_length=3)
+    name: str | None = None
+    stage: ProjectStage = "PoC"
+    tags: list[str] = Field(default_factory=list)
+    template: TemplateType = "python"
+    init_git: bool = True
+
+
+class MemoryFileSave(BaseModel):
+    filename: str
+    content: str

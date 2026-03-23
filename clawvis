@@ -1,0 +1,384 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+# If `clawvis` is executed via a symlink (e.g. ~/.local/bin/clawvis), resolve the real path.
+if command -v readlink >/dev/null 2>&1; then
+  SCRIPT_PATH="$(readlink -f "${SCRIPT_PATH}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+fi
+ROOT_DIR="$(cd "$(dirname "${SCRIPT_PATH}")" && pwd)"
+ENV_FILE="${ROOT_DIR}/.env"
+
+# Prefer the Node-powered fancy CLI when available.
+# The fallback flag prevents recursion when Node CLI delegates back here.
+if [ "${CLAWVIS_NO_NODE_WRAPPER:-0}" != "1" ] && command -v node >/dev/null 2>&1 && [ -f "${ROOT_DIR}/clawvis-cli/cli.mjs" ]; then
+  exec node "${ROOT_DIR}/clawvis-cli/cli.mjs" "$@"
+fi
+
+log() { printf "==> %s\n" "$1"; }
+warn() { printf "[warn] %s\n" "$1"; }
+die() { printf "[error] %s\n" "$1" >&2; exit 1; }
+
+if [ -t 1 ]; then
+  C_RESET=$'\033[0m'
+  C_DIM=$'\033[2m'
+  C_ACCENT=$'\033[38;5;99m'
+  C_OK=$'\033[38;5;42m'
+else
+  C_RESET=""
+  C_DIM=""
+  C_ACCENT=""
+  C_OK=""
+fi
+
+cli_version() {
+  git -C "${ROOT_DIR}" describe --tags --always 2>/dev/null || echo "dev"
+}
+
+print_banner() {
+  local v
+  v="$(cli_version)"
+  cat <<EOF
+${C_ACCENT}
+   _____ _                     _
+  / ____| |                   (_)
+ | |    | | __ ___      ___   ___ ___
+ | |    | |/ _\` \ \ /\ / / | | / __|
+ | |____| | (_| |\ V  V /| |_| \__ \\
+  \_____|_|\__,_| \_/\_/  \__,_|___/
+${C_RESET}
+${C_DIM}Clawvis CLI${C_RESET} ${C_OK}${v}${C_RESET}
+${C_RESET} Ship fast, keep memory canonical.
+EOF
+}
+
+load_env() {
+  if [ -f "${ENV_FILE}" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "${ENV_FILE}"
+    set +a
+  fi
+}
+
+instance_name() {
+  printf "%s" "${INSTANCE_NAME:-example}"
+}
+
+instance_dir() {
+  printf "%s/instances/%s" "${ROOT_DIR}" "$(instance_name)"
+}
+
+memory_root_abs() {
+  local rel="${MEMORY_ROOT:-instances/$(instance_name)/memory}"
+  printf "%s/%s" "${ROOT_DIR}" "${rel}"
+}
+
+ensure_instance_scope() {
+  local dir
+  dir="$(instance_dir)"
+  [ -d "${dir}" ] || die "Instance folder missing: ${dir}. Run './install.sh' first."
+}
+
+ensure_tools() {
+  command -v docker >/dev/null 2>&1 || die "docker is required"
+}
+
+print_help() {
+  print_banner
+  cat <<'EOF'
+
+Usage:
+  clawvis install [install flags...]
+  clawvis setup [install flags...]
+  clawvis start
+  clawvis deploy
+  clawvis update [--tag <ref>] [--channel <stable|beta|dev>] [--dry-run]
+  clawvis update status [--json]
+  clawvis update wizard
+  clawvis backup create [--json]
+  clawvis backup list
+  clawvis restore <backup-id>
+  clawvis uninstall [--all --yes] [--dry-run]
+  clawvis doctor
+  clawvis restart
+
+Notes:
+  - Instance-scoped operations target instances/<INSTANCE_NAME>/ and MEMORY_ROOT.
+  - configure INSTANCE_NAME and MEMORY_ROOT in .env.
+EOF
+}
+
+cmd_install() {
+  log "Delegating to install.sh"
+  exec "${ROOT_DIR}/install.sh" "$@"
+}
+
+cmd_start() {
+  log "Starting local dev stack"
+  exec "${ROOT_DIR}/scripts/start.sh" "$@"
+}
+
+cmd_deploy() {
+  log "Deploying via scripts/deploy.sh"
+  exec "${ROOT_DIR}/scripts/deploy.sh" "$@"
+}
+
+cmd_update_status() {
+  load_env
+  local as_json=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --json) as_json=1 ;;
+      *) die "Unknown update status arg: $1" ;;
+    esac
+    shift
+  done
+  local ref
+  ref="$(git -C "${ROOT_DIR}" describe --tags --always 2>/dev/null || git -C "${ROOT_DIR}" rev-parse --short HEAD)"
+  local dirty="clean"
+  if [ -n "$(git -C "${ROOT_DIR}" status --porcelain)" ]; then
+    dirty="dirty"
+  fi
+  if [ "${as_json}" -eq 1 ]; then
+    printf '{"instance":"%s","memory_root":"%s","git_ref":"%s","worktree":"%s"}\n' \
+      "$(instance_name)" "$(memory_root_abs)" "${ref}" "${dirty}"
+  else
+    printf "instance=%s\n" "$(instance_name)"
+    printf "memory_root=%s\n" "$(memory_root_abs)"
+    printf "git_ref=%s\n" "${ref}"
+    printf "worktree=%s\n" "${dirty}"
+  fi
+}
+
+cmd_update() {
+  local tag="" dry_run=0 channel=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --tag) tag="${2:-}"; shift ;;
+      --channel) channel="${2:-}"; shift ;;
+      --dry-run) dry_run=1 ;;
+      *) die "Unknown update arg: $1" ;;
+    esac
+    shift
+  done
+  if [ -n "${channel}" ]; then
+    case "${channel}" in
+      stable)
+        tag="$(git -C "${ROOT_DIR}" tag --sort=-v:refname | rg -v "beta" | head -n1 || true)"
+        ;;
+      beta)
+        tag="$(git -C "${ROOT_DIR}" tag --sort=-v:refname | rg "beta" | head -n1 || true)"
+        ;;
+      dev)
+        tag="main"
+        ;;
+      *)
+        die "Invalid channel: ${channel}. Use stable|beta|dev"
+        ;;
+    esac
+  fi
+  if [ -z "${tag}" ]; then
+    die "Use: clawvis update --tag <ref> or --channel <stable|beta|dev>"
+  fi
+  if [ "${dry_run}" -eq 1 ]; then
+    log "Dry-run update"
+    echo "channel=${channel:-manual}"
+    echo "target=${tag}"
+    echo "Would run: scripts/upgrade.sh ${tag}"
+    return 0
+  fi
+  exec "${ROOT_DIR}/scripts/upgrade.sh" "${tag}"
+}
+
+cmd_update_wizard() {
+  local current target
+  current="$(git -C "${ROOT_DIR}" describe --tags --always 2>/dev/null || git -C "${ROOT_DIR}" rev-parse --short HEAD)"
+  log "Current version: ${current}"
+  echo "Recent tags:"
+  git -C "${ROOT_DIR}" tag --sort=-creatordate | head -n 12 || true
+  printf "Target tag: "
+  read -r target
+  [ -n "${target}" ] || die "Tag is required."
+  exec "${ROOT_DIR}/scripts/upgrade.sh" "${target}"
+}
+
+backup_dir() {
+  printf "%s/instances/%s/backups" "${ROOT_DIR}" "$(instance_name)"
+}
+
+cmd_backup_create() {
+  load_env
+  ensure_instance_scope
+  local as_json=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --json) as_json=1 ;;
+      *) die "Unknown backup create arg: $1" ;;
+    esac
+    shift
+  done
+  mkdir -p "$(backup_dir)"
+  local ts name out
+  ts="$(date +%Y%m%d-%H%M%S)"
+  name="clawvis-$(instance_name)-${ts}.tar.gz"
+  out="$(backup_dir)/${name}"
+  local mem
+  mem="$(memory_root_abs)"
+  log "Creating backup ${name}"
+  local -a sources=()
+  [ -f "${ROOT_DIR}/.env" ] && sources+=(".env")
+  [ -d "${ROOT_DIR}/instances/$(instance_name)" ] && sources+=("instances/$(instance_name)")
+  if [ -d "${mem}" ]; then
+    sources+=("$(realpath --relative-to="${ROOT_DIR}" "${mem}")")
+  fi
+  [ "${#sources[@]}" -gt 0 ] || die "Nothing to backup."
+  tar -czf "${out}" -C "${ROOT_DIR}" "${sources[@]}" >/dev/null 2>&1
+  [ -f "${out}" ] || die "Backup failed."
+  if [ "${as_json}" -eq 1 ]; then
+    printf '{"backup":"%s","instance":"%s"}\n' "${out}" "$(instance_name)"
+  else
+    echo "${out}"
+  fi
+}
+
+cmd_backup_list() {
+  load_env
+  ensure_instance_scope
+  mkdir -p "$(backup_dir)"
+  ls -1 "$(backup_dir)" | rg '\.tar\.gz$' || true
+}
+
+cmd_restore() {
+  load_env
+  ensure_instance_scope
+  local id="${1:-}"
+  [ -n "${id}" ] || die "Use: clawvis restore <backup-id>"
+  local archive
+  archive="$(backup_dir)/${id}"
+  [ -f "${archive}" ] || die "Backup not found: ${archive}"
+  log "Restoring ${archive}"
+  tar -xzf "${archive}" -C "${ROOT_DIR}"
+  log "Restore complete"
+}
+
+cmd_uninstall() {
+  load_env
+  ensure_tools
+  local all=0 yes=0 dry_run=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --all) all=1 ;;
+      --yes) yes=1 ;;
+      --dry-run) dry_run=1 ;;
+      *) die "Unknown uninstall arg: $1" ;;
+    esac
+    shift
+  done
+  if [ "${dry_run}" -eq 1 ]; then
+    echo "Would backup instance $(instance_name)"
+    echo "Would run: docker compose down"
+    echo "Would remove: $(instance_dir)"
+    echo "Would remove: $(memory_root_abs)"
+    return 0
+  fi
+  [ "${all}" -eq 1 ] || die "Use '--all --yes' for explicit full uninstall."
+  [ "${yes}" -eq 1 ] || die "Use '--yes' to confirm."
+  log "Creating backup before uninstall"
+  cmd_backup_create >/dev/null
+  log "Stopping stack"
+  docker compose -f "${ROOT_DIR}/docker-compose.yml" down || true
+  log "Removing instance runtime data"
+  rm -rf "$(instance_dir)" "$(memory_root_abs)"
+  warn "CLI script remains. Reinstall with './install.sh'."
+}
+
+cmd_doctor() {
+  load_env
+  ensure_tools
+  local ok=1
+  local hub_port="${HUB_PORT:-8088}"
+  local memory_port="${MEMORY_PORT:-3099}"
+  log "Running checks"
+  if ! [ -d "$(instance_dir)" ]; then
+    echo "- instance folder: missing"; ok=0
+  else
+    echo "- instance folder: ok"
+  fi
+  if ! [ -d "$(memory_root_abs)" ]; then
+    echo "- memory root: missing"; ok=0
+  else
+    echo "- memory root: ok"
+  fi
+  if command -v curl >/dev/null 2>&1; then
+    http_check() {
+      local label="$1" url="$2"
+      curl -fsS "$url" >/dev/null 2>/dev/null && echo "- ${label}: ok" || {
+        echo "- ${label}: unreachable"
+        ok=0
+      }
+    }
+
+    http_check "hub" "http://localhost:${hub_port}/"
+    http_check "logs" "http://localhost:${hub_port}/logs/"
+    http_check "kanban" "http://localhost:${hub_port}/kanban/"
+    http_check "memory route" "http://localhost:${hub_port}/memory/"
+    http_check "brain runtime" "http://localhost:${memory_port}/"
+  else
+    warn "curl not found; http checks skipped"
+  fi
+  [ "${ok}" -eq 1 ] || exit 1
+}
+
+cmd_restart() {
+  load_env
+  ensure_tools
+  local restart_script="${ROOT_DIR}/instances/$(instance_name)/restart.sh"
+  if [ -f "${restart_script}" ]; then
+    exec bash "${restart_script}" "$@"
+  fi
+  # Fallback: restart like update, but without checkout.
+  # Use dev mode when MODE=2, otherwise docker mode.
+  # shellcheck disable=SC1090
+  . "${ROOT_DIR}/scripts/lifecycle.sh"
+  load_env_file
+  init_instance_memory
+  rebuild_hub_yarn
+  if [ "${MODE:-1}" = "2" ] || [ "${MODE:-}" = "dev" ]; then
+    exec "${ROOT_DIR}/scripts/start.sh" "$@"
+  fi
+  cd "${ROOT_DIR}"
+  docker compose up -d --build hub memory
+}
+
+main() {
+  local cmd="${1:-help}"
+  shift || true
+  case "${cmd}" in
+    help|-h|--help) print_help ;;
+    install|setup) cmd_install "$@" ;;
+    start|strat) cmd_start "$@" ;;
+    deploy) cmd_deploy "$@" ;;
+    update)
+      local sub="${1:-}"
+      if [ "${sub}" = "status" ]; then shift; cmd_update_status "$@"
+      elif [ "${sub}" = "wizard" ]; then shift; cmd_update_wizard "$@"
+      else cmd_update "$@" ; fi
+      ;;
+    backup)
+      local sub="${1:-}"
+      case "${sub}" in
+        create) shift; cmd_backup_create "$@" ;;
+        list) shift; cmd_backup_list "$@" ;;
+        *) die "Use 'clawvis backup create|list'" ;;
+      esac
+      ;;
+    restore) cmd_restore "$@" ;;
+    uninstall) cmd_uninstall "$@" ;;
+    doctor) cmd_doctor "$@" ;;
+    restart) cmd_restart "$@" ;;
+    *) die "Unknown command: ${cmd}. Use 'clawvis --help'." ;;
+  esac
+}
+
+main "$@"

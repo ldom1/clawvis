@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clawvis Settings</title>
+  <style>
+    :root { --bg:#09090b; --surface:#18181b; --border:#27272a; --text:#fafafa; --muted:#a1a1aa; --accent:#6366f1; }
+    body.theme-light { --bg:#fafafa; --surface:#ffffff; --border:#d4d4d8; --text:#18181b; --muted:#52525b; --accent:#4f46e5; }
+    body { font-family: Inter, system-ui, sans-serif; background:var(--bg); color:var(--text); margin:0; padding:2rem; }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    .topbar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      margin-bottom: .9rem;
+    }
+    .topbar-left { display:flex; gap:.5rem; align-items:center; }
+    .topbar-link {
+      color:var(--text);
+      text-decoration:none;
+      font-size:.8rem;
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:.35rem .55rem;
+      background:var(--surface);
+    }
+    .topbar-link:hover { border-color:var(--accent); color:var(--accent); }
+    .card { border:1px solid var(--border); border-radius: 14px; padding: 1rem; background:var(--surface); }
+    label { display:block; font-size:.8rem; color:var(--muted); margin:.8rem 0 .35rem; }
+    input, select { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:.55rem .6rem; }
+    button { margin-top: 1rem; background:var(--accent); color:#fff; border:0; border-radius:8px; padding:.55rem .8rem; cursor:pointer; }
+    a { color:#818cf8; }
+    .inline { display:flex; gap:.5rem; margin-top:.4rem; }
+    .inline button { margin-top:0; background:transparent; color:var(--text); border:1px solid var(--border); }
+    .inline button.active { border-color:var(--accent); color:var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="topbar-left">
+        <a class="topbar-link" href="/">← Retour au hub</a>
+        <a class="topbar-link" href="/settings/">Settings</a>
+      </div>
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 .25rem;">Settings</h2>
+      <p style="margin:0;color:var(--muted);font-size:.85rem;">Define the root path for projects.</p>
+      <label>Projects path</label>
+      <input id="projects-root" placeholder="~/Lab/projects" />
+      <button id="save-settings">Save</button>
+    </div>
+    <div class="card" style="margin-top:.9rem;">
+      <h2 style="margin:0 0 .25rem;">Apparence</h2>
+      <p style="margin:0;color:var(--muted);font-size:.85rem;">Choisis le thème du Hub.</p>
+      <div class="inline">
+        <button id="theme-dark" type="button">🌙 Sombre</button>
+        <button id="theme-light" type="button">☀️ Clair</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    function applyTheme(theme) {
+      localStorage.setItem('hub-theme', theme);
+      document.body.classList.toggle('theme-light', theme === 'light');
+      document.getElementById('theme-dark').classList.toggle('active', theme !== 'light');
+      document.getElementById('theme-light').classList.toggle('active', theme === 'light');
+    }
+
+    async function loadSettings() {
+      applyTheme(localStorage.getItem('hub-theme') || 'dark');
+      const res = await fetch('/api/kanban/hub/settings');
+      if (!res.ok) return;
+      const data = await res.json();
+      document.getElementById('projects-root').value = data.projects_root || '';
+    }
+    async function saveSettings() {
+      const projects_root = document.getElementById('projects-root').value.trim();
+      const res = await fetch('/api/kanban/hub/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projects_root }),
+      });
+      if (!res.ok) return alert('Save failed');
+      alert('Saved');
+    }
+    document.getElementById('save-settings').addEventListener('click', saveSettings);
+    document.getElementById('theme-dark').addEventListener('click', () => applyTheme('dark'));
+    document.getElementById('theme-light').addEventListener('click', () => applyTheme('light'));
+    loadSettings();
+  </script>
+</body>
+</html>
