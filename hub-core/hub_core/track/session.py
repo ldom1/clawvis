@@ -3,7 +3,6 @@
 import json
 import subprocess
 from datetime import datetime
-from pathlib import Path
 
 from loguru import logger
 
@@ -16,7 +15,9 @@ def get_openclaw_status() -> dict | None:
     try:
         result = subprocess.run(
             ["openclaw", "status", "--json"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode != 0:
             logger.warning(f"openclaw status failed: {result.stderr}")
@@ -67,7 +68,10 @@ def update_session_tokens() -> dict:
         }
         logger.info(f"MammouthAI: {mammouth_usage.subscription}")
     else:
-        mammouth_data = {"status": "not_configured", "note": "Set MAMMOUTH_API_KEY in .env"}
+        mammouth_data = {
+            "status": "not_configured",
+            "note": "Set MAMMOUTH_API_KEY in .env",
+        }
 
     session_data = {
         "updated_at": datetime.now().isoformat(),

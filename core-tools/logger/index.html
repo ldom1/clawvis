@@ -195,6 +195,20 @@ async function fetchLogs() {
   }
 }
 
+function formatLogDisplayTs(raw) {
+  if (!raw) return '—';
+  const normalized = String(raw).replace(/Z$/i, '');
+  const d = new Date(normalized);
+  if (!Number.isNaN(d.getTime())) {
+    return d.toLocaleString(undefined, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    });
+  }
+  const t = String(raw).includes('T') ? String(raw).replace('T', ' ') : String(raw);
+  return t.length > 23 ? t.slice(0, 23) : t;
+}
+
 function renderLogs(logs) {
   const tbody = document.getElementById('log-body');
   if (!logs.length) {
@@ -213,13 +227,14 @@ function renderLogs(logs) {
   });
 
   tbody.innerHTML = logs.map(l => {
-    const ts = (l.timestamp || '').replace('T', ' ').slice(0, 19);
+    const rawTs = (l.timestamp || l.ts || '').trim();
+    const ts = formatLogDisplayTs(rawTs);
     const meta = l.metadata && Object.keys(l.metadata).length
       ? `<div class="meta">${Object.entries(l.metadata).map(([k,v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ')}</div>`
       : '';
     const modelShort = (l.model || '-').replace('anthropic/', '').replace('mistral/', '');
     return `<tr>
-      <td class="mono ts">${ts}</td>
+      <td class="mono ts" title="${escapeHtml(rawTs || '—')}">${escapeHtml(ts)}</td>
       <td><span class="level level-${l.level}">${l.level}</span></td>
       <td><span class="process-badge">${l.process || '-'}</span></td>
       <td class="mono" style="font-size:0.68rem;color:var(--muted)">${modelShort}</td>

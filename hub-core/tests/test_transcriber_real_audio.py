@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-from pathlib import Path
-
 import re
 import unicodedata
+from pathlib import Path
 
 from hub_core.transcribe import transcribe
 
@@ -26,4 +25,3 @@ def test_transcribe_real_audio_example():
     nt, ne = norm(text), norm(expected_txt)
     for frag in ("kimi com", "comment", "fonctionne", "seconde"):
         assert frag in nt, f"Missing {frag!r}. Expected around: {ne!r}. Got: {nt!r}"
-

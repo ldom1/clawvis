@@ -7,7 +7,7 @@ In Docker with NET_ADMIN, iptables rules are applied; otherwise, policy is logge
 import logging
 import os
 import socket
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Set
 
@@ -58,7 +58,9 @@ class NetworkPolicy:
     def _is_essential(self, domain: str) -> bool:
         domain = domain.lower()
         for essential in self.ESSENTIAL_DOMAINS:
-            if domain == essential or ("*" in essential and domain.endswith(essential.replace("*", ""))):
+            if domain == essential or (
+                "*" in essential and domain.endswith(essential.replace("*", ""))
+            ):
                 return True
         return False
 
@@ -66,7 +68,9 @@ class NetworkPolicy:
         domain = domain.lower()
         for allowed in self.custom_allowlist:
             allowed = allowed.lower()
-            if domain == allowed or ("*" in allowed and domain.endswith(allowed.replace("*", ""))):
+            if domain == allowed or (
+                "*" in allowed and domain.endswith(allowed.replace("*", ""))
+            ):
                 return True
         return False
 
@@ -88,15 +92,23 @@ class NetworkPolicy:
         if self.mode == NetworkMode.UNRESTRICTED:
             logger.info("Network policy: unrestricted")
             return True
-        allowlist_ips = {ip for d in self.get_full_allowlist() if (ip := self.resolve_domain_to_ip(d))}
+        allowlist_ips = {
+            ip
+            for d in self.get_full_allowlist()
+            if (ip := self.resolve_domain_to_ip(d))
+        }
         if not allowlist_ips:
             logger.warning("No IPs resolved; cannot enforce iptables")
             return False
-        logger.info(f"[STUB] Would enforce iptables for {self.agent_id}: allow {sorted(allowlist_ips)}")
+        logger.info(
+            f"[STUB] Would enforce iptables for {self.agent_id}: allow {sorted(allowlist_ips)}"
+        )
         return True
 
     def __repr__(self) -> str:
-        custom = f", custom={len(self.custom_allowlist)}" if self.custom_allowlist else ""
+        custom = (
+            f", custom={len(self.custom_allowlist)}" if self.custom_allowlist else ""
+        )
         return f"NetworkPolicy(mode={self.mode.value}{custom})"
 
 
@@ -113,6 +125,10 @@ def get_network_policy() -> NetworkPolicy:
     if allowlist_str := os.getenv("NETWORK_ALLOWLIST"):
         custom_allowlist = {d.strip() for d in allowlist_str.split(",") if d.strip()}
 
-    policy = NetworkPolicy(mode=mode, custom_allowlist=custom_allowlist, agent_id=os.getenv("AGENT_ID", "unknown"))
+    policy = NetworkPolicy(
+        mode=mode,
+        custom_allowlist=custom_allowlist,
+        agent_id=os.getenv("AGENT_ID", "unknown"),
+    )
     logger.info(f"Network policy: {policy}")
     return policy

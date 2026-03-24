@@ -1,10 +1,11 @@
 """Compute weekly stats for PilotView dashboard."""
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections import Counter
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -47,13 +48,26 @@ def compute_weekly_stats(
     done_status = "Done"
 
     def week_stats(days_start: int, days_end: int) -> dict:
-        created = sum(1 for t in tasks if _in_window(t.get("created"), days_start, days_end))
-        done    = sum(1 for t in tasks if t.get("status") == done_status and _in_window(t.get("updated"), days_start, days_end))
-        commits = sum(1 for c in recent_commits if _in_window(c.get("date") + "T00:00:00+00:00", days_start, days_end))
+        created = sum(
+            1 for t in tasks if _in_window(t.get("created"), days_start, days_end)
+        )
+        done = sum(
+            1
+            for t in tasks
+            if t.get("status") == done_status
+            and _in_window(t.get("updated"), days_start, days_end)
+        )
+        commits = sum(
+            1
+            for c in recent_commits
+            if _in_window(c.get("date") + "T00:00:00+00:00", days_start, days_end)
+        )
         return {"created": created, "done": done, "commits": commits}
 
     active_tasks = [t for t in tasks if t.get("status") in active_statuses]
-    proj_names = sorted(set(t.get("project", "") for t in active_tasks if t.get("project")))
+    proj_names = sorted(
+        set(t.get("project", "") for t in active_tasks if t.get("project"))
+    )
 
     projects = []
     for name in proj_names:
@@ -65,12 +79,16 @@ def compute_weekly_stats(
             majority = sorted(k for k, v in count.items() if v == max_count)[0]
         else:
             majority = ""
-        projects.append({
-            "name": name,
-            "active_count": len(proj_tasks),
-            "remaining_effort_hours": sum(t.get("effort_hours") or 0 for t in proj_tasks),
-            "majority_assignee": majority,
-        })
+        projects.append(
+            {
+                "name": name,
+                "active_count": len(proj_tasks),
+                "remaining_effort_hours": sum(
+                    t.get("effort_hours") or 0 for t in proj_tasks
+                ),
+                "majority_assignee": majority,
+            }
+        )
 
     return {
         "weeks": {
@@ -90,12 +108,14 @@ def parse_git_log(raw: str, repo: str) -> list[dict]:
         parts = line.split("|", 3)
         if len(parts) >= 3:
             date, message, author = parts[0], parts[1], parts[2]
-            commits.append({
-                "date": date,
-                "repo": repo,
-                "message": message[:50],
-                "author": author,
-            })
+            commits.append(
+                {
+                    "date": date,
+                    "repo": repo,
+                    "message": message[:50],
+                    "author": author,
+                }
+            )
     return commits
 
 
@@ -104,16 +124,23 @@ async def _git_log_async(repo_path: Path) -> list[dict]:
     try:
         proc = await asyncio.wait_for(
             asyncio.create_subprocess_exec(
-                "git", "-C", str(repo_path), "log",
-                "--since=14 days ago", "--format=%as|%s|%an",
-                "--no-merges", "-20",
+                "git",
+                "-C",
+                str(repo_path),
+                "log",
+                "--since=14 days ago",
+                "--format=%as|%s|%an",
+                "--no-merges",
+                "-20",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
             ),
             timeout=3.0,
         )
         stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=3.0)
-        return parse_git_log(stdout.decode("utf-8", errors="replace"), repo=repo_path.name)
+        return parse_git_log(
+            stdout.decode("utf-8", errors="replace"), repo=repo_path.name
+        )
     except (asyncio.TimeoutError, FileNotFoundError, OSError) as e:
         logger.warning("git log failed for %s: %s", repo_path, e)
         return []
@@ -144,14 +171,16 @@ async def get_weekly_stats_data(tasks: list[dict], lab_repos_env: str) -> dict:
         if t.get("status") in ("Review", "Blocked"):
             updated = _parse_iso(t.get("updated"))
             days_waiting = (now - updated).days if updated else 0
-            pending_review.append({
-                "id": t["id"],
-                "title": t.get("title", ""),
-                "status": t.get("status"),
-                "project": t.get("project", ""),
-                "updated": t.get("updated", ""),
-                "days_waiting": days_waiting,
-            })
+            pending_review.append(
+                {
+                    "id": t["id"],
+                    "title": t.get("title", ""),
+                    "status": t.get("status"),
+                    "project": t.get("project", ""),
+                    "updated": t.get("updated", ""),
+                    "days_waiting": days_waiting,
+                }
+            )
     pending_review.sort(key=lambda x: x["days_waiting"], reverse=True)
 
     return compute_weekly_stats(tasks, all_commits, pending_review)

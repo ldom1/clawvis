@@ -1,13 +1,24 @@
 """Pydantic models for the Kanban API."""
+
 from __future__ import annotations
 
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Status = Literal["Backlog", "To Start", "In Progress", "Blocked", "Review", "Done", "Archived"]
+Status = Literal[
+    "Backlog", "To Start", "In Progress", "Blocked", "Review", "Done", "Archived"
+]
 Priority = Literal["Critical", "High", "Medium", "Low"]
-STATUSES: list[str] = ["Backlog", "To Start", "In Progress", "Blocked", "Review", "Done", "Archived"]
+STATUSES: list[str] = [
+    "Backlog",
+    "To Start",
+    "In Progress",
+    "Blocked",
+    "Review",
+    "Done",
+    "Archived",
+]
 
 
 class Task(BaseModel):
@@ -84,12 +95,17 @@ class MetaUpdate(BaseModel):
     pr_links: list[str] | None = None
 
 
-TemplateType = Literal["python", "vite", "nextjs", "empty"]
+TemplateType = str
 ProjectStage = Literal["PoC", "MVP", "Production"]
 
 
 class HubSettingsUpdate(BaseModel):
-    projects_root: str
+    projects_root: str | None = None
+    instances_external_root: str | None = None
+
+
+class InstanceLinkRequest(BaseModel):
+    path: str
 
 
 class ProjectCreate(BaseModel):
@@ -104,3 +120,15 @@ class ProjectCreate(BaseModel):
 class MemoryFileSave(BaseModel):
     filename: str
     content: str
+
+
+class ProjectMemoryMajorUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    macro_objectives: str | None = None
+    strategy: str | None = None
+    objective: str | None = None
+    context: str | None = None
+    kanban: str | None = None
+    links: str | None = None
+    notes: str | None = None

@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from hub_core.models import StatusResponse
 
 

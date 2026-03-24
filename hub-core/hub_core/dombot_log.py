@@ -18,7 +18,6 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -26,10 +25,14 @@ from typing import Any
 LOG_DIR = Path.home() / ".openclaw" / "logs"
 LOG_TEXT = LOG_DIR / "dombot.log"
 LOG_JSONL = LOG_DIR / "dombot.jsonl"
-DISCORD_SEND_SCRIPT = Path.home() / ".openclaw" / "skills" / "logger" / "scripts" / "discord-send.sh"
+DISCORD_SEND_SCRIPT = (
+    Path.home() / ".openclaw" / "skills" / "logger" / "scripts" / "discord-send.sh"
+)
 
 
-def _write(level: str, process: str, model: str, action: str, message: str, metadata: dict) -> None:
+def _write(
+    level: str, process: str, model: str, action: str, message: str, metadata: dict
+) -> None:
     """Write one structured log entry to disk (dombot.log + dombot.jsonl)."""
     ts = datetime.now(UTC).isoformat() + "Z"
     entry = {
@@ -80,9 +83,12 @@ def _should_skip_discord(level: str, action: str) -> bool:
     return False
 
 
-def _format_human(level: str, process: str, action: str, message: str, metadata: dict) -> str:
+def _format_human(
+    level: str, process: str, action: str, message: str, metadata: dict
+) -> str:
     """Human-readable Discord message with emoji, no timestamps or internal paths."""
     import re as _re
+
     a = (action or "").lower()
     lvl = (level or "INFO").upper()
 
@@ -108,7 +114,14 @@ def _format_human(level: str, process: str, action: str, message: str, metadata:
 
     text = f"{emoji} **{name}** \u2014 {short}"
     if metadata:
-        useful = {"cpu", "ram", "exit_code", "status", "mammouth_credits", "claude_usage"}
+        useful = {
+            "cpu",
+            "ram",
+            "exit_code",
+            "status",
+            "mammouth_credits",
+            "claude_usage",
+        }
         parts = [f"{k}={v}" for k, v in metadata.items() if k in useful]
         if parts:
             text += f"\n`{', '.join(parts)}`"
@@ -161,12 +174,23 @@ def _route_discord_channel(
         return "innovations"
     if "project" in signal or "hub" in signal or "kanban" in signal:
         return "projects"
-    if process_l.startswith("cron:") or process_l.startswith("system:") or process_l == "system":
+    if (
+        process_l.startswith("cron:")
+        or process_l.startswith("system:")
+        or process_l == "system"
+    ):
         return "ops"
     return "logs"
 
 
-def log(level: str, process: str, action: str, message: str, model: str = "", **metadata: Any) -> None:
+def log(
+    level: str,
+    process: str,
+    action: str,
+    message: str,
+    model: str = "",
+    **metadata: Any,
+) -> None:
     """Write a single log entry."""
     _write(level, process, model, action, message, metadata)
 

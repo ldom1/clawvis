@@ -21,7 +21,6 @@ import shutil
 import subprocess
 from typing import Any
 
-
 RUNTIME_OPENCLAW = "openclaw"
 RUNTIME_CLAUDE = "claude"
 RUNTIME_MISTRAL = "mistral"
@@ -45,7 +44,10 @@ class FeatureUnavailable(NotImplementedError):
 def get_runtime() -> str:
     """Detect the current agent runtime from environment variables."""
     # OpenClaw sets OPENCLAW_AGENT_ID or AGENT_ID=dombot
-    if os.environ.get("OPENCLAW_AGENT_ID") or os.environ.get("AGENT_ROLE") == "ORCHESTRATOR":
+    if (
+        os.environ.get("OPENCLAW_AGENT_ID")
+        or os.environ.get("AGENT_ROLE") == "ORCHESTRATOR"
+    ):
         return RUNTIME_OPENCLAW
     # Claude Code sets CLAUDE_CODE or is detected via binary
     if os.environ.get("CLAUDE_CODE") or shutil.which("claude"):
@@ -62,7 +64,10 @@ def get_runtime() -> str:
 # Not available in: claude, mistral (no native scheduler)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def cron_schedule(name: str, expr: str, command: str, runtime: str | None = None) -> dict[str, Any]:
+
+def cron_schedule(
+    name: str, expr: str, command: str, runtime: str | None = None
+) -> dict[str, Any]:
     """
     Schedule a recurring cron job.
 
@@ -73,10 +78,24 @@ def cron_schedule(name: str, expr: str, command: str, runtime: str | None = None
     if rt == RUNTIME_OPENCLAW:
         # Proxy: OpenClaw CLI
         result = subprocess.run(
-            ["openclaw", "cron", "add", "--name", name, "--schedule", expr, "--command", command],
-            capture_output=True, text=True
+            [
+                "openclaw",
+                "cron",
+                "add",
+                "--name",
+                name,
+                "--schedule",
+                expr,
+                "--command",
+                command,
+            ],
+            capture_output=True,
+            text=True,
         )
-        return {"status": "ok" if result.returncode == 0 else "error", "output": result.stdout}
+        return {
+            "status": "ok" if result.returncode == 0 else "error",
+            "output": result.stdout,
+        }
 
     raise FeatureUnavailable(
         feature="cron:schedule",
@@ -91,7 +110,10 @@ def cron_schedule(name: str, expr: str, command: str, runtime: str | None = None
 # Not available in: claude, mistral
 # ─────────────────────────────────────────────────────────────────────────────
 
-def message_send(channel: str, target: str, message: str, runtime: str | None = None) -> dict[str, Any]:
+
+def message_send(
+    channel: str, target: str, message: str, runtime: str | None = None
+) -> dict[str, Any]:
     """
     Send a message to a channel (telegram, discord, etc.).
 
@@ -101,10 +123,24 @@ def message_send(channel: str, target: str, message: str, runtime: str | None = 
     rt = runtime or get_runtime()
     if rt == RUNTIME_OPENCLAW:
         result = subprocess.run(
-            ["openclaw", "message", "send", "--channel", channel, "--target", target, "--message", message],
-            capture_output=True, text=True
+            [
+                "openclaw",
+                "message",
+                "send",
+                "--channel",
+                channel,
+                "--target",
+                target,
+                "--message",
+                message,
+            ],
+            capture_output=True,
+            text=True,
         )
-        return {"status": "ok" if result.returncode == 0 else "error", "output": result.stdout}
+        return {
+            "status": "ok" if result.returncode == 0 else "error",
+            "output": result.stdout,
+        }
 
     raise FeatureUnavailable(
         feature="message:send",
@@ -118,7 +154,10 @@ def message_send(channel: str, target: str, message: str, runtime: str | None = 
 # Available in: openclaw (native), claude (via bash), mistral (via bash, limited)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def skill_run(skill_name: str, *args: str, runtime: str | None = None) -> dict[str, Any]:
+
+def skill_run(
+    skill_name: str, *args: str, runtime: str | None = None
+) -> dict[str, Any]:
     """
     Execute a Clawvis skill script.
 
@@ -131,16 +170,22 @@ def skill_run(skill_name: str, *args: str, runtime: str | None = None) -> dict[s
     if rt == RUNTIME_OPENCLAW:
         result = subprocess.run(
             ["openclaw", "skill", "run", skill_name, *args],
-            capture_output=True, text=True
+            capture_output=True,
+            text=True,
         )
-        return {"status": "ok" if result.returncode == 0 else "error", "output": result.stdout}
+        return {
+            "status": "ok" if result.returncode == 0 else "error",
+            "output": result.stdout,
+        }
 
     if os.path.exists(skill_script):
         result = subprocess.run(
-            ["bash", skill_script, *args],
-            capture_output=True, text=True
+            ["bash", skill_script, *args], capture_output=True, text=True
         )
-        return {"status": "ok" if result.returncode == 0 else "error", "output": result.stdout}
+        return {
+            "status": "ok" if result.returncode == 0 else "error",
+            "output": result.stdout,
+        }
 
     raise FeatureUnavailable(
         feature=f"skill:{skill_name}",
@@ -153,6 +198,7 @@ def skill_run(skill_name: str, *args: str, runtime: str | None = None) -> dict[s
 # Feature: Memory vault access
 # Available in: openclaw (native), claude (file read), mistral (file read, limited)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def memory_read(path: str, runtime: str | None = None) -> str:
     """
@@ -188,6 +234,7 @@ def memory_write(path: str, content: str, runtime: str | None = None) -> None:
 # Not available in: claude (stateless CLI), mistral (stateless CLI)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def session_list(runtime: str | None = None) -> list[dict[str, Any]]:
     """
     List active agent sessions.
@@ -198,11 +245,11 @@ def session_list(runtime: str | None = None) -> list[dict[str, Any]]:
     rt = runtime or get_runtime()
     if rt == RUNTIME_OPENCLAW:
         result = subprocess.run(
-            ["openclaw", "session", "list", "--json"],
-            capture_output=True, text=True
+            ["openclaw", "session", "list", "--json"], capture_output=True, text=True
         )
         if result.returncode == 0:
             import json
+
             return json.loads(result.stdout)
         return []
 

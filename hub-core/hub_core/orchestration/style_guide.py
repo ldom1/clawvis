@@ -1,11 +1,9 @@
 """Clawvis Style Guide — Unified voice management using reverse-prompt."""
 
 import json
-import os
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from loguru import logger
 
@@ -13,7 +11,7 @@ from loguru import logger
 @dataclass
 class StyleGuide:
     """Unified style guide for LabOS agents."""
-    
+
     name: str
     prompt: str
     patterns: list
@@ -22,11 +20,11 @@ class StyleGuide:
     updated_at: str
     use_case: str = "operational-reports"
     target_audience: str = "technical"
-    
+
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return asdict(self)
-    
+
     def to_json(self) -> str:
         """Convert to JSON."""
         return json.dumps(self.to_dict(), indent=2)
@@ -77,10 +75,10 @@ def load_or_create_style_guide(
     force_create: bool = False,
 ) -> StyleGuide:
     """Load existing style guide or create default."""
-    
+
     style_dir = get_style_guide_dir()
     style_file = style_dir / f"{name}.json"
-    
+
     # Try to load existing
     if style_file.exists() and not force_create:
         try:
@@ -90,7 +88,7 @@ def load_or_create_style_guide(
                 return StyleGuide(**data)
         except (json.JSONDecodeError, TypeError) as e:
             logger.warning(f"Failed to load style guide {name}: {e}")
-    
+
     # Create default
     logger.info(f"Creating default style guide: {name}")
     style = StyleGuide(
@@ -109,11 +107,11 @@ def load_or_create_style_guide(
         use_case="operational-reports",
         target_audience="technical",
     )
-    
+
     # Save
     with open(style_file, "w") as f:
         f.write(style.to_json())
-    
+
     logger.info(f"Saved style guide to {style_file}")
     return style
 
@@ -124,12 +122,12 @@ def apply_style_guide(
     context: str = "",
 ) -> str:
     """Apply style guide to a prompt."""
-    
+
     if context:
         context_str = f"\n\nContext: {context}"
     else:
         context_str = ""
-    
+
     return f"""{prompt}
 
 ---
@@ -145,26 +143,30 @@ def update_style_guide_from_reverse_prompt(
     reverse_prompt_engine=None,
 ) -> StyleGuide:
     """Update style guide by reverse-engineering from example."""
-    
+
     if reverse_prompt_engine is None:
         try:
             # Import locally to avoid circular imports
             import sys
-            sys.path.insert(0, str(Path.home() / ".openclaw" / "skills" / "reverse-prompt" / "core"))
+
+            sys.path.insert(
+                0, str(Path.home() / ".openclaw" / "skills" / "reverse-prompt" / "core")
+            )
             from reverse_prompt.engine import ReversePromptEngine
+
             reverse_prompt_engine = ReversePromptEngine()
         except ImportError as e:
             logger.error(f"Could not import ReversePromptEngine: {e}")
             return load_or_create_style_guide(name)
-    
-    logger.info(f"Reverse-engineering style guide from example...")
-    
+
+    logger.info("Reverse-engineering style guide from example...")
+
     result = reverse_prompt_engine.reverse_engineer(
         example_text=example_text,
         context="LabOS operational report style",
         iterations=3,
     )
-    
+
     style = StyleGuide(
         name=name,
         prompt=result["reconstructed_prompt"],
@@ -175,12 +177,12 @@ def update_style_guide_from_reverse_prompt(
         use_case="operational-reports",
         target_audience="technical",
     )
-    
+
     # Save
     style_dir = get_style_guide_dir()
     style_file = style_dir / f"{name}.json"
     with open(style_file, "w") as f:
         f.write(style.to_json())
-    
+
     logger.info(f"Updated style guide: {name} (confidence: {style.confidence:.2%})")
     return style

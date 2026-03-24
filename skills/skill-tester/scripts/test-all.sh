@@ -87,7 +87,7 @@ for skill_dir in "$SKILLS_DIR"/*/; do
      grep -q '"dev"' "$core_dir/pyproject.toml" 2>/dev/null; then
     output=$(uv run --directory "$core_dir" --extra dev pytest tests/ -q --tb=short 2>&1)
   else
-    output=$(uv run --directory "$core_dir" pytest tests/ -q --tb=short 2>&1)
+    output=$(uv run --directory "$core_dir" --with pytest pytest tests/ -q --tb=short 2>&1)
   fi
   exit_code=$?
 

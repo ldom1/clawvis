@@ -14,22 +14,6 @@ mkdir -p \
   "${MEM_DIR}/todo" \
   "${MEM_DIR}/kanban"
 
-mkdir -p "${MEM_DIR}/.obsidian" 2>/dev/null || true
-
-if [ ! -f "${MEM_DIR}/.obsidian/app.json" ]; then
-  echo "{}" > "${MEM_DIR}/.obsidian/app.json" 2>/dev/null || true
-fi
-
-if [ ! -f "${MEM_DIR}/.obsidian/workspace.json" ]; then
-  echo "{}" > "${MEM_DIR}/.obsidian/workspace.json" 2>/dev/null || true
-fi
-
-# Do not write through container fallback: it can create root/nobody-owned files on host bind mounts.
-if [ ! -f "${MEM_DIR}/.obsidian/app.json" ] || [ ! -f "${MEM_DIR}/.obsidian/workspace.json" ]; then
-  echo "[warn] Cannot initialize ${MEM_DIR}/.obsidian files with current permissions."
-  echo "[warn] Fix ownership once: sudo chown -R ${USER}:${USER} \"${MEM_DIR}\""
-fi
-
 if [ ! -f "${MEM_DIR}/projects/_template.md" ]; then
   cat > "${MEM_DIR}/projects/_template.md" <<'EOF'
 # Project Template
@@ -182,4 +166,6 @@ if [ -f "${ROOT_DIR}/clawvis.html" ]; then
   cp -f "${ROOT_DIR}/clawvis.html" "${MEM_DIR}/projects/clawvis.html"
 fi
 
-echo "Memory initialized at ${MEM_DIR}"
+if [ -z "${CLAWVIS_QUIET_START:-}" ]; then
+  echo "Memory initialized at ${MEM_DIR}"
+fi

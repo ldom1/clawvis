@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
 """Tests for system metrics tracking (CPU, RAM, tokens, water)."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from hub_core.track.system import get_system_stats
 from hub_core.track.tokens import get_token_stats
 
-
 MOCK_SESSION_DATA = {
     "updated_at": "2026-03-17T10:00:00",
-    "claude": {"usage_percent": 22.5, "tokens_used": "65.8k", "tokens_limit": "300k", "reset_time": "19:00 UTC"},
-    "mammouth": {"subscription": "pro", "credits": {"available": 100.0, "limit": 200.0, "currency": "EUR"}},
+    "claude": {
+        "usage_percent": 22.5,
+        "tokens_used": "65.8k",
+        "tokens_limit": "300k",
+        "reset_time": "19:00 UTC",
+    },
+    "mammouth": {
+        "subscription": "pro",
+        "credits": {"available": 100.0, "limit": 200.0, "currency": "EUR"},
+    },
 }
 
 
@@ -38,19 +44,25 @@ class TestSystemMetrics:
 class TestTokenTracking:
     """Tests for token usage tracking."""
 
-    @patch("hub_core.track.tokens.update_session_tokens", return_value=MOCK_SESSION_DATA)
+    @patch(
+        "hub_core.track.tokens.update_session_tokens", return_value=MOCK_SESSION_DATA
+    )
     def test_get_token_stats_returns_dict(self, _mock):
         stats = get_token_stats()
         assert isinstance(stats, dict)
 
-    @patch("hub_core.track.tokens.update_session_tokens", return_value=MOCK_SESSION_DATA)
+    @patch(
+        "hub_core.track.tokens.update_session_tokens", return_value=MOCK_SESSION_DATA
+    )
     def test_token_stats_has_keys(self, _mock):
         stats = get_token_stats()
         assert "claude" in stats
         assert "mammouth" in stats
         assert "timestamp" in stats
 
-    @patch("hub_core.track.tokens.update_session_tokens", return_value=MOCK_SESSION_DATA)
+    @patch(
+        "hub_core.track.tokens.update_session_tokens", return_value=MOCK_SESSION_DATA
+    )
     def test_token_values_valid(self, _mock):
         stats = get_token_stats()
         assert isinstance(stats["claude"], dict)
@@ -60,7 +72,9 @@ class TestTokenTracking:
 class TestIntegration:
     """Integration tests for all system metrics."""
 
-    @patch("hub_core.track.tokens.update_session_tokens", return_value=MOCK_SESSION_DATA)
+    @patch(
+        "hub_core.track.tokens.update_session_tokens", return_value=MOCK_SESSION_DATA
+    )
     def test_complete_system_metrics_fetch(self, _mock):
         metrics = get_system_stats()
         tokens = get_token_stats()

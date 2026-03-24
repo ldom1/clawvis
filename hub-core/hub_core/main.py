@@ -8,7 +8,7 @@ from loguru import logger
 
 from hub_core.config import SYSTEM_JSON, TOKENS_JSON
 from hub_core.dombot_log import DomBotLog
-from hub_core.models import HubState, token_or_na
+from hub_core.models import HubState
 
 _dbl = DomBotLog(process="hub-core", model=os.getenv("AGENT_MODEL", ""))
 
@@ -20,6 +20,7 @@ def _init_identity() -> str:
         return ""
     try:
         from hub_core.security.identity import current_identity, reset_identity
+
         reset_identity()  # force reload from env
         identity = current_identity()
         _dbl.info(
@@ -52,7 +53,11 @@ def get_hub_state(*, write_json: bool = True) -> HubState:
         SYSTEM_JSON.parent.mkdir(parents=True, exist_ok=True)
         SYSTEM_JSON.write_text(
             json.dumps(
-                {**cpu_ram.model_dump(), "success": True, "timestamp": datetime.now().isoformat()},
+                {
+                    **cpu_ram.model_dump(),
+                    "success": True,
+                    "timestamp": datetime.now().isoformat(),
+                },
                 indent=2,
             )
         )
@@ -68,7 +73,9 @@ def get_hub_state(*, write_json: bool = True) -> HubState:
         TOKENS_JSON.parent.mkdir(parents=True, exist_ok=True)
         TOKENS_JSON.write_text(json.dumps(stats, indent=2))
 
-    mammouth_credits = providers.mammouth_ai.credits.available if providers.mammouth_ai else None
+    mammouth_credits = (
+        providers.mammouth_ai.credits.available if providers.mammouth_ai else None
+    )
     claude_usage = stats.get("claude", {}).get("usage_percent", 0)
     _dbl.info(
         "hub:complete",
@@ -91,7 +98,7 @@ def get_hub_state(*, write_json: bool = True) -> HubState:
 
 def get_simple_state(*, write_json: bool = True) -> dict:
     """Return a simplified dict view focused on LLM providers and system info."""
-    from hub_core.models import CpuRam, ProvidersResponse, StatusResponse
+    from hub_core.models import CpuRam, ProvidersResponse
 
     state = get_hub_state(write_json=write_json)
     providers = state.providers or ProvidersResponse()

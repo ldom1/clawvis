@@ -40,6 +40,9 @@ venv/
 # Frontend / tooling
 ########################
 
+# Yarn Berry (hub): local install state, not for commit
+**/.yarn/install-state.gz
+
 landing/node_modules/
 landing/dist/
 landing/.pnp.cjs
@@ -62,3 +65,8 @@ instances/*
 # Keep template/test instances tracked.
 !instances/example/
 !instances/example/**
+
+########################
+# Private projects
+########################
+.tmp/

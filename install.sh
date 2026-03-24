@@ -135,7 +135,7 @@ migrate_memory_if_needed() {
   if [ "${target_abs}" = "${legacy_abs}" ]; then
     return
   fi
-  if [ -d "${legacy_abs}" ] && [ -n "$(rg -n "." "${legacy_abs}" -g '!README.md' --files-with-matches 2>/dev/null || true)" ]; then
+  if [ -d "${legacy_abs}" ] && [ -n "$(find "${legacy_abs}" -mindepth 1 -not -name 'README.md' -print -quit 2>/dev/null)" ]; then
     info "Migrating legacy memory -> ${target_rel}"
     mkdir -p "${target_abs}"
     if command -v rsync >/dev/null 2>&1; then
@@ -149,14 +149,43 @@ migrate_memory_if_needed() {
 
 parse_args "$@"
 
-info "Clawvis setup wizard"
-echo "This script prepares a ready-to-run instance step by step."
+# When called directly (not from CLI), redirect to pretty CLI wizard if node is available
+if [ "${NON_INTERACTIVE}" -eq 0 ] && [ -z "${CLAWVIS_NO_NODE_WRAPPER:-}" ]; then
+  CLI_MJS="${ROOT_DIR}/clawvis-cli/cli.mjs"
+  CLI_PKG="${ROOT_DIR}/clawvis-cli"
+  if command -v node >/dev/null 2>&1 && [ -f "${CLI_MJS}" ]; then
+    # Require Node >= 18
+    NODE_MAJOR="$(node -e 'process.stdout.write(String(process.versions.node.split(".")[0]))' 2>/dev/null || echo "0")"
+    if [ "${NODE_MAJOR}" -ge 18 ] 2>/dev/null; then
+      if [ ! -d "${CLI_PKG}/node_modules/commander" ]; then
+        if command -v npm >/dev/null 2>&1; then
+          info "Installing CLI dependencies"
+          (cd "${CLI_PKG}" && npm ci --no-audit --no-fund 2>/dev/null) || (cd "${CLI_PKG}" && npm install --no-audit --no-fund)
+        else
+          warn "npm not found; skipping Node install wizard (set CLAWVIS_NO_NODE_WRAPPER=1 to silence)"
+        fi
+      fi
+      if [ -d "${CLI_PKG}/node_modules/commander" ]; then
+        exec node "${CLI_MJS}" install "$@"
+      fi
+    else
+      warn "Node.js >= 18 required for interactive wizard (found: $(node --version 2>/dev/null || echo 'unknown')); continuing with shell mode"
+    fi
+  fi
+fi
+
 chmod +x "${ROOT_DIR}/clawvis"
 ensure_cli_shim
 
 for cmd in docker; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Missing required command: $cmd"
+    echo "Error: Docker is required but not found."
+    echo "  Install Docker: https://docs.docker.com/get-docker/"
+    exit 1
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "Error: Docker is installed but not running."
+    echo "  Start Docker Desktop or run: sudo systemctl start docker"
     exit 1
   fi
 done
@@ -300,11 +329,17 @@ if [ "${MODE}" = "1" ]; then
   echo "- Kanban: http://localhost:${HUB_PORT}/kanban/"
 else
   if ! command -v npm >/dev/null 2>&1; then
-    echo "Missing npm required for dev mode."
+    echo "Error: npm is required for dev mode."
+    echo "  Install Node.js (>= 18): https://nodejs.org/"
     exit 1
   fi
+  if ! command -v yarn >/dev/null 2>&1; then
+    info "Enabling corepack for Yarn 4..."
+    corepack enable 2>/dev/null || { echo "Error: yarn not found. Run: corepack enable (or npm i -g yarn)"; exit 1; }
+  fi
   if ! command -v uv >/dev/null 2>&1; then
-    warn "uv not found; install uv for local Kanban API."
+    echo "Error: uv is required for local Kanban API."
+    echo "  Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
     exit 1
   fi
   info "Starting dev stack (foreground)"

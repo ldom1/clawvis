@@ -7,6 +7,7 @@ Usage:
 """
 
 import os
+
 import pytest
 
 MAMMOUTH_API_KEY = os.getenv("MAMMOUTH_API_KEY")

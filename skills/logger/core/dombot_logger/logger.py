@@ -78,7 +78,6 @@ def _write(entry: LogEntry):
 def _should_skip_discord(entry: LogEntry) -> bool:
     """Filtre les logs trop verbeux / intermédiaires qui ne valent pas un message Discord."""
     action = (entry.action or "").lower()
-    process = (entry.process or "").lower()
     level = (entry.level or "").upper()
 
     # Toujours envoyer les erreurs

@@ -12,7 +12,6 @@ from loguru import logger
 
 from hub_core.config import HUB_API_DIR, LAB_DIR
 
-
 DEFAULT_REPOS: tuple[str, ...] = (
     "debate-arena",
     "hub",
@@ -47,16 +46,13 @@ def _check_repo_status(repo_path: Path) -> tuple[bool, str]:
         )
 
         # Current branch
-        branch = (
-            subprocess.run(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            .stdout.strip()
-        )
+        branch = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout.strip()
 
         ahead = subprocess.run(
             ["git", "rev-list", f"origin/{branch}..HEAD"],
@@ -151,4 +147,3 @@ def cli(sync: bool = False) -> int:
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(cli())
-

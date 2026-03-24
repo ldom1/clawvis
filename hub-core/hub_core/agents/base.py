@@ -1,6 +1,5 @@
 """Abstract interface and data types for agent adapters."""
 
-import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
@@ -44,7 +43,9 @@ class IAgentAdapter(ABC):
     """
 
     @abstractmethod
-    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> TaskResult:
+    async def execute(
+        self, task: str, context: Optional[Dict[str, Any]] = None
+    ) -> TaskResult:
         """Execute a task via this agent."""
 
     @abstractmethod

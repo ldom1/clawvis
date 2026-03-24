@@ -26,6 +26,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+
       - name: Validate shell scripts
         run: |
           bash -n scripts/start.sh
@@ -37,22 +40,10 @@ jobs:
           bash -n scripts/init-memory.sh
           bash -n scripts/lifecycle.sh
 
-      - name: Install Hub deps
+      - name: Run Clawvis global test suite
         run: |
-          corepack enable
-          yarn --cwd hub install --frozen-lockfile
-
-      - name: Hub format check
-        run: yarn --cwd hub format:check
-
-      - name: Hub tests
-        run: yarn --cwd hub test
-
-      - name: Hub build
-        run: yarn --cwd hub build
-
-      - name: Python compile check
-        run: python -m compileall kanban/kanban_api
+          chmod +x tests/ci-*.sh
+          bash tests/ci-all.sh
 
       - name: License check
         run: |

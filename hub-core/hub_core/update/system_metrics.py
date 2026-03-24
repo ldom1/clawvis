@@ -74,7 +74,12 @@ def main():
     SYSTEM_JSON.parent.mkdir(parents=True, exist_ok=True)
     with open(SYSTEM_JSON, "w") as f:
         json.dump(system_data, f, indent=2)
-    logger.info("Metrics updated — CPU: {}% | RAM: {}% | Disk: {}%", cpu_ram.cpu_percent, cpu_ram.ram_percent, cpu_ram.disk_percent)
+    logger.info(
+        "Metrics updated — CPU: {}% | RAM: {}% | Disk: {}%",
+        cpu_ram.cpu_percent,
+        cpu_ram.ram_percent,
+        cpu_ram.disk_percent,
+    )
 
 
 if __name__ == "__main__":

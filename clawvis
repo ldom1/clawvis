@@ -101,6 +101,7 @@ Usage:
   clawvis restore <backup-id>
   clawvis uninstall [--all --yes] [--dry-run]
   clawvis doctor
+  clawvis shutdown
   clawvis restart
 
 Notes:
@@ -117,6 +118,11 @@ cmd_install() {
 cmd_start() {
   log "Starting local dev stack"
   exec "${ROOT_DIR}/scripts/start.sh" "$@"
+}
+
+cmd_shutdown() {
+  log "Stopping local stack (compose + dev ports)"
+  exec bash "${ROOT_DIR}/scripts/shutdown.sh"
 }
 
 cmd_deploy() {
@@ -333,6 +339,11 @@ cmd_doctor() {
 cmd_restart() {
   load_env
   ensure_tools
+  bash "${ROOT_DIR}/scripts/shutdown.sh" || true
+  if [ -f "${ROOT_DIR}/scripts/build-quartz.sh" ]; then
+    chmod +x "${ROOT_DIR}/scripts/build-quartz.sh" || true
+    bash "${ROOT_DIR}/scripts/build-quartz.sh"
+  fi
   local restart_script="${ROOT_DIR}/instances/$(instance_name)/restart.sh"
   if [ -f "${restart_script}" ]; then
     exec bash "${restart_script}" "$@"
@@ -348,7 +359,14 @@ cmd_restart() {
     exec "${ROOT_DIR}/scripts/start.sh" "$@"
   fi
   cd "${ROOT_DIR}"
-  docker compose up -d --build hub memory
+  if [ -n "${CLAWVIS_QUIET_START:-}" ]; then
+    docker compose up -d --build hub memory >/dev/null 2>&1 || {
+      echo "[clawvis] docker compose up a échoué" >&2
+      exit 1
+    }
+  else
+    docker compose up -d --build hub memory
+  fi
 }
 
 main() {
@@ -357,7 +375,7 @@ main() {
   case "${cmd}" in
     help|-h|--help) print_help ;;
     install|setup) cmd_install "$@" ;;
-    start|strat) cmd_start "$@" ;;
+    start) cmd_start "$@" ;;
     deploy) cmd_deploy "$@" ;;
     update)
       local sub="${1:-}"
@@ -376,6 +394,7 @@ main() {
     restore) cmd_restore "$@" ;;
     uninstall) cmd_uninstall "$@" ;;
     doctor) cmd_doctor "$@" ;;
+    shutdown) cmd_shutdown "$@" ;;
     restart) cmd_restart "$@" ;;
     *) die "Unknown command: ${cmd}. Use 'clawvis --help'." ;;
   esac

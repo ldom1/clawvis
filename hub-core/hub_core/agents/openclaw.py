@@ -5,7 +5,7 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
-from .base import IAgentAdapter, TaskResult, AgentCapabilities, AdapterStatus
+from .base import AdapterStatus, AgentCapabilities, IAgentAdapter, TaskResult
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,9 @@ class OpenClawAdapter(IAgentAdapter):
         self.agent_id = agent_id
         self._status = AdapterStatus.OK
 
-    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> TaskResult:
+    async def execute(
+        self, task: str, context: Optional[Dict[str, Any]] = None
+    ) -> TaskResult:
         start = time.time()
         try:
             logger.info(f"OpenClaw executing: {task[:50]}...")
@@ -34,7 +36,9 @@ class OpenClawAdapter(IAgentAdapter):
             logger.error(f"OpenClaw error: {e}")
             self._status = AdapterStatus.ERROR
             return TaskResult(
-                success=False, output="", error=str(e),
+                success=False,
+                output="",
+                error=str(e),
                 execution_time_ms=(time.time() - start) * 1000,
             )
 

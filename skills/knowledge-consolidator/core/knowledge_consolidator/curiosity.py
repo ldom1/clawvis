@@ -11,9 +11,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-DOMBOT_MAIL_CORE = Path.home() / ".openclaw" / "skills" / "dombot-mail" / "core"
-
 from knowledge_consolidator.logging import log_info, log_warning
+
+DOMBOT_MAIL_CORE = Path.home() / ".openclaw" / "skills" / "dombot-mail" / "core"
 
 UA = "Mozilla/5.0 (compatible; DomBot-Curiosity/1.0)"
 WORKSPACE = Path.home() / ".openclaw" / "workspace"
@@ -276,7 +276,7 @@ class CuriosityAgent:
         lines = [
             f"# Mail · {datetime.now().strftime('%Y-%m-%d %H:%M')}",
             "",
-            f"**Folders:** INBOX, Promotions, SocialNetworks",
+            "**Folders:** INBOX, Promotions, SocialNetworks",
             "",
             "---",
             "",
@@ -313,7 +313,7 @@ class CuriosityAgent:
                 except json.JSONDecodeError:
                     pass
         if archived == 0 and not any(
-            (list_result.get("messages") for list_result in by_folder.values())
+            list_result.get("messages") for list_result in by_folder.values()
         ):
             return None
         date_str = datetime.now().strftime("%Y-%m-%d")

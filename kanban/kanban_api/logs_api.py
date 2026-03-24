@@ -1,4 +1,5 @@
 """Logs API router — reads ~/.openclaw/logs/dombot.jsonl with filters."""
+
 from __future__ import annotations
 
 import asyncio
@@ -54,7 +55,14 @@ def get_logs(
     limit: int = Query(200, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    entries = _read_entries(level=level, process=process, action=action, search=search, limit=limit, offset=offset)
+    entries = _read_entries(
+        level=level,
+        process=process,
+        action=action,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )
     return {"logs": entries, "count": len(entries)}
 
 

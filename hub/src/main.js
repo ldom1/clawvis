@@ -1,5 +1,36 @@
 import "./style.css";
+import { marked } from "marked";
 import { escapeHtml } from "./utils.js";
+
+const BRAIN_MD_PAGE_CSS = `
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#0d1117;color:#e6edf3;font-family:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;font-size:18px;line-height:1.65}
+article{max-width:42rem;margin:0 auto;padding:2rem 1.25rem 3rem}
+.markdown-body h1{font-family:system-ui,sans-serif;font-size:2rem;font-weight:700;margin:0 0 1rem;letter-spacing:-.02em;color:#f0f6fc;border-bottom:1px solid #30363d;padding-bottom:.5rem}
+.markdown-body h2{font-family:system-ui,sans-serif;font-size:1.35rem;margin:2rem 0 .75rem;color:#58a6ff}
+.markdown-body h3{font-size:1.15rem;margin:1.5rem 0 .5rem;color:#c9d1d9}
+.markdown-body p{margin:.85rem 0}
+.markdown-body ul,.markdown-body ol{margin:.75rem 0;padding-left:1.35rem}
+.markdown-body li{margin:.35rem 0}
+.markdown-body a{color:#58a6ff;text-decoration:none}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:#161b22;padding:.15em .4em;border-radius:4px;color:#ff7b72}
+.markdown-body pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1rem;overflow:auto;font-size:.85rem;line-height:1.5}
+.markdown-body pre code{background:none;padding:0;color:#e6edf3}
+.markdown-body blockquote{margin:1rem 0;padding-left:1rem;border-left:4px solid #388bfd;color:#8b949e}
+.markdown-body table{border-collapse:collapse;width:100%;font-size:.95rem}
+.markdown-body th,.markdown-body td{border:1px solid #30363d;padding:.5rem .65rem}
+.markdown-body th{background:#161b22}
+`;
+
+function markdownToBrainSrcdoc(markdown) {
+  const raw = (markdown || "").trim();
+  const inner = raw
+    ? marked.parse(raw, { gfm: true, breaks: false })
+    : '<p style="color:#8b949e">—</p>';
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><style>${BRAIN_MD_PAGE_CSS}</style><base target="_blank"/></head><body><article class="markdown-body">${inner}</article></body></html>`;
+}
 
 const app = document.getElementById("app");
 const path = window.location.pathname;
@@ -15,18 +46,232 @@ function applyTheme(next) {
   });
 }
 
+function settingsLocale() {
+  return (navigator.language || "en").toLowerCase().startsWith("fr")
+    ? "fr"
+    : "en";
+}
+
+const SETTINGS_TEXT = {
+  fr: {
+    title: "Paramètres",
+    subtitle:
+      "Configure ton runtime IA, ton workspace et l'apparence en un seul endroit.",
+    back: "Retour au hub",
+    intro:
+      "Les cles sont stockees localement dans ce navigateur. Pour un usage serveur, renseigne aussi le fichier .env.",
+    step1: "1. Runtime IA",
+    step2: "2. Workspace",
+    step3: "3. Instances",
+    step4: "4. Apparence",
+    healthTitle: "Health resume",
+    runtimeHealth: "Runtime config",
+    workspaceHealth: "Workspace config",
+    instancesHealth: "Instances liees",
+    configured: "Configure",
+    notConfigured: "À configurer",
+    linked: "liée(s)",
+    runtimeTitle: "Runtime IA",
+    runtimeDesc:
+      "Le modele ou service utilise quand le Hub appelle l'intelligence artificielle.",
+    runtimeInfo:
+      "Le runtime IA relie le Hub a un fournisseur : Claude (Anthropic), Mistral ou OpenClaw (auto-heberge). Les cles et l'URL OpenClaw sont enregistrees dans ce navigateur pour les essais depuis cette page ; sur un serveur, configure aussi le fichier .env pour le backend.",
+    moreInfo: "Plus d'infos",
+    configureRuntime: "Configurer",
+    modifyRuntime: "Modifier",
+    getClaudeKey: "Obtiens ta cle sur console.anthropic.com.",
+    getMistralKey: "Obtiens ta cle sur console.mistral.ai.",
+    openclawHint:
+      "Pour un serveur distant, renseigne une URL complete (ex: https://openclaw.domain.tld).",
+    saveRuntime: "Sauvegarder le runtime",
+    testConnection: "Tester la connexion",
+    gotoActiveProvider: "Aller au provider actif",
+    runtimeSaved: "Runtime IA sauvegarde",
+    workspaceTitle: "Workspace",
+    workspaceDesc:
+      "Chemins sur ta machine que le Hub utilise pour retrouver projets et instances.",
+    workspaceInfo:
+      "Dossier projets : racine ou tu stockes le code ou les depots que tu veux voir dans le Hub. Instances externes (optionnel) : un repertoire supplementaire ou se trouvent d'autres dossiers d'instance Clawvis, en plus de ceux dans le depot (dossier instances/). Ces valeurs sont sauvegardees cote API Kanban.",
+    projectsRoot: "Projects root",
+    externalInstances: "Instances externes (optionnel)",
+    saveWorkspace: "Sauvegarder le workspace",
+    workspaceSaved: "Workspace sauvegarde",
+    saveFailed: "Échec sauvegarde",
+    instancesTitle: "Explorateur d'instances",
+    instancesDesc: "Instances detectees : lie-en plusieurs au Hub en une fois.",
+    instancesInfo:
+      "Une instance est un dossier Clawvis (docker-compose local, .env, etc.). Les instances du depot sont listees ici ; tu peux en lier plusieurs au Hub pour les menus et la configuration. Utilise la liste deroulante a selection multiple pour en choisir plusieurs, puis Lie ou Retire. Plusieurs instances liees : l'API choisit d'abord celle dont le dossier memoire est egal a MEMORY_ROOT, sinon la premiere apres tri de chemins. Si tu as besoin de choisir explicitement quelle instance alimente le Brain, on pourra ajouter un champ dedie dans les reglages plus tard.",
+    instancesLinkSelected: "Lier la selection",
+    instancesUnlinkSelected: "Retirer la selection",
+    instancesMultiHint:
+      "Sélection multiple : Ctrl ou Cmd + clic, ou Maj + clic pour une plage. Disque plein = déjà liée au Hub ; cercle vide = pas encore liée.",
+    refreshInstances: "Rafraichir",
+    loadingInstances: "Chargement des instances...",
+    loadInstancesFailed: "Impossible de charger les instances.",
+    noInstances: "Aucune instance detectee.",
+    linkedStatus: "Liee",
+    notLinkedStatus: "Non liee",
+    missingStatus: "manquante",
+    link: "Lier",
+    unlink: "Retirer",
+    actionFailed: "Action echouee",
+    appearanceTitle: "Apparence",
+    appearanceDesc: "Theme clair ou sombre du Hub (ce navigateur).",
+    appearanceInfo:
+      "Le choix est enregistre localement : il s'applique a cette session et sera reutilise au prochain passage sur le Hub.",
+    connected: "Connecte",
+    connectionFailed: "Connexion echouee",
+    checkKeyOrUrl: "Erreur: verifie la cle ou l'URL",
+  },
+  en: {
+    title: "Settings",
+    subtitle:
+      "Configure your AI runtime, workspace, and appearance in one place.",
+    back: "Back to hub",
+    intro:
+      "Keys are stored locally in this browser. For server-side usage, also set values in .env.",
+    step1: "1. AI runtime",
+    step2: "2. Workspace",
+    step3: "3. Instances",
+    step4: "4. Appearance",
+    healthTitle: "Health summary",
+    runtimeHealth: "Runtime config",
+    workspaceHealth: "Workspace config",
+    instancesHealth: "Linked instances",
+    configured: "Configured",
+    notConfigured: "Needs setup",
+    linked: "linked",
+    runtimeTitle: "AI runtime",
+    runtimeDesc:
+      "The model or service used when the Hub calls artificial intelligence.",
+    runtimeInfo:
+      "The AI runtime connects the Hub to a provider: Claude (Anthropic), Mistral, or self-hosted OpenClaw. Keys and the OpenClaw URL are stored in this browser for calls started from the Hub; on a server, also set .env for the backend.",
+    moreInfo: "More info",
+    configureRuntime: "Configure",
+    modifyRuntime: "Change",
+    getClaudeKey: "Get your key at console.anthropic.com.",
+    getMistralKey: "Get your key at console.mistral.ai.",
+    openclawHint:
+      "For a remote server, use a full URL (e.g. https://openclaw.domain.tld).",
+    saveRuntime: "Save runtime",
+    testConnection: "Test connection",
+    gotoActiveProvider: "Go to active provider",
+    runtimeSaved: "AI runtime saved",
+    workspaceTitle: "Workspace",
+    workspaceDesc: "Paths on disk the Hub uses to find projects and instances.",
+    workspaceInfo:
+      "Projects root: where your code or repos live that you want the Hub to reference. External instances (optional): an extra folder that holds additional Clawvis instance directories, besides this repo's instances/ folder. Values are saved via the Kanban API.",
+    projectsRoot: "Projects root",
+    externalInstances: "External instances (optional)",
+    saveWorkspace: "Save workspace",
+    workspaceSaved: "Workspace saved",
+    saveFailed: "Save failed",
+    instancesTitle: "Instance explorer",
+    instancesDesc: "Detected instances: link several to the Hub at once.",
+    instancesInfo:
+      "An instance is a Clawvis deployment folder (local compose, .env, etc.). Repo instances appear here; you can link many for Hub menus and settings. Use the multi-select list, then Link or Unlink. With several linked instances, the API first picks the one whose memory folder equals MEMORY_ROOT, otherwise the first after sorting paths. If you need to explicitly choose which instance feeds the Brain, a dedicated settings field can be added later.",
+    instancesLinkSelected: "Link selection",
+    instancesUnlinkSelected: "Unlink selection",
+    instancesMultiHint:
+      "Multi-select: Ctrl/Cmd+click, or Shift+click for a range. Large filled disc = linked to Hub; large empty ring = not linked yet.",
+    refreshInstances: "Refresh",
+    loadingInstances: "Loading instances...",
+    loadInstancesFailed: "Unable to load instances.",
+    noInstances: "No instances found.",
+    linkedStatus: "Linked",
+    notLinkedStatus: "Not linked",
+    missingStatus: "missing",
+    link: "Link",
+    unlink: "Unlink",
+    actionFailed: "Action failed",
+    appearanceTitle: "Appearance",
+    appearanceDesc: "Light or dark Hub theme (this browser).",
+    appearanceInfo:
+      "Your choice is stored locally and reused the next time you open the Hub.",
+    connected: "Connected",
+    connectionFailed: "Connection failed",
+    checkKeyOrUrl: "Error: check key or URL",
+  },
+};
+
+const SUBPAGE_TEXT = {
+  fr: {
+    logs: {
+      title: "Logs",
+      sub: "Filtrer et consulter l'activité système et les agents.",
+    },
+    kanban: {
+      title: "Kanban",
+      sub: "Tableau, vues et pilotage par projet.",
+    },
+    brain: {
+      title: "Brain",
+      sub: "Votre espace connaissance.",
+    },
+    brainEdit: {
+      title: "Modifier le Brain",
+      sub: "Éditez vos fichiers projets markdown. Pour les tâches, utilisez le Kanban.",
+    },
+    brainGraph: {
+      title: "Graphe mémoire",
+      sub: "Liens entre les pages (wiki-links).",
+    },
+  },
+  en: {
+    logs: {
+      title: "Logs",
+      sub: "Filter and review system and agent activity.",
+    },
+    kanban: {
+      title: "Kanban",
+      sub: "Board, views, and project steering.",
+    },
+    brain: {
+      title: "Brain",
+      sub: "Your knowledge space.",
+    },
+    brainEdit: {
+      title: "Edit Brain",
+      sub: "Edit your project markdown files. For tasks, use Kanban.",
+    },
+    brainGraph: {
+      title: "Memory graph",
+      sub: "Links between pages (wiki-links).",
+    },
+  },
+};
+
+function subpageHeader(pageKey) {
+  const loc = settingsLocale();
+  const pack = SUBPAGE_TEXT[loc]?.[pageKey] || SUBPAGE_TEXT.en[pageKey];
+  const t = SETTINGS_TEXT[loc];
+  if (!pack) return "";
+  return `
+    <header class="settings-page-header">
+      <div class="title">
+        <h1>${escapeHtml(pack.title)} · <span>Clawvis</span></h1>
+        <p>${escapeHtml(pack.sub)}</p>
+      </div>
+      <div class="sub-page-header-actions">
+        <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
+        <button class="header-icon icon-button" type="button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+          <span id="theme-toggle-icon">🌙</span>
+        </button>
+      </div>
+    </header>
+  `;
+}
+
 function topbar() {
   return `
-    <div class="topbar">
-      <div class="left">
-        <a class="logo-link" href="/" aria-label="Clawvis home">
-          <img src="/clawvis-mascot.svg" alt="Clawvis" class="logo-small" />
-          <span>Clawvis</span>
-        </a>
+    <header class="hub-header">
+      <div class="hub-brand">
+        <img src="/clawvis-mascot.svg" alt="Clawvis logo" class="header-logo" />
+        <h1><span>Clawvis</span></h1>
+        <p><span class="status-dot"></span><span id="active-services-count">…</span> active services</p>
       </div>
-      <div class="right">
-        <div class="icon-row">
-          <a class="icon-link" href="/logs/" title="Logs" aria-label="Logs">
+      <div class="header-icons">
+          <a class="header-icon" href="/logs/" title="Logs" aria-label="Logs">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
@@ -35,34 +280,100 @@ function topbar() {
               <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
           </a>
-          <a class="icon-link" href="/settings/" title="Settings" aria-label="Settings">
+          <a class="header-icon" href="/settings/" title="Settings" aria-label="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path>
             </svg>
           </a>
-          <button class="icon-link icon-button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+          <button class="header-icon icon-button" id="theme-toggle" title="Apparence" aria-label="Apparence">
             <span id="theme-toggle-icon">🌙</span>
           </button>
-        </div>
       </div>
-    </div>
+    </header>
   `;
 }
 
+function wireActiveServicesCount() {
+  const el = document.getElementById("active-services-count");
+  if (!el) return;
+  const services = [
+    { name: "Hub", url: "/" },
+    { name: "Kanban", url: "/kanban/" },
+    { name: "Logs", url: "/logs/" },
+    { name: "Settings", url: "/settings/" },
+    { name: "Memory", url: "/memory/" },
+    {
+      name: "OpenClaw",
+      url: "/openclaw/",
+      optional: true,
+    },
+  ];
+  const countUp = async () => {
+    try {
+      const checks = await Promise.all(
+        services.map(async (svc) => {
+          try {
+            const res = await fetch(svc.url, { cache: "no-store" });
+            return { ...svc, up: !!res.ok };
+          } catch {
+            return { ...svc, up: false };
+          }
+        }),
+      );
+      const required = checks.filter((s) => !s.optional);
+      const upCount = required.filter((s) => s.up).length;
+      const total = required.length;
+      const down = required.filter((s) => !s.up).map((s) => s.name);
+      el.textContent = String(upCount);
+      el.title = down.length
+        ? `${upCount}/${total} up\nDown: ${down.join(", ")}`
+        : `${upCount}/${total} up\nAll services operational`;
+    } catch {
+      el.textContent = "0";
+      el.title = "0/0 up";
+    }
+  };
+  countUp();
+  setInterval(countUp, 30000);
+}
+
 function renderHome() {
+  const fr = settingsLocale() === "fr";
+  const M = fr
+    ? {
+        modalTitle: "Nouveau projet",
+        nameLbl: "Nom du projet",
+        nameHint: "Affiché sur la carte et dans la page projet.",
+        descLbl: "En bref",
+        descHint: "1–2 phrases : objectif ou périmètre.",
+        tagsLbl: "Tags",
+        tagsHint: "Entrée après chaque mot-clé.",
+        stackLbl: "Modèle de dépôt",
+        stackHint: "Fichiers de démarrage générés dans le dossier du projet.",
+        stageLbl: "Phase",
+        stageHint: "Maturité : essai, produit, ou production.",
+        create: "Créer le projet",
+      }
+    : {
+        modalTitle: "New project",
+        nameLbl: "Project name",
+        nameHint: "Shown on the card and project page.",
+        descLbl: "Summary",
+        descHint: "1–2 sentences: goal or scope.",
+        tagsLbl: "Tags",
+        tagsHint: "Press Enter after each tag.",
+        stackLbl: "Repo template",
+        stackHint: "Starter files created in the project folder.",
+        stageLbl: "Stage",
+        stageHint: "Maturity: experiment, product, or production.",
+        create: "Create project",
+      };
   app.innerHTML = `
-    <div class="wrap">
+    <div class="container">
       ${topbar()}
-      <div class="hero">
-        <img src="/clawvis-mascot.svg" alt="Clawvis" />
-        <div>
-          <h1>Clawvis</h1>
-          <p class="services-line"><span class="status-dot"></span>7 active services</p>
-        </div>
-      </div>
       <div id="system-card" class="system-card">
-        <div class="system-title">📊 System Status</div>
+        <div class="system-title"><span class="system-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path><path d="M7 10h2l1-2 2 4 1-2h4"></path></svg></span>System Status</div>
         <div class="system-row">
           <div class="system-stat">
             <div class="stat-label">CPU</div>
@@ -83,43 +394,107 @@ function renderHome() {
           </div>
         </div>
       </div>
-      <div class="section">
-        <h2>Core tools</h2>
-        <div class="grid">
-          <a class="tile" href="/logs/">
-            <div class="title">📜 Logs</div>
-            <div class="desc">Execution feed and monitoring.</div>
-            <div class="chips"><span class="chip">Stream</span><span class="chip">Search</span><span class="chip">Ops</span></div>
+
+      <section>
+        <div class="section-header">
+          <div class="section-label">Core tools</div>
+        </div>
+        <div class="tools-bar">
+          <a class="tool-tile" href="/kanban/">
+            <span class="tool-open">&#x2197;</span>
+            <div class="tool-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <line x1="7" y1="8" x2="17" y2="8"></line>
+                <line x1="7" y1="12" x2="14" y2="12"></line>
+                <line x1="7" y1="16" x2="12" y2="16"></line>
+              </svg>
+            </div>
+            <div class="tool-meta">
+              <div class="tool-name">Kanban</div>
+              <div class="tool-desc">Drive initiatives and execution.</div>
+              <div class="tool-chiprow"><span class="tool-chip">Tasks</span><span class="tool-chip">Sync</span><span class="tool-chip">Ops</span></div>
+            </div>
           </a>
-          <a class="tile" href="/kanban/">
-            <div class="title">📋 Kanban</div>
-            <div class="desc">Drive initiatives and execution.</div>
-            <div class="chips"><span class="chip">Tasks</span><span class="chip">Sync</span><span class="chip">Ops</span></div>
-          </a>
-          <a class="tile" href="/memory/">
-            <div class="title">🧠 Logseq Brain</div>
-            <div class="desc">Edit and structure project markdown pages.</div>
-            <div class="chips"><span class="chip">Markdown</span><span class="chip">Projects</span><span class="chip">Logseq</span></div>
+          <a class="tool-tile" href="/memory/">
+            <span class="tool-open">&#x2197;</span>
+            <div class="tool-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8.5 7.2C7 7.2 5.8 8.4 5.8 9.9c0 .9.4 1.7 1 2.3-.6.5-1 1.3-1 2.2 0 1.6 1.3 2.9 2.9 2.9"></path>
+                <path d="M15.5 7.2c1.5 0 2.7 1.2 2.7 2.7 0 .9-.4 1.7-1 2.3.6.5 1 1.3 1 2.2 0 1.6-1.3 2.9-2.9 2.9"></path>
+                <path d="M8.5 7.2C9 5.5 10.4 4.5 12 4.5s3 .9 3.5 2.7"></path>
+                <path d="M8.5 19.8C9 21.5 10.4 22.5 12 22.5s3-.9 3.5-2.7"></path>
+                <path d="M12 5.2v13.6"></path>
+                <path d="M10 10.2c.4-.3.9-.5 1.4-.5s1 .2 1.4.5"></path>
+                <path d="M10 15.2c.4.3.9.5 1.4.5s1-.2 1.4-.5"></path>
+              </svg>
+            </div>
+            <div class="tool-meta">
+              <div class="tool-name">Brain</div>
+              <div class="tool-desc">Explore your knowledge space and edit your notes.</div>
+              <div class="tool-chiprow"><span class="tool-chip">Quartz</span><span class="tool-chip">Projects</span><span class="tool-chip">Notes</span></div>
+            </div>
           </a>
         </div>
-      </div>
-      <div class="section">
-        <h2>Projects</h2>
-        <div id="projects-grid" class="grid"><button id="new-project" class="card new" type="button">+</button></div>
+      </section>
+      <section>
+        <div class="section-header">
+          <div class="section-label">Projects</div>
+        </div>
+        <div id="projects-grid" class="grid-3"><button id="new-project" class="card new" type="button">+</button></div>
         <div class="project-hub" id="project-hub"></div>
-      </div>
+      </section>
     </div>
     <div class="modal" id="modal">
-      <div class="panel">
-        <div style="display:flex;justify-content:space-between;align-items:center;"><strong>Créer un projet</strong><button class="btn" id="close-modal" type="button">×</button></div>
-        <div class="row">
-          <input id="project-name" placeholder="Nom du projet" />
-          <textarea id="project-description" rows="4" placeholder="Description"></textarea>
-          <input id="project-tags" placeholder="Tags (ai, saas, infra)" />
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <select id="project-template"><option value="python">Python</option><option value="vite">Vite</option><option value="nextjs">Next.js</option><option value="empty">Other</option></select>
-            <select id="project-stage"><option value="PoC">PoC</option><option value="MVP">MVP</option><option value="Production">Production</option></select>
-            <button id="create-project" class="btn" type="button">Créer</button>
+      <div class="panel create-project-panel">
+        <div class="create-project-head">
+          <div>
+            <div class="create-project-title">${escapeHtml(M.modalTitle)}</div>
+            <p class="create-project-lead">${fr ? "Remplissez les champs obligatoires, le reste peut attendre." : "Required fields only; you can refine later."}</p>
+          </div>
+          <button class="btn modal-icon-close" id="close-modal" type="button" aria-label="${fr ? "Fermer" : "Close"}">×</button>
+        </div>
+        <div class="create-project-body">
+          <div class="create-project-field">
+            <label for="project-name">${escapeHtml(M.nameLbl)} <span class="req">*</span></label>
+            <p class="field-hint">${escapeHtml(M.nameHint)}</p>
+            <input id="project-name" type="text" autocomplete="off" placeholder="${fr ? "ex. Mon service API" : "e.g. My API service"}" />
+          </div>
+          <div class="create-project-field">
+            <label for="project-description">${escapeHtml(M.descLbl)} <span class="req">*</span></label>
+            <p class="field-hint">${escapeHtml(M.descHint)}</p>
+            <textarea id="project-description" rows="3" placeholder="${fr ? "Décrivez l'objectif en une phrase." : "Describe the goal in one sentence."}"></textarea>
+          </div>
+          <div class="create-project-field">
+            <label for="project-tags">${escapeHtml(M.tagsLbl)}</label>
+            <p class="field-hint">${escapeHtml(M.tagsHint)}</p>
+            <div id="project-tags-wrap" class="tags-wrap">
+              <div id="project-tags-list" class="tags-list"></div>
+              <input id="project-tags" placeholder="${fr ? "ex. api, interne…" : "e.g. api, internal…"}" />
+            </div>
+          </div>
+          <div class="create-project-row2">
+            <div class="create-project-field">
+              <label for="project-template">${escapeHtml(M.stackLbl)}</label>
+              <p class="field-hint">${escapeHtml(M.stackHint)}</p>
+              <select id="project-template">
+                <option value="python-fastapi">Python FastAPI</option>
+                <option value="node-api">Node API</option>
+                <option value="frontend-vite">Frontend Vite</option>
+                <option value="python">Python (legacy)</option>
+                <option value="vite">Vite (legacy)</option>
+                <option value="nextjs">Next.js (legacy)</option>
+                <option value="empty">Other</option>
+              </select>
+            </div>
+            <div class="create-project-field">
+              <label for="project-stage">${escapeHtml(M.stageLbl)}</label>
+              <p class="field-hint">${escapeHtml(M.stageHint)}</p>
+              <select id="project-stage"><option value="PoC">PoC</option><option value="MVP">MVP</option><option value="Production">Production</option></select>
+            </div>
+          </div>
+          <div class="create-project-actions">
+            <button id="create-project" class="btn btn-primary" type="button">${escapeHtml(M.create)}</button>
           </div>
         </div>
       </div>
@@ -129,18 +504,47 @@ function renderHome() {
 
 function renderLogs() {
   app.innerHTML = `
-    <div class="wrap">
-      ${topbar()}
-      <div class="hero">
-        <img src="/clawvis-mascot.svg" alt="Clawvis" />
-        <div><h1>Logs</h1><p>Execution feed for onboarding and debugging</p></div>
-      </div>
-      <div class="tile">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input id="log-search" placeholder="Search logs" />
-          <button id="log-refresh" class="btn" type="button">Refresh</button>
+    <div class="container">
+      ${subpageHeader("logs")}
+      <div class="logs-shell">
+        <div class="logs-toolbar-bar">
+          <div class="logs-toolbar">
+            <select id="log-level-filter" aria-label="Level">
+              <option value="">All Levels</option>
+              <option value="INFO">INFO</option>
+              <option value="WARN">WARN</option>
+              <option value="WARNING">WARNING</option>
+              <option value="ERROR">ERROR</option>
+              <option value="CRITICAL">CRITICAL</option>
+              <option value="DEBUG">DEBUG</option>
+            </select>
+            <select id="log-process-filter" aria-label="Process"><option value="">All Processes</option></select>
+            <input id="log-search" type="search" placeholder="Search..." autocomplete="off" />
+            <button id="log-refresh" class="btn btn-primary" type="button">Refresh</button>
+            <button type="button" id="log-auto-toggle" class="logs-auto-btn">Auto: OFF</button>
+          </div>
         </div>
-        <div id="logs-list" class="list" style="margin-top:10px;"></div>
+        <div class="logs-summary" id="logs-summary">
+          <span class="logs-summary-item"><span class="dot green-dot" aria-hidden="true"></span>INFO<strong id="kpi-info">0</strong></span>
+          <span class="logs-summary-item"><span class="dot amber-dot" aria-hidden="true"></span>WARN<strong id="kpi-warn">0</strong></span>
+          <span class="logs-summary-item"><span class="dot red-dot" aria-hidden="true"></span>ERROR<strong id="kpi-error">0</strong></span>
+          <span class="logs-summary-item"><span class="dot purple-dot" aria-hidden="true"></span>Total<strong id="kpi-total">0</strong></span>
+        </div>
+        <div class="logs-table-wrap">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Level</th>
+                <th>Process</th>
+                <th>Model</th>
+                <th>Action</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody id="logs-tbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   `;
@@ -148,79 +552,381 @@ function renderLogs() {
 
 function renderKanbanPage() {
   app.innerHTML = `
-    <div class="wrap">
-      ${topbar()}
-      <div class="hero">
-        <img src="/clawvis-mascot.svg" alt="Clawvis" />
-        <div><h1>Kanban</h1><p>Interactive board for project tasks</p></div>
+    <div class="container">
+      ${subpageHeader("kanban")}
+      <div class="codir-card" id="codir-card">
+        <div class="codir-header" id="codir-toggle">
+          <div class="codir-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h4"/><circle cx="17" cy="17" r="3"/><path d="M15.5 18.5l1 1"/></svg>
+            Comite de Direction
+            <span id="codir-proj-count" style="font-weight:400;font-size:0.72rem"></span>
+          </div>
+          <span id="codir-chevron" style="font-size:0.75rem;color:var(--muted)">▾</span>
+        </div>
+        <div class="codir-body" id="codir-body">
+          <div class="codir-grid" id="codir-grid"></div>
+        </div>
       </div>
-      <div id="kanban-board" class="kanban-board"></div>
+      <div class="kanban-controls">
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          <span class="view-toggle">
+            <button id="view-board" class="active" type="button">Board</button>
+            <button id="view-gantt" type="button">Gantt</button>
+            <button id="view-graph" type="button">Graph</button>
+          </span>
+          <select id="kanban-project-filter"><option value="">All projects</option></select>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button id="kanban-new-task" class="btn-primary" type="button">+ New Task</button>
+          <button id="kanban-open-archive" type="button">Archive</button>
+        </div>
+      </div>
+      <div id="kanban-pm-meta" class="pm-meta-card" style="display:none;"></div>
+      <div id="kanban-project-summary" class="project-summary" style="display:none;"></div>
+      <div id="kanban-stats-bar" class="kanban-stats-bar"></div>
+      <div id="kanban-board-wrap">
+        <div id="kanban-board" class="kanban-board"></div>
+      </div>
+      <div id="kanban-gantt-wrap" class="tile" style="display:none;">
+        <div class="card-title">Gantt</div>
+        <div id="kanban-gantt" class="list"></div>
+      </div>
+      <div id="kanban-graph-wrap" class="tile" style="display:none;">
+        <div class="card-title">Dependency graph</div>
+        <div id="kanban-graph" class="list"></div>
+      </div>
+      <div id="kanban-detail-overlay" class="modal-overlay">
+        <div id="kanban-detail-modal" class="panel"></div>
+      </div>
+      <div id="kanban-create-overlay" class="modal-overlay">
+        <div class="panel">
+          <button class="modal-close" id="kanban-create-close" type="button">&times;</button>
+          <h2>New Task</h2>
+          <div class="field">
+            <label>Title</label>
+            <input id="kanban-create-title" />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Project</label>
+              <input id="kanban-create-project" />
+            </div>
+            <div class="field">
+              <label>Priority</label>
+              <select id="kanban-create-priority">
+                <option>Critical</option><option>High</option><option selected>Medium</option><option>Low</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Effort hours</label>
+              <input id="kanban-create-effort" type="number" min="0" step="0.5" />
+            </div>
+            <div class="field">
+              <label>Assignee</label>
+              <input id="kanban-create-assignee" value="DomBot" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Description</label>
+            <textarea id="kanban-create-description"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button class="btn" id="kanban-create-submit" type="button">Create</button>
+          </div>
+        </div>
+      </div>
+      <div id="kanban-archive-overlay" class="modal-overlay">
+        <div class="panel">
+          <button class="modal-close" id="kanban-archive-close" type="button">&times;</button>
+          <h2>Archive</h2>
+          <div id="kanban-archive-content" class="list"></div>
+        </div>
+      </div>
     </div>
   `;
 }
 
 function renderMemoryPage() {
+  const fr = settingsLocale() === "fr";
   app.innerHTML = `
-    <div class="wrap">
-      ${topbar()}
-      <div class="hero">
-        <img src="/clawvis-mascot.svg" alt="Clawvis" />
-        <div><h1>Logseq Brain</h1><p>Markdown editor for project pages</p></div>
+    <div class="container">
+      ${subpageHeader("brain")}
+      <p class="brain-source-hint" id="brain-source-hint"></p>
+      <div class="graph-toolbar" style="margin-top:10px;">
+        <select id="quartz-page-select"></select>
+        <button id="quartz-refresh" class="btn" type="button">${fr ? "Actualiser" : "Refresh"}</button>
+        <button id="quartz-rebuild" class="btn" type="button">${fr ? "Générer l'aperçu HTML" : "Generate HTML preview"}</button>
+        <a class="btn" href="/memory/edit">${fr ? "Modifier le Brain" : "Edit Brain"}</a>
+      </div>
+      <p class="muted" id="brain-preview-hint" style="font-size:13px;margin:8px 0 0 0;"></p>
+      <iframe id="quartz-frame" class="quartz-frame" title="Quartz preview"></iframe>
+    </div>
+  `;
+}
+
+function renderMemoryEditPage() {
+  app.innerHTML = `
+    <div class="container">
+      ${subpageHeader("brainEdit")}
+      <div class="brain-edit-notice">
+        Pour les tâches, passe par le Kanban. Seuls les <strong>.md</strong> sous <code>memory/projects/</code> sont éditables via cette page (API). Logseq web demande souvent de <strong>choisir un dossier</strong> (API fichiers du navigateur) — page vide tant qu’aucun graphe n’est ouvert. La prévisualisation Quartz liste les <strong>.html</strong> exportés dans ce même dossier.
+      </div>
+      <p class="brain-source-hint" id="brain-source-hint"></p>
+      <div class="graph-toolbar" style="margin-top:10px;">
+        <a class="btn" href="/memory/">← Retour Brain</a>
+        <a class="btn" id="edit-brain-link" href="http://localhost:3099" target="_blank" rel="noreferrer">Ouvrir Logseq</a>
+      </div>
+      <div style="display:grid;grid-template-columns:260px 1fr;gap:10px;margin-top:10px;">
+        <div>
+          <select id="memory-file-select" size="12" style="width:100%;height:360px;"></select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <input id="memory-file-name" placeholder="example-project.md" />
+          <textarea id="memory-content" rows="16" placeholder="# Project" style="flex:1;"></textarea>
+          <div style="display:flex;gap:8px;">
+            <button id="memory-save" class="btn btn-primary" type="button">Sauvegarder</button>
+            <button id="memory-refresh" class="btn" type="button">Actualiser</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMemoryGraphPage() {
+  app.innerHTML = `
+    <div class="container">
+      ${subpageHeader("brainGraph")}
+      <div style="margin-bottom:10px;">
+        <a class="btn" href="/memory/">← Back to Memory editor</a>
+        <button id="graph-refresh" class="btn" type="button" style="margin-left:8px;">Refresh graph</button>
       </div>
       <div class="tile">
-        <div class="title">Project pages</div>
-        <div style="display:grid;grid-template-columns:260px 1fr;gap:10px;margin-top:10px;">
-          <div>
-            <select id="memory-file-select" size="12" style="height:360px;"></select>
-          </div>
-          <div>
-            <input id="memory-file-name" placeholder="example-project.md" />
-            <textarea id="memory-content" rows="14" placeholder="# Project"></textarea>
-            <div style="display:flex;gap:8px;margin-top:8px;">
-              <button id="memory-save" class="btn" type="button">Save markdown</button>
-              <button id="memory-refresh" class="btn" type="button">Refresh files</button>
-            </div>
-          </div>
+        <div class="graph-toolbar">
+          <input id="graph-search" placeholder="Search node..." />
+          <button id="graph-clear-focus" class="btn" type="button">Clear focus</button>
         </div>
-      </div>
-      <div class="tile" style="margin-top:10px;">
-        <div class="title">Structure</div>
-        <div class="chips">
-          <span class="chip">projects/</span>
-          <span class="chip">resources/</span>
-          <span class="chip">daily/</span>
-          <span class="chip">archive/</span>
-          <span class="chip">todo/</span>
-        </div>
-        <div class="desc" style="margin-top:8px;">Edition directe Markdown depuis l'interface Hub.</div>
+        <div id="graph-summary" class="desc">Loading graph...</div>
+        <div id="memory-graph" class="memory-graph"></div>
       </div>
     </div>
   `;
 }
 
 function renderSettings() {
+  const t = SETTINGS_TEXT[settingsLocale()];
+  const isFr = settingsLocale() === "fr";
   app.innerHTML = `
-    <div class="wrap">
-      ${topbar()}
-      <div class="hero">
-        <img src="/clawvis-mascot.svg" alt="Clawvis" />
-        <div><h1>Settings</h1><p>Global project hub configuration</p></div>
+    <div class="container">
+      <header class="settings-page-header">
+        <div class="title">
+          <h1>${t.title} · <span>Clawvis</span></h1>
+          <p>${t.subtitle}</p>
+        </div>
+        <a href="/" class="back-btn"><span class="icon">←</span><span>${t.back}</span></a>
+      </header>
+
+      <!-- Health banner centré -->
+      <div class="settings-health-banner">
+        <div class="settings-health-banner-title">${isFr ? "État du royaume" : "Kingdom status"}</div>
+        <div class="health-grid-banner">
+          <div class="health-banner-item">
+            <span class="health-banner-label">${t.runtimeHealth}</span>
+            <span id="health-runtime" class="health-pill warn">${t.notConfigured}</span>
+          </div>
+          <div class="health-banner-item">
+            <span class="health-banner-label">${t.workspaceHealth}</span>
+            <span id="health-workspace" class="health-pill warn">${t.notConfigured}</span>
+          </div>
+          <div class="health-banner-item">
+            <span class="health-banner-label">${t.instancesHealth}</span>
+            <span id="health-instances" class="health-pill warn">0 ${t.linked}</span>
+          </div>
+        </div>
+        <p class="settings-health-tagline">${isFr ? "Sire, vos royaumes vous attendent." : "Your kingdoms await, sire."}</p>
       </div>
-      <div class="tile" style="max-width:760px;">
-        <div class="title">Projects path</div>
-        <input id="projects-root" placeholder="/home/user/lab_perso/projects" />
-        <button id="save-settings" class="btn" style="margin-top:10px;" type="button">Save</button>
+
+      <div class="settings-sections">
+        <section class="card settings-card settings-section">
+          <div class="settings-card-header">
+            <div>
+              <div class="settings-heading-row">
+                <h2 class="card-title settings-section-title">${t.runtimeTitle}</h2>
+                <span class="settings-info-hold" tabindex="0" aria-label="${escapeHtml(t.moreInfo)}">
+                  <span class="settings-info-i" aria-hidden="true">i</span>
+                </span>
+                <div class="settings-info-popover" role="tooltip">${escapeHtml(t.runtimeInfo)}</div>
+              </div>
+              <div class="card-desc">${t.runtimeDesc}</div>
+            </div>
+            <button id="open-ai-wizard" class="btn btn-primary" type="button">${t.configureRuntime}</button>
+          </div>
+          <span id="provider-save-feedback" class="test-result"></span>
+        </section>
+
+        <section class="card settings-card settings-section">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">${t.workspaceTitle}</h2>
+            <span class="settings-info-hold" tabindex="0" aria-label="${escapeHtml(t.moreInfo)}">
+              <span class="settings-info-i" aria-hidden="true">i</span>
+            </span>
+            <div class="settings-info-popover" role="tooltip">${escapeHtml(t.workspaceInfo)}</div>
+          </div>
+          <div class="card-desc">${t.workspaceDesc}</div>
+          <div class="settings-field-group">
+            <label for="projects-root">${t.projectsRoot}</label>
+            <input id="projects-root" placeholder="/home/user/lab_perso/projects" />
+            <label for="instances-external-root" style="margin-top:12px;">${t.externalInstances}</label>
+            <input id="instances-external-root" placeholder="~/Lab/instances" />
+          </div>
+          <div class="settings-actions">
+            <button id="save-settings" class="btn btn-primary" type="button">${t.saveWorkspace}</button>
+            <span id="settings-save-feedback" class="test-result"></span>
+          </div>
+        </section>
+
+        <section class="card settings-card settings-section">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">${t.instancesTitle}</h2>
+            <span class="settings-info-hold" tabindex="0" aria-label="${escapeHtml(t.moreInfo)}">
+              <span class="settings-info-i" aria-hidden="true">i</span>
+            </span>
+            <div class="settings-info-popover" role="tooltip">${escapeHtml(t.instancesInfo)}</div>
+          </div>
+          <div class="card-desc">${t.instancesDesc}</div>
+          <div class="instances-toolbar">
+            <button id="refresh-instances" class="btn" type="button">${t.refreshInstances}</button>
+            <button id="instances-link-selected" class="btn" type="button">${t.instancesLinkSelected}</button>
+            <button id="instances-unlink-selected" class="btn" type="button">${t.instancesUnlinkSelected}</button>
+          </div>
+          <select id="instances-multi" class="instances-multiselect" multiple size="10" aria-label="${escapeHtml(t.instancesTitle)}"></select>
+          <p class="hint instances-multi-hint">${escapeHtml(t.instancesMultiHint)}</p>
+        </section>
+
+        <section class="card settings-card settings-section settings-appearance-card">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">${t.appearanceTitle}</h2>
+            <span class="settings-info-hold" tabindex="0" aria-label="${escapeHtml(t.moreInfo)}">
+              <span class="settings-info-i" aria-hidden="true">i</span>
+            </span>
+            <div class="settings-info-popover" role="tooltip">${escapeHtml(t.appearanceInfo)}</div>
+          </div>
+          <p class="card-desc appearance-intro">${t.appearanceDesc}</p>
+          <div class="theme-cards">
+            <label class="theme-card theme-card-dark" data-value="dark">
+              <input id="appearance-dark" type="radio" name="hub-theme-choice" value="dark" />
+              <span class="theme-card-preview" aria-hidden="true"></span>
+              <span class="theme-card-label">${isFr ? "Sombre" : "Dark"}</span>
+            </label>
+            <label class="theme-card theme-card-light" data-value="light">
+              <input id="appearance-light" type="radio" name="hub-theme-choice" value="light" />
+              <span class="theme-card-preview" aria-hidden="true"></span>
+              <span class="theme-card-label">${isFr ? "Clair" : "Light"}</span>
+            </label>
+          </div>
+        </section>
       </div>
-      <div class="tile" style="max-width:760px; margin-top:10px;">
-        <div class="title">Apparence</div>
-        <div class="desc">Choisis le theme de l'interface.</div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <button id="appearance-dark" class="btn" type="button">🌙 Sombre</button>
-          <button id="appearance-light" class="btn" type="button">☀️ Clair</button>
+    </div>
+
+    <!-- Wizard IA Modal -->
+    <div id="ai-wizard-overlay" class="modal-overlay">
+      <div class="panel ai-wizard-panel">
+        <button class="modal-close" id="ai-wizard-close" type="button">&times;</button>
+        <div id="ai-wizard-steps">
+          <!-- Step 1: Choix provider -->
+          <div id="wizard-step-1" class="wizard-step">
+            <div class="wizard-step-badge">1 / 3</div>
+            <h2>${isFr ? "Choisissez votre fournisseur d'IA" : "Choose your AI provider"}</h2>
+            <p class="wizard-desc">${isFr ? "Clawvis supporte plusieurs fournisseurs. Sélectionnez celui que vous voulez configurer." : "Clawvis supports multiple providers. Select the one you want to set up."}</p>
+            <div class="wizard-provider-cards">
+              <button class="wizard-provider-card" data-wizard-provider="claude" type="button">
+                <span class="wizard-provider-icon">&#x1F9E0;</span>
+                <strong>Claude</strong>
+                <span>Anthropic</span>
+              </button>
+              <button class="wizard-provider-card" data-wizard-provider="mistral" type="button">
+                <span class="wizard-provider-icon">&#x2728;</span>
+                <strong>Mistral</strong>
+                <span>Mistral AI</span>
+              </button>
+              <button class="wizard-provider-card" data-wizard-provider="openclaw" type="button">
+                <span class="wizard-provider-icon">&#x1F43E;</span>
+                <strong>OpenClaw</strong>
+                <span>${isFr ? "Auto-hébergé" : "Self-hosted"}</span>
+              </button>
+            </div>
+          </div>
+          <!-- Step 2: Clé API -->
+          <div id="wizard-step-2" class="wizard-step" style="display:none;">
+            <div class="wizard-step-badge">2 / 3</div>
+            <h2 id="wizard-step2-title">${isFr ? "Entrez vos credentials" : "Enter your credentials"}</h2>
+            <p class="wizard-desc" id="wizard-step2-desc"></p>
+            <div id="wizard-step2-fields"></div>
+            <div class="wizard-actions">
+              <button class="btn" id="wizard-back-1" type="button">← ${isFr ? "Retour" : "Back"}</button>
+              <button class="btn btn-primary" id="wizard-next-2" type="button">${isFr ? "Suivant" : "Next"} →</button>
+            </div>
+          </div>
+          <!-- Step 3: Test + Sauvegarde -->
+          <div id="wizard-step-3" class="wizard-step" style="display:none;">
+            <div class="wizard-step-badge">3 / 3</div>
+            <h2>${isFr ? "Testez et sauvegardez" : "Test and save"}</h2>
+            <p class="wizard-desc">${isFr ? "Vérifiez que la connexion fonctionne, puis sauvegardez." : "Verify the connection works, then save."}</p>
+            <div id="wizard-test-result" class="wizard-test-result"></div>
+            <div class="wizard-actions">
+              <button class="btn" id="wizard-back-2" type="button">← ${isFr ? "Retour" : "Back"}</button>
+              <button class="btn" id="wizard-test-btn" type="button">${t.testConnection}</button>
+              <button class="btn btn-primary" id="wizard-save-btn" type="button">${isFr ? "Sauvegarder" : "Save"}</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   `;
+}
+
+function renderProjectPage(projectSlug) {
+  const fr = settingsLocale() === "fr";
+  app.innerHTML = `
+    <div class="wrap">
+      ${topbar()}
+      <div class="hero project-hero">
+        <div class="project-hero-brand">
+          <img id="project-logo-hero" class="project-logo-hero" alt="" hidden src="" />
+          <img src="/clawvis-mascot.svg" alt="Clawvis" class="project-hero-mascot" />
+        </div>
+        <div><h1>${fr ? "Projet" : "Project"}</h1><p id="project-subtitle">${escapeHtml(projectSlug || "")}</p></div>
+      </div>
+      <div class="project-toolbar">
+        <a class="btn" href="/">${fr ? "← Retour au Hub" : "← Back to Hub"}</a>
+        <button class="btn" id="project-preview-btn" type="button">${fr ? "Aperçu Brain" : "Brain preview"}</button>
+        <button class="btn" id="project-rebuild-btn" type="button">${fr ? "Rafraîchir l'aperçu HTML" : "Rebuild HTML preview"}</button>
+        <button class="btn" id="project-dev-btn" type="button">${fr ? "Copier : lancer en local" : "Copy: run locally"}</button>
+        <button class="btn" id="archive-project-btn" type="button">${fr ? "Archiver le projet" : "Archive project"}</button>
+        <button class="btn" id="delete-project-btn" type="button" style="border-color:#ef4444;color:#ef4444;">${fr ? "Supprimer le projet" : "Delete project"}</button>
+      </div>
+      <p class="muted project-meta-hint" id="project-meta-hint"></p>
+      <div id="project-brain-preview" class="tile project-brain-preview" hidden>
+        <div class="title" style="font-size:14px;margin-bottom:8px;">${fr ? "Aperçu live (HTML)" : "Live preview (HTML)"}</div>
+        <iframe id="project-brain-frame" class="quartz-frame" title="Brain preview"></iframe>
+      </div>
+      <div id="project-details" class="tile project-editor"></div>
+      <div id="project-kanban" class="kanban-board"></div>
+    </div>
+  `;
+}
+
+function projectDevRunCommand(template, repoPath) {
+  const p = (repoPath || "").replace(/\\/g, "/");
+  const safe = p.replace(/'/g, "'\\''");
+  const cd = `cd '${safe}'`;
+  const t = (template || "").toLowerCase();
+  if (t === "nextjs") return `${cd} && npm install && npm run dev`;
+  if (t === "vite") return `${cd} && npm install && npm run dev`;
+  if (t === "python") return `${cd} && python3 main.py`;
+  return `${cd} && # ${template || "template"}: install deps, then start (see README)`;
 }
 
 const STATUSES = [
@@ -232,62 +938,398 @@ const STATUSES = [
   "Done",
 ];
 
-function createKanbanBoard(tasks, target, projectSlug = null) {
+function updateKanbanOverview(tasks) {
+  const total = tasks.length;
+  const byStatus = {};
+  let effortRemaining = 0;
+  STATUSES.forEach((s) => (byStatus[s] = 0));
+  tasks.forEach((t) => {
+    if (byStatus[t.status] !== undefined) byStatus[t.status]++;
+    if (t.status !== "Done") effortRemaining += Number(t.effort_hours || 0);
+  });
+  const done = byStatus["Done"] || 0;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  const bar = document.getElementById("kanban-stats-bar");
+  if (bar) {
+    bar.innerHTML = [
+      `<span class="stat-item"><span>Total</span><span>${total}</span></span>`,
+      ...STATUSES.map(
+        (s) =>
+          `<span class="stat-item"><span>${s}</span><span>${byStatus[s] || 0}</span></span>`,
+      ),
+      `<span class="stat-item"><span>Effort left</span><span>${effortRemaining.toFixed(1)}h</span></span>`,
+      `<span class="stat-item"><span>Done</span><span>${pct}%</span></span>`,
+    ].join("");
+  }
+
+  renderCoDirBoard(tasks);
+}
+
+let codirOpen = true;
+
+function renderCoDirBoard(tasks) {
+  const grid = document.getElementById("codir-grid");
+  if (!grid) return;
+  const allProjects = [
+    ...new Set(tasks.map((t) => t.project).filter(Boolean)),
+  ].sort();
+  const countEl = document.getElementById("codir-proj-count");
+  if (countEl) countEl.textContent = `(${allProjects.length} projets)`;
+
+  grid.innerHTML = "";
+  allProjects.forEach((proj, idx) => {
+    const projTasks = tasks.filter((t) => t.project === proj);
+    const t = projTasks.length;
+    const byS = {};
+    let effort = 0,
+      confSum = 0,
+      confN = 0;
+    projTasks.forEach((tk) => {
+      byS[tk.status] = (byS[tk.status] || 0) + 1;
+      effort += Number(tk.effort_hours || 0);
+      if (tk.confidence != null) {
+        confSum += tk.confidence;
+        confN++;
+      }
+    });
+    const d = byS["Done"] || 0,
+      rv = byS["Review"] || 0,
+      ip = byS["In Progress"] || 0;
+    const bl = byS["Blocked"] || 0,
+      ts = (byS["To Start"] || 0) + (byS["Backlog"] || 0);
+    const pcDone = t ? Math.round((d / t) * 100) : 0;
+    const pctColor =
+      pcDone >= 75 ? "#22c55e" : pcDone >= 40 ? "#f59e0b" : "var(--muted)";
+    const avgConf = confN ? (confSum / confN).toFixed(2) : null;
+    const effortLeft = projTasks
+      .filter((tk) => tk.status !== "Done")
+      .reduce((s, tk) => s + Number(tk.effort_hours || 0), 0);
+
+    const barParts = [
+      { cls: "codir-bar-done", n: d },
+      { cls: "codir-bar-review", n: rv },
+      { cls: "codir-bar-progress", n: ip },
+      { cls: "codir-bar-blocked", n: bl },
+      { cls: "codir-bar-start", n: ts },
+    ]
+      .filter((x) => x.n > 0)
+      .map((x) => `<div class="${x.cls}" style="flex:${x.n}"></div>`)
+      .join("");
+
+    const metaParts = [
+      d ? `<span>✅ <strong>${d}</strong></span>` : "",
+      ip ? `<span>🔨 <strong>${ip}</strong></span>` : "",
+      rv ? `<span>👀 <strong>${rv}</strong></span>` : "",
+      bl ? `<span>⛔ <strong>${bl}</strong></span>` : "",
+      ts ? `<span>📥 <strong>${ts}</strong></span>` : "",
+      `<span style="color:var(--muted)">/ ${t}</span>`,
+      effortLeft ? `<span>⏱ ${effortLeft.toFixed(0)}h left</span>` : "",
+      avgConf ? `<span>🎯 ${avgConf}</span>` : "",
+    ]
+      .filter(Boolean)
+      .join("");
+
+    grid.innerHTML += `
+      <div class="codir-proj">
+        <div class="codir-proj-header">
+          <span class="codir-proj-num">#${idx + 1}</span>
+          <span class="codir-proj-name" data-codir-proj="${escapeHtml(proj)}" title="Filter ${escapeHtml(proj)}">${escapeHtml(proj)}</span>
+          <span class="codir-proj-pct" style="color:${pctColor}">${pcDone}%</span>
+        </div>
+        <div class="codir-bar">${barParts || '<div class="codir-bar-start" style="flex:1"></div>'}</div>
+        <div class="codir-proj-meta">${metaParts}</div>
+      </div>`;
+  });
+}
+
+function createKanbanBoard(
+  tasks,
+  target,
+  projectSlug = null,
+  onChanged = null,
+) {
+  const colIcons = {
+    Backlog: "📥",
+    "To Start": "🤖",
+    "In Progress": "🔨",
+    Blocked: "⛔",
+    Review: "👀",
+    Done: "✅",
+  };
   const byStatus = Object.fromEntries(STATUSES.map((s) => [s, []]));
+  const byId = Object.fromEntries((tasks || []).map((t) => [t.id, t]));
   (tasks || []).forEach((task) => {
     if (byStatus[task.status]) byStatus[task.status].push(task);
   });
-  target.innerHTML = `
-    ${STATUSES.map(
-      (status) => `
-      <div class="kanban-column">
-        <h3>${status}</h3>
-        ${
-          (byStatus[status] || [])
-            .map(
-              (task) => `
-          <div class="kanban-card" data-task-id="${task.id}">
-            <div class="title">${escapeHtml(task.title)}</div>
-            <div class="desc">${escapeHtml(task.description || "")}</div>
-            <div class="chips"><span class="chip">${escapeHtml(task.priority || "Medium")}</span></div>
-            <div class="status-actions">
-              ${STATUSES.map((next) => `<button class="mini-btn ${next === status ? "active" : ""}" data-task-id="${task.id}" data-next-status="${next}">${next}</button>`).join("")}
-            </div>
-          </div>
-        `,
-            )
-            .join("") || '<div class="task">No tasks</div>'
-        }
+  target.innerHTML = "";
+  STATUSES.forEach((status) => {
+    const col = document.createElement("div");
+    col.className = "kanban-column";
+    col.dataset.status = status;
+    const colTasks = byStatus[status] || [];
+    col.innerHTML = `<div class="col-header"><h3>${colIcons[status] || ""} ${status}</h3><span class="col-count">${colTasks.length}</span></div>`;
+    const cardsDiv = document.createElement("div");
+    cardsDiv.className = "kanban-cards";
+    if (!colTasks.length) {
+      cardsDiv.innerHTML = `<div class="empty-col">${status === "To Start" ? "Add tasks here for AI" : "No tasks"}</div>`;
+    }
+    colTasks.forEach((task) => {
+      const score = Number(task.confidence ?? 0.5);
+      const level = score >= 0.7 ? "high" : score >= 0.4 ? "mid" : "low";
+      const card = document.createElement("div");
+      card.className = "kanban-card";
+      card.draggable = true;
+      card.dataset.taskId = task.id;
+      let html = `<div class="kanban-card-title">${escapeHtml(task.title)}</div><div class="kanban-card-meta">`;
+      if (task.project)
+        html += `<span class="badge badge-project">${escapeHtml(task.project)}</span>`;
+      html += `<span class="badge badge-${task.priority || "Medium"}">${escapeHtml(task.priority || "Medium")}</span>`;
+      html += `<span class="badge badge-conf-${level}" title="Confidence">${score.toFixed(2)}</span>`;
+      if (task.created_by === "user")
+        html += `<span class="badge" style="background:rgba(99,102,241,0.1);color:var(--accent)">you</span>`;
+      if (task.effort_hours)
+        html += `<span class="card-effort">${task.effort_hours}h</span>`;
+      html += `</div>`;
+      card.innerHTML = html;
+      cardsDiv.appendChild(card);
+    });
+    col.appendChild(cardsDiv);
+    target.appendChild(col);
+  });
+  const overlay = document.getElementById("kanban-detail-overlay");
+  const modal = document.getElementById("kanban-detail-modal");
+  const PRIORITY_COLORS = {
+    Critical: "var(--red)",
+    High: "var(--amber)",
+    Medium: "var(--blue)",
+    Low: "var(--muted)",
+  };
+  const openDetail = (task) => {
+    if (!overlay || !modal || !task) return;
+    const score = Number(task.confidence ?? 0.5);
+    const level = score >= 0.7 ? "high" : score >= 0.4 ? "mid" : "low";
+    const priorities = ["Critical", "High", "Medium", "Low"];
+    modal.innerHTML = `
+      <button class="modal-close" id="kanban-detail-close" type="button">&times;</button>
+      <h2>${escapeHtml(task.title || "Task")}</h2>
+      <div class="detail-section-label">Statut</div>
+      <div class="status-buttons">
+        ${STATUSES.map((s) => `<button class="status-btn ${task.status === s ? "active" : ""}" data-task-id="${escapeHtml(task.id)}" data-next-status="${s}" type="button">${s}</button>`).join("")}
       </div>
-    `,
-    ).join("")}
-  `;
-  target.querySelectorAll(".mini-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const taskId = btn.dataset.taskId;
-      const nextStatus = btn.dataset.nextStatus;
+      <div class="detail-section-label">Priorité</div>
+      <div class="priority-buttons">
+        ${priorities.map((p) => `<button class="priority-btn ${task.priority === p ? "active" : ""}" data-priority="${p}" type="button" style="--pcolor:${PRIORITY_COLORS[p]}">${p}</button>`).join("")}
+      </div>
+      <div class="detail-fields-grid">
+        <div class="field">
+          <label>Effort (heures)</label>
+          <input id="detail-effort" type="number" min="0" step="0.5" value="${escapeHtml(String(task.effort_hours ?? ""))}" placeholder="0.5" />
+        </div>
+        <div class="field">
+          <label>Timeline</label>
+          <input id="detail-timeline" type="text" value="${escapeHtml(task.timeline || "")}" placeholder="ex: S23, Q2 2025" />
+        </div>
+        <div class="field">
+          <label>Assigné à</label>
+          <input id="detail-assignee" type="text" value="${escapeHtml(task.assignee || "")}" placeholder="DomBot" />
+        </div>
+        <div class="field">
+          <label>Confiance</label>
+          <span class="badge badge-conf-${level}">${score.toFixed(2)}</span>
+          <span class="detail-meta-minor">${escapeHtml(task.project || "—")}</span>
+        </div>
+      </div>
+      ${task.description ? `<div class="desc" style="margin-top:8px;">${escapeHtml(task.description)}</div>` : ""}
+      <div class="field" style="margin-top:10px;">
+        <label>Notes</label>
+        <textarea id="kanban-detail-notes">${escapeHtml(task.notes || "")}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="kanban-detail-save" type="button">Enregistrer</button>
+        <button class="btn" id="kanban-detail-split" type="button">Diviser</button>
+        ${task.status === "Done" ? '<button class="btn" id="kanban-detail-archive" type="button">Archiver</button>' : ""}
+        <button class="btn" id="kanban-detail-delete" type="button" style="margin-left:auto;border-color:#ef4444;color:#ef4444;">Supprimer</button>
+      </div>
+    `;
+    overlay.classList.add("open");
+    document
+      .getElementById("kanban-detail-close")
+      ?.addEventListener("click", () => overlay.classList.remove("open"));
+
+    let selectedPriority = task.priority || "Medium";
+    modal.querySelectorAll(".priority-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedPriority = btn.dataset.priority;
+        modal
+          .querySelectorAll(".priority-btn")
+          .forEach((b) =>
+            b.classList.toggle(
+              "active",
+              b.dataset.priority === selectedPriority,
+            ),
+          );
+      });
+    });
+
+    modal.querySelectorAll(".status-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const taskId = btn.dataset.taskId;
+        const nextStatus = btn.dataset.nextStatus;
+        const res = await fetch(
+          `/api/kanban/tasks/${encodeURIComponent(taskId)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: nextStatus }),
+          },
+        );
+        if (!res.ok) return alert("Update failed");
+        overlay.classList.remove("open");
+        await reloadBoard();
+      });
+    });
+    document
+      .getElementById("kanban-detail-save")
+      ?.addEventListener("click", async () => {
+        const notes =
+          document.getElementById("kanban-detail-notes")?.value || "";
+        const effortRaw = document.getElementById("detail-effort")?.value;
+        const effort_hours =
+          effortRaw !== "" && effortRaw != null ? Number(effortRaw) : null;
+        const timeline =
+          document.getElementById("detail-timeline")?.value || null;
+        const assignee =
+          document.getElementById("detail-assignee")?.value || null;
+        const body = { notes, priority: selectedPriority };
+        if (effort_hours !== null) body.effort_hours = effort_hours;
+        if (timeline) body.timeline = timeline;
+        if (assignee) body.assignee = assignee;
+        const res = await fetch(
+          `/api/kanban/tasks/${encodeURIComponent(task.id)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        );
+        if (!res.ok) return alert("Save failed");
+        overlay.classList.remove("open");
+        await reloadBoard();
+      });
+    document
+      .getElementById("kanban-detail-split")
+      ?.addEventListener("click", async () => {
+        const countRaw = prompt("Number of subtasks", "3");
+        if (!countRaw) return;
+        const count = Number(countRaw);
+        if (!Number.isFinite(count) || count < 1) return;
+        const base_title = prompt("Base title (optional)", "") || null;
+        const res = await fetch(
+          `/api/kanban/tasks/${encodeURIComponent(task.id)}/split`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ count, base_title }),
+          },
+        );
+        if (!res.ok) return alert("Split failed");
+        overlay.classList.remove("open");
+        await reloadBoard();
+      });
+    document
+      .getElementById("kanban-detail-archive")
+      ?.addEventListener("click", async () => {
+        const res = await fetch(
+          `/api/kanban/tasks/${encodeURIComponent(task.id)}/archive`,
+          {
+            method: "PUT",
+          },
+        );
+        if (!res.ok) return alert("Archive failed");
+        overlay.classList.remove("open");
+        await reloadBoard();
+      });
+    document
+      .getElementById("kanban-detail-delete")
+      ?.addEventListener("click", async () => {
+        if (
+          !confirm(
+            "Supprimer cette tâche définitivement ? Elle disparaîtra du Kanban et des dépendances.",
+          )
+        )
+          return;
+        const res = await fetch(
+          `/api/kanban/tasks/${encodeURIComponent(task.id)}`,
+          { method: "DELETE" },
+        );
+        if (!res.ok) return alert("Suppression impossible");
+        overlay.classList.remove("open");
+        await reloadBoard();
+      });
+  };
+  overlay?.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.classList.remove("open");
+  });
+
+  let draggedId = null;
+  target.querySelectorAll(".kanban-card").forEach((card) => {
+    card.addEventListener("dragstart", () => {
+      draggedId = card.dataset.taskId;
+      card.classList.add("dragging");
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+    });
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".mini-btn")) return;
+      openDetail(byId[card.dataset.taskId]);
+    });
+  });
+  target.querySelectorAll(".kanban-column").forEach((col) => {
+    col.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      col.classList.add("drag-over");
+    });
+    col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
+    col.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      col.classList.remove("drag-over");
+      if (!draggedId) return;
+      const nextStatus = col.dataset.status;
       const res = await fetch(
-        `/api/kanban/tasks/${encodeURIComponent(taskId)}`,
+        `/api/kanban/tasks/${encodeURIComponent(draggedId)}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: nextStatus }),
         },
       );
-      if (!res.ok) return alert("Update failed");
-      if (projectSlug) {
-        const refresh = await fetch(
-          `/api/kanban/tasks?project=${encodeURIComponent(projectSlug)}`,
-        );
-        const payload = refresh.ok ? await refresh.json() : { tasks: [] };
-        createKanbanBoard(payload.tasks || [], target, projectSlug);
-      } else {
-        const refresh = await fetch("/api/kanban/tasks");
-        const payload = refresh.ok ? await refresh.json() : { tasks: [] };
-        createKanbanBoard(payload.tasks || [], target, null);
-      }
+      if (!res.ok) return alert("Move failed");
+      draggedId = null;
+      await reloadBoard();
     });
   });
+
+  async function reloadBoard() {
+    if (onChanged) {
+      await onChanged();
+      return;
+    }
+    if (projectSlug) {
+      const refresh = await fetch(
+        `/api/kanban/tasks?project=${encodeURIComponent(projectSlug)}`,
+      );
+      const payload = refresh.ok ? await refresh.json() : { tasks: [] };
+      createKanbanBoard(payload.tasks || [], target, projectSlug);
+      return;
+    }
+    const refresh = await fetch("/api/kanban/tasks");
+    const payload = refresh.ok ? await refresh.json() : { tasks: [] };
+    const refreshedTasks = payload.tasks || [];
+    updateKanbanOverview(refreshedTasks);
+    createKanbanBoard(refreshedTasks, target, null);
+  }
 }
 
 async function loadProjects() {
@@ -295,93 +1337,943 @@ async function loadProjects() {
   const res = await fetch("/api/kanban/hub/projects");
   if (!res.ok) return;
   const data = await res.json();
+  const v = Date.now();
   (data.projects || []).forEach((project) => {
     const card = document.createElement("a");
-    card.href = "#";
-    card.className = "card";
+    card.href = `/project/${encodeURIComponent(project.slug)}`;
+    card.className = "card card-project";
     const tags = (project.tags || [])
       .map((t) => `<span class="chip">${t}</span>`)
       .join("");
-    card.innerHTML = `<div class="title">${project.name} · ${project.stage || "PoC"}</div><div class="desc">${project.description || ""}</div>${tags ? `<div class="chips">${tags}</div>` : ""}`;
-    card.addEventListener("click", async (e) => {
-      e.preventDefault();
-      const [projectRes, taskRes] = await Promise.all([
-        fetch(`/api/kanban/hub/projects/${encodeURIComponent(project.slug)}`),
-        fetch(`/api/kanban/tasks?project=${encodeURIComponent(project.slug)}`),
-      ]);
-      if (!projectRes.ok) return;
-      const payload = await projectRes.json();
-      const tasks = taskRes.ok ? await taskRes.json() : { tasks: [] };
-      const root = document.getElementById("project-hub");
-      const major = payload.major || {};
-      root.innerHTML = `
-        <div class="tile">
-          <div class="title">${escapeHtml(major.title || payload.project.name)}</div>
-          ${major.objective ? `<div class="desc"><strong>Objective</strong><br>${escapeHtml(major.objective)}</div>` : ""}
-          ${major.context ? `<div class="desc" style="margin-top:8px;"><strong>Context</strong><br>${escapeHtml(major.context)}</div>` : ""}
-          ${major.kanban ? `<div class="desc" style="margin-top:8px;"><strong>Kanban</strong><br>${escapeHtml(major.kanban)}</div>` : ""}
-          ${major.links ? `<div class="desc" style="margin-top:8px;"><strong>Links</strong><br>${escapeHtml(major.links)}</div>` : ""}
-          ${major.notes ? `<div class="desc" style="margin-top:8px;"><strong>Notes</strong><br>${escapeHtml(major.notes)}</div>` : ""}
-        </div>
-        <div id="project-kanban-${project.slug}" class="kanban-board"></div>
-      `;
-      createKanbanBoard(
-        tasks.tasks || [],
-        document.getElementById(`project-kanban-${project.slug}`),
-        project.slug,
-      );
-    });
+    const logoBlock = project.has_logo
+      ? `<div class="card-project-logo"><img src="/api/kanban/hub/projects/${encodeURIComponent(project.slug)}/logo?v=${v}" alt="" loading="lazy" /></div>`
+      : "";
+    const main = `<div class="card-project-main"><div class="title">${escapeHtml(project.name)} · ${escapeHtml(project.stage || "PoC")}</div><div class="desc">${escapeHtml(project.description || "")}</div>${tags ? `<div class="chips">${tags}</div>` : ""}</div>`;
+    card.innerHTML = `<div class="card-project-row">${logoBlock}${main}</div>`;
     grid.appendChild(card);
   });
 }
 
-async function wireLogs() {
-  async function refreshLogs() {
-    const q = document.getElementById("log-search").value.trim();
-    const url = q
-      ? `/api/kanban/logs?search=${encodeURIComponent(q)}&limit=200`
-      : "/api/kanban/logs?limit=200";
-    const res = await fetch(url);
-    const data = res.ok ? await res.json() : { logs: [] };
-    const list = document.getElementById("logs-list");
-    const logs = data.logs || [];
-    if (!logs.length) {
-      list.innerHTML = `<div class="task">Aucun log pour le moment.</div>`;
+async function wireProjectPage() {
+  const slug = decodeURIComponent(
+    path.replace("/project/", "").split("/")[0] || "",
+  );
+  if (!slug) return;
+  const fr = settingsLocale() === "fr";
+  const [projectRes, taskRes] = await Promise.all([
+    fetch(`/api/kanban/hub/projects/${encodeURIComponent(slug)}`),
+    fetch(`/api/kanban/tasks?project=${encodeURIComponent(slug)}`),
+  ]);
+  if (!projectRes.ok) {
+    document.getElementById("project-details").innerHTML =
+      `<div class="title">${fr ? "Projet introuvable" : "Project not found"}</div>`;
+    return;
+  }
+  let payload = await projectRes.json();
+  const tasks = taskRes.ok ? await taskRes.json() : { tasks: [] };
+  let project = payload.project || {};
+  const major = payload.major || {};
+  document.getElementById("project-subtitle").textContent =
+    project.name || slug;
+  const hintEl = document.getElementById("project-meta-hint");
+  if (hintEl && project.repo_path) {
+    hintEl.textContent = `${fr ? "Dépôt" : "Repo"}: ${project.repo_path}`;
+  }
+  const details = document.getElementById("project-details");
+  const L = {
+    sheet: fr ? "Fiche mémoire" : "Memory sheet",
+    hint: fr
+      ? "Enregistré dans memory/projects/ (source de vérité)."
+      : "Stored under memory/projects/ (source of truth).",
+    secPres: fr ? "Présentation" : "Overview",
+    secPresHint: fr
+      ? "Identité visible : titre, résumé, image optionnelle."
+      : "Visible identity: title, summary, optional image.",
+    secVision: fr ? "Vision & direction" : "Vision & direction",
+    secVisionHint: fr
+      ? "Pourquoi ce projet existe, comment on le mène, le résultat visé."
+      : "Why it exists, how you steer it, the outcome you want.",
+    secOps: fr ? "Pilotage & liens" : "Execution & links",
+    secOpsHint: fr
+      ? "Où ça vit, ce que le Kanban doit refléter, liens utiles."
+      : "Where it lives, Kanban focus, useful links.",
+    secNotes: fr ? "Notes libres" : "Notes",
+    secNotesHint: fr
+      ? "Tout ce qui ne tient pas dans les blocs ci-dessus."
+      : "Anything that does not fit the blocks above.",
+    title: fr ? "Titre affiché (H1)" : "Display title (H1)",
+    description: fr ? "Résumé" : "Summary",
+    macro: fr ? "Objectifs macro" : "Macro objectives",
+    strategy: fr ? "Stratégie" : "Strategy",
+    objective: fr ? "Objectif mesurable" : "Measurable objective",
+    context: fr ? "Contexte / périmètre" : "Context / scope",
+    kanban: fr ? "Focus Kanban" : "Kanban focus",
+    links: fr ? "Liens (URLs, outils)" : "Links (URLs, tools)",
+    notes: fr ? "Notes" : "Notes",
+    save: fr ? "Enregistrer la fiche" : "Save sheet",
+    logo: fr ? "Logo / image" : "Logo / image",
+    logoHelp: fr
+      ? "PNG, JPEG, GIF, WebP ou SVG (max 2 Mo). Affiché sur la tuile du Hub et en tête de page."
+      : "PNG, JPEG, GIF, WebP or SVG (max 2MB). Shown on Hub tile and page header.",
+    logoUpload: fr ? "Enregistrer l’image" : "Save image",
+    logoRemove: fr ? "Retirer" : "Remove",
+    logoPick: fr ? "Choisir un fichier…" : "Choose file…",
+  };
+  details.innerHTML = `
+    <div class="title">${escapeHtml(L.sheet)}</div>
+    <p class="muted project-sheet-hint">${escapeHtml(L.hint)}</p>
+
+    <section class="project-memory-section" aria-labelledby="pm-sec-pres">
+      <h3 class="project-memory-section-title" id="pm-sec-pres">${escapeHtml(L.secPres)}</h3>
+      <p class="project-memory-section-hint">${escapeHtml(L.secPresHint)}</p>
+      <div class="field">
+        <label for="project-logo-file">${escapeHtml(L.logo)}</label>
+        <p class="field-hint">${escapeHtml(L.logoHelp)}</p>
+        <div class="project-logo-editor">
+          <img id="project-logo-preview" class="project-logo-preview" alt="" width="72" height="72" hidden src="" />
+          <div class="project-logo-editor-actions">
+            <input type="file" id="project-logo-file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" />
+            <button class="btn" id="project-logo-save" type="button">${escapeHtml(L.logoUpload)}</button>
+            <button class="btn" id="project-logo-clear" type="button">${escapeHtml(L.logoRemove)}</button>
+          </div>
+        </div>
+      </div>
+      <div class="field"><label for="pm-title">${escapeHtml(L.title)}</label><input id="pm-title" type="text" autocomplete="off" /></div>
+      <div class="field"><label for="pm-description">${escapeHtml(L.description)}</label><textarea id="pm-description" rows="3"></textarea></div>
+    </section>
+
+    <section class="project-memory-section" aria-labelledby="pm-sec-vision">
+      <h3 class="project-memory-section-title" id="pm-sec-vision">${escapeHtml(L.secVision)}</h3>
+      <p class="project-memory-section-hint">${escapeHtml(L.secVisionHint)}</p>
+      <div class="field"><label for="pm-macro">${escapeHtml(L.macro)}</label><textarea id="pm-macro" rows="3"></textarea></div>
+      <div class="field"><label for="pm-strategy">${escapeHtml(L.strategy)}</label><textarea id="pm-strategy" rows="3"></textarea></div>
+      <div class="field"><label for="pm-objective">${escapeHtml(L.objective)}</label><textarea id="pm-objective" rows="2"></textarea></div>
+    </section>
+
+    <section class="project-memory-section" aria-labelledby="pm-sec-ops">
+      <h3 class="project-memory-section-title" id="pm-sec-ops">${escapeHtml(L.secOps)}</h3>
+      <p class="project-memory-section-hint">${escapeHtml(L.secOpsHint)}</p>
+      <div class="field"><label for="pm-context">${escapeHtml(L.context)}</label><textarea id="pm-context" rows="2"></textarea></div>
+      <div class="field"><label for="pm-kanban">${escapeHtml(L.kanban)}</label><textarea id="pm-kanban" rows="2"></textarea></div>
+      <div class="field"><label for="pm-links">${escapeHtml(L.links)}</label><textarea id="pm-links" rows="2"></textarea></div>
+    </section>
+
+    <section class="project-memory-section" aria-labelledby="pm-sec-notes">
+      <h3 class="project-memory-section-title" id="pm-sec-notes">${escapeHtml(L.secNotes)}</h3>
+      <p class="project-memory-section-hint">${escapeHtml(L.secNotesHint)}</p>
+      <div class="field"><label for="pm-notes">${escapeHtml(L.notes)}</label><textarea id="pm-notes" rows="4"></textarea></div>
+    </section>
+
+    <div class="editor-actions">
+      <button class="btn btn-primary" id="project-save-memory" type="button">${escapeHtml(L.save)}</button>
+      <span class="muted" id="project-save-status" style="font-size:13px;"></span>
+    </div>
+  `;
+  function fillMajorForm() {
+    const m = payload.major || {};
+    document.getElementById("pm-title").value =
+      m.title || project.name || slug || "";
+    document.getElementById("pm-description").value = m.description || "";
+    document.getElementById("pm-macro").value = m.macro_objectives || "";
+    document.getElementById("pm-strategy").value = m.strategy || "";
+    document.getElementById("pm-objective").value = m.objective || "";
+    document.getElementById("pm-context").value = m.context || "";
+    document.getElementById("pm-kanban").value = m.kanban || "";
+    document.getElementById("pm-links").value = m.links || "";
+    document.getElementById("pm-notes").value = m.notes || "";
+  }
+  function syncProjectLogo() {
+    const prev = document.getElementById("project-logo-preview");
+    const hero = document.getElementById("project-logo-hero");
+    const mascot = document.querySelector(".project-hero-mascot");
+    const show = !!project.has_logo;
+    const url = `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo?t=${Date.now()}`;
+    if (prev) {
+      prev.hidden = !show;
+      if (show) prev.src = url;
+      else prev.removeAttribute("src");
+    }
+    if (hero) {
+      hero.hidden = !show;
+      if (show) hero.src = url;
+      else hero.removeAttribute("src");
+    }
+    if (mascot) mascot.hidden = show;
+  }
+  fillMajorForm();
+  syncProjectLogo();
+  createKanbanBoard(
+    tasks.tasks || [],
+    document.getElementById("project-kanban"),
+    slug,
+  );
+
+  document
+    .getElementById("project-logo-save")
+    ?.addEventListener("click", async () => {
+      const input = document.getElementById("project-logo-file");
+      const file = input?.files?.[0];
+      if (!file) {
+        alert(fr ? "Choisis d’abord une image." : "Pick an image first.");
+        return;
+      }
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(
+        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
+        { method: "PUT", body: fd },
+      );
+      if (!res.ok) {
+        let msg = fr ? "Échec envoi du logo." : "Logo upload failed.";
+        try {
+          const j = await res.json();
+          if (j.detail) msg = typeof j.detail === "string" ? j.detail : msg;
+        } catch {
+          /* ignore */
+        }
+        alert(msg);
+        return;
+      }
+      project = { ...project, has_logo: true };
+      syncProjectLogo();
+      if (input) input.value = "";
+    });
+  document
+    .getElementById("project-logo-clear")
+    ?.addEventListener("click", async () => {
+      if (
+        !confirm(
+          fr ? "Retirer le logo de ce projet ?" : "Remove this project logo?",
+        )
+      )
+        return;
+      const res = await fetch(
+        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) return;
+      project = { ...project, has_logo: false };
+      syncProjectLogo();
+    });
+
+  async function loadBrainPreviewHtml() {
+    const frame = document.getElementById("project-brain-frame");
+    if (!frame) return;
+    const fn = `${slug}.html`;
+    const res = await fetch(
+      `/api/kanban/memory/quartz/${encodeURIComponent(fn)}`,
+    );
+    const emptyMsg = fr
+      ? `Aucune page ${fn}. Enregistrez la fiche, puis régénérez l'aperçu ou ouvrez le Brain.`
+      : `No ${fn} yet. Save the sheet, then rebuild preview or open Brain.`;
+    if (res.ok) {
+      const data = await res.json();
+      let html = (data.content || "").trim();
+      if (html && !/<!DOCTYPE/i.test(html) && !/<html[\s>]/i.test(html)) {
+        html = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"></head><body>${html}</body></html>`;
+      }
+      if (html) {
+        frame.srcdoc = html;
+        return;
+      }
+    }
+    const mdRes = await fetch(
+      `/api/kanban/memory/projects/${encodeURIComponent(`${slug}.md`)}`,
+    );
+    if (mdRes.ok) {
+      const mdData = await mdRes.json();
+      frame.srcdoc = markdownToBrainSrcdoc(mdData.content || "");
       return;
     }
-    list.innerHTML = logs
-      .slice(0, 200)
-      .map(
-        (entry) => `
-      <div class="task">
-        <strong>${escapeHtml(entry.level || "INFO")}</strong>
-        <div>${escapeHtml(entry.ts || "")} · ${escapeHtml(entry.process || "")} · ${escapeHtml(entry.action || "")}</div>
-        <div>${escapeHtml(entry.message || entry.msg || "")}</div>
-      </div>
-    `,
+    frame.srcdoc = `<div style="font-family:system-ui,sans-serif;padding:20px;color:#9aa6cf">${emptyMsg}</div>`;
+  }
+
+  document
+    .getElementById("project-preview-btn")
+    .addEventListener("click", async () => {
+      const wrap = document.getElementById("project-brain-preview");
+      const hidden = !wrap.hidden;
+      wrap.hidden = hidden;
+      if (!hidden) await loadBrainPreviewHtml();
+    });
+  document
+    .getElementById("project-rebuild-btn")
+    .addEventListener("click", async () => {
+      const res = await fetch("/api/kanban/hub/brain/rebuild-static", {
+        method: "POST",
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        /* ignore */
+      }
+      if (!res.ok || !data.ok) {
+        const tail = (data.stderr || data.stdout || "").toString().slice(-600);
+        const msg = data.error || data.detail || "Rebuild failed";
+        alert(tail ? `${msg}\n${tail}` : msg);
+        return;
+      }
+      const preview = document.getElementById("project-brain-preview");
+      if (preview && !preview.hidden) await loadBrainPreviewHtml();
+    });
+  document
+    .getElementById("project-dev-btn")
+    .addEventListener("click", async () => {
+      const cmd = projectDevRunCommand(project.template, project.repo_path);
+      const okHint = fr
+        ? "Commande copiée (collez dans un terminal sur votre machine)."
+        : "Command copied (paste in a terminal on your machine).";
+      try {
+        await navigator.clipboard.writeText(cmd);
+        if (hintEl) {
+          hintEl.textContent = `${fr ? "Dépôt" : "Repo"}: ${project.repo_path || "—"} · ${okHint}`;
+        }
+      } catch {
+        window.prompt(fr ? "Copier la commande :" : "Copy command:", cmd);
+      }
+    });
+  document
+    .getElementById("project-save-memory")
+    .addEventListener("click", async () => {
+      const status = document.getElementById("project-save-status");
+      const body = {
+        title: document.getElementById("pm-title").value,
+        description: document.getElementById("pm-description").value,
+        macro_objectives: document.getElementById("pm-macro").value,
+        strategy: document.getElementById("pm-strategy").value,
+        objective: document.getElementById("pm-objective").value,
+        context: document.getElementById("pm-context").value,
+        kanban: document.getElementById("pm-kanban").value,
+        links: document.getElementById("pm-links").value,
+        notes: document.getElementById("pm-notes").value,
+      };
+      const res = await fetch(
+        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/memory-major`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      if (!res.ok) {
+        if (status) {
+          status.textContent = fr
+            ? "Échec de l'enregistrement."
+            : "Save failed.";
+        }
+        return;
+      }
+      payload = await res.json();
+      project = payload.project || {};
+      fillMajorForm();
+      syncProjectLogo();
+      if (status) {
+        status.textContent = fr ? "Fiche enregistrée." : "Saved.";
+      }
+      const subt = document.getElementById("project-subtitle");
+      if (subt) subt.textContent = (payload.project || {}).name || slug;
+    });
+  document
+    .getElementById("archive-project-btn")
+    .addEventListener("click", async () => {
+      if (
+        !confirm(
+          fr
+            ? "Archiver ce projet ? Le dépôt ira dans archived/ et les tâches seront archivées."
+            : "Archive this project? Repo will move to archived folder and tasks will be archived.",
+        )
       )
+        return;
+      const res = await fetch(
+        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/archive`,
+        {
+          method: "POST",
+        },
+      );
+      if (!res.ok) return alert(fr ? "Échec archivage" : "Archive failed");
+      window.location.href = "/";
+    });
+  document
+    .getElementById("delete-project-btn")
+    .addEventListener("click", async () => {
+      if (
+        !confirm(
+          fr
+            ? "Supprimer définitivement ce projet ? Dépôt, mémoire et tâches seront effacés."
+            : "Delete this project permanently? Repo, memory file and tasks will be removed.",
+        )
+      )
+        return;
+      const res = await fetch(
+        `/api/kanban/hub/projects/${encodeURIComponent(slug)}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (!res.ok) return alert(fr ? "Échec suppression" : "Delete failed");
+      window.location.href = "/";
+    });
+}
+
+function splitLogMessage(raw) {
+  const s = (raw || "").trim();
+  if (!s) return { primary: "", meta: "" };
+  const sp = s.search(/\surl=/i);
+  if (sp > 0)
+    return { primary: s.slice(0, sp).trim(), meta: s.slice(sp).trim() };
+  const cm = s.search(/,\s*url=/i);
+  if (cm > 0)
+    return { primary: s.slice(0, cm).trim(), meta: s.slice(cm + 1).trim() };
+  return { primary: s, meta: "" };
+}
+
+function logLevelRowClass(level) {
+  const L = (level || "INFO").toUpperCase();
+  if (L === "ERROR" || L === "CRITICAL") return "level-error";
+  if (L === "WARN" || L === "WARNING") return "level-warn";
+  if (L === "DEBUG") return "level-debug";
+  return "level-info";
+}
+
+function logEntryRawTimestamp(entry) {
+  const v = entry?.timestamp ?? entry?.ts ?? entry?.time ?? "";
+  return typeof v === "string" ? v.trim() : "";
+}
+
+function formatLogDisplayTs(raw) {
+  if (!raw) return "—";
+  const normalized = raw.replace(/Z$/i, "");
+  const d = new Date(normalized);
+  if (!Number.isNaN(d.getTime())) {
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  }
+  const t = raw.includes("T") ? raw.replace("T", " ") : raw;
+  return t.length > 23 ? t.slice(0, 23) : t;
+}
+
+async function wireLogs() {
+  let allLogs = [];
+  let autoTimer = null;
+  let autoOn = false;
+  const LS = {
+    search: "logs-filter-search",
+    level: "logs-filter-level",
+    process: "logs-filter-process",
+    auto: "logs-filter-auto-refresh",
+  };
+  const searchEl = document.getElementById("log-search");
+  const levelEl = document.getElementById("log-level-filter");
+  const processEl = document.getElementById("log-process-filter");
+  const autoBtn = document.getElementById("log-auto-toggle");
+
+  if (searchEl) searchEl.value = localStorage.getItem(LS.search) || "";
+  if (levelEl) levelEl.value = localStorage.getItem(LS.level) || "";
+  autoOn = localStorage.getItem(LS.auto) === "1";
+
+  function syncAutoUi() {
+    if (!autoBtn) return;
+    autoBtn.textContent = autoOn ? "Auto: ON" : "Auto: OFF";
+    autoBtn.classList.toggle("active", autoOn);
+  }
+
+  function populateProcessSelect() {
+    if (!processEl || processEl.tagName !== "SELECT") return;
+    const saved = (localStorage.getItem(LS.process) || "").trim();
+    const set = new Set();
+    allLogs.forEach((e) => {
+      const p = (e.process || e.agent || "").trim();
+      if (p) set.add(p);
+    });
+    const sorted = [...set].sort();
+    processEl.innerHTML =
+      '<option value="">All Processes</option>' +
+      sorted
+        .map(
+          (p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`,
+        )
+        .join("");
+    if (saved && sorted.includes(saved)) processEl.value = saved;
+  }
+
+  function renderRows(logs) {
+    const tbody = document.getElementById("logs-tbody");
+    if (!tbody) return;
+    if (!logs.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="muted-cell">No logs yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = logs
+      .slice(0, 200)
+      .map((entry) => {
+        const level = (entry.level || "INFO").toUpperCase();
+        const proc =
+          (entry.process || entry.agent || "system").trim() || "system";
+        const lvlCls = logLevelRowClass(level);
+        const rawMsg = entry.message || entry.msg || "";
+        const { primary, meta } = splitLogMessage(rawMsg);
+        const msgHtml = meta
+          ? `<div class="log-msg-primary">${escapeHtml(primary)}</div><div class="log-msg-meta">${escapeHtml(meta)}</div>`
+          : `<div class="log-msg-primary">${escapeHtml(primary)}</div>`;
+        const rawTs = logEntryRawTimestamp(entry);
+        const showTs = formatLogDisplayTs(rawTs);
+        return `<tr>
+          <td class="col-mono log-ts" title="${escapeHtml(rawTs || "—")}">${escapeHtml(showTs)}</td>
+          <td><span class="log-level ${lvlCls}">${escapeHtml(level)}</span></td>
+          <td><span class="log-process-pill">${escapeHtml(proc)}</span></td>
+          <td class="col-mono log-model">${escapeHtml(entry.model || "—")}</td>
+          <td class="col-mono log-action">${escapeHtml(entry.action || "—")}</td>
+          <td>${msgHtml}</td>
+        </tr>`;
+      })
       .join("");
   }
 
+  function applyFilters() {
+    const search = (searchEl?.value || "").trim().toLowerCase();
+    const level = (levelEl?.value || "").trim();
+    const process = (processEl?.value || "").trim();
+    localStorage.setItem(LS.search, searchEl?.value || "");
+    localStorage.setItem(LS.level, levelEl?.value || "");
+    localStorage.setItem(LS.process, process || "");
+    const filtered = allLogs.filter((entry) => {
+      const eRaw = (entry.level || "INFO").toUpperCase();
+      if (level) {
+        if (level === "WARN" || level === "WARNING") {
+          if (eRaw !== "WARN" && eRaw !== "WARNING") return false;
+        } else if (level === "ERROR") {
+          if (eRaw !== "ERROR" && eRaw !== "CRITICAL") return false;
+        } else if (eRaw !== level) return false;
+      }
+      const eProc = (entry.process || entry.agent || "").trim();
+      if (process && eProc !== process) return false;
+      if (!search) return true;
+      const rawTs = logEntryRawTimestamp(entry);
+      const haystack = [
+        entry.message || entry.msg || "",
+        entry.action || "",
+        entry.model || "",
+        entry.process || "",
+        entry.agent || "",
+        rawTs,
+        formatLogDisplayTs(rawTs),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(search);
+    });
+    document.getElementById("kpi-total").textContent = String(allLogs.length);
+    document.getElementById("kpi-info").textContent = String(
+      allLogs.filter((l) => (l.level || "INFO").toUpperCase() === "INFO")
+        .length,
+    );
+    document.getElementById("kpi-warn").textContent = String(
+      allLogs.filter((l) => {
+        const x = (l.level || "INFO").toUpperCase();
+        return x === "WARN" || x === "WARNING";
+      }).length,
+    );
+    document.getElementById("kpi-error").textContent = String(
+      allLogs.filter((l) => {
+        const x = (l.level || "INFO").toUpperCase();
+        return x === "ERROR" || x === "CRITICAL";
+      }).length,
+    );
+    renderRows(filtered);
+  }
+
+  async function refreshLogs() {
+    const url = "/api/kanban/logs?limit=400";
+    const res = await fetch(url);
+    const data = res.ok ? await res.json() : { logs: [] };
+    allLogs = data.logs || [];
+    populateProcessSelect();
+    applyFilters();
+  }
+
   document.getElementById("log-refresh").addEventListener("click", refreshLogs);
+  searchEl?.addEventListener("input", applyFilters);
+  levelEl?.addEventListener("change", applyFilters);
+  processEl?.addEventListener("change", applyFilters);
+
+  syncAutoUi();
+  autoBtn?.addEventListener("click", () => {
+    autoOn = !autoOn;
+    localStorage.setItem(LS.auto, autoOn ? "1" : "0");
+    syncAutoUi();
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+    }
+    if (autoOn) autoTimer = setInterval(refreshLogs, 10000);
+  });
+  if (autoOn) autoTimer = setInterval(refreshLogs, 10000);
+
   await refreshLogs();
 }
 
 async function wireKanbanPage() {
-  const res = await fetch("/api/kanban/tasks");
-  const data = res.ok ? await res.json() : { tasks: [] };
-  createKanbanBoard(
-    data.tasks || [],
-    document.getElementById("kanban-board"),
-    null,
-  );
+  let allTasks = [];
+  let meta = {};
+  let view = "board";
+  let projectFilter = "";
+  const boardWrap = document.getElementById("kanban-board-wrap");
+  const ganttWrap = document.getElementById("kanban-gantt-wrap");
+  const graphWrap = document.getElementById("kanban-graph-wrap");
+  const boardTarget = document.getElementById("kanban-board");
+  const ganttTarget = document.getElementById("kanban-gantt");
+  const graphTarget = document.getElementById("kanban-graph");
+  const filterSel = document.getElementById("kanban-project-filter");
+
+  const createOverlay = document.getElementById("kanban-create-overlay");
+  const archiveOverlay = document.getElementById("kanban-archive-overlay");
+  const archiveContent = document.getElementById("kanban-archive-content");
+
+  // CoDir toggle
+  document.getElementById("codir-toggle")?.addEventListener("click", () => {
+    codirOpen = !codirOpen;
+    const body = document.getElementById("codir-body");
+    const chevron = document.getElementById("codir-chevron");
+    if (body) body.style.display = codirOpen ? "" : "none";
+    if (chevron) chevron.textContent = codirOpen ? "▾" : "▸";
+  });
+
+  // CoDir project click → filter
+  document.getElementById("codir-grid")?.addEventListener("click", (e) => {
+    const projName = e.target.closest("[data-codir-proj]");
+    if (!projName || !filterSel) return;
+    const proj = projName.dataset.codirProj;
+    filterSel.value = proj;
+    projectFilter = proj;
+    renderCurrent();
+    boardTarget?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  function filteredTasks() {
+    return projectFilter
+      ? allTasks.filter((t) => (t.project || "") === projectFilter)
+      : allTasks;
+  }
+
+  function renderMetaCard() {
+    const host = document.getElementById("kanban-pm-meta");
+    if (!host) return;
+    const hasDescription = !!(meta.description || "").trim();
+    const hasVision = !!(meta.vision || "").trim();
+    const hasLinks = Array.isArray(meta.pr_links) && meta.pr_links.length > 0;
+    if (!hasDescription && !hasVision && !hasLinks) {
+      host.style.display = "none";
+      host.innerHTML = "";
+      return;
+    }
+    host.style.display = "";
+    host.innerHTML = `
+      <div class="card-title">PM Meta</div>
+      <div class="desc">${escapeHtml(meta.description || "")}</div>
+      ${meta.vision ? `<div class="desc" style="margin-top:6px;"><strong>Vision:</strong> ${escapeHtml(meta.vision)}</div>` : ""}
+      ${Array.isArray(meta.pr_links) && meta.pr_links.length ? `<div class="chips">${meta.pr_links.map((l) => `<a class="chip" href="${escapeHtml(l)}" target="_blank" rel="noreferrer">PR</a>`).join("")}</div>` : ""}
+    `;
+  }
+
+  function renderProjectSummary(tasks) {
+    const box = document.getElementById("kanban-project-summary");
+    if (!box) return;
+    if (!projectFilter || !tasks.length) {
+      box.style.display = "none";
+      box.innerHTML = "";
+      return;
+    }
+    const total = tasks.length;
+    const done = tasks.filter((t) => t.status === "Done").length;
+    const remaining = total - done;
+    const effort = tasks.reduce((s, t) => s + Number(t.effort_hours || 0), 0);
+    box.style.display = "flex";
+    box.innerHTML = `
+      <div style="font-weight:600;font-size:0.9rem;">${escapeHtml(projectFilter)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.78rem;">
+        <span>Total tasks: <strong>${total}</strong></span>
+        <span>Done: <strong>${done}</strong></span>
+        <span>Remaining: <strong>${remaining}</strong></span>
+        <span>Effort: <strong>${effort.toFixed(1)}h</strong></span>
+      </div>
+    `;
+  }
+
+  function syncViewButtons() {
+    document
+      .getElementById("view-board")
+      ?.classList.toggle("active", view === "board");
+    document
+      .getElementById("view-gantt")
+      ?.classList.toggle("active", view === "gantt");
+    document
+      .getElementById("view-graph")
+      ?.classList.toggle("active", view === "graph");
+    if (boardWrap) boardWrap.style.display = view === "board" ? "" : "none";
+    if (ganttWrap) ganttWrap.style.display = view === "gantt" ? "" : "none";
+    if (graphWrap) graphWrap.style.display = view === "graph" ? "" : "none";
+  }
+
+  function renderGantt(tasks) {
+    if (!ganttTarget) return;
+    const rows = tasks
+      .map((t) => {
+        const effort = Number(t.effort_hours || 0);
+        const width = Math.max(8, Math.min(100, effort * 12));
+        return `<div class="task">
+          <div style="display:flex;justify-content:space-between;gap:8px;">
+            <strong>${escapeHtml(t.title || t.id)}</strong>
+            <span class="chip">${escapeHtml(t.status || "")}</span>
+          </div>
+          <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width:${width}%"></div></div>
+        </div>`;
+      })
+      .join("");
+    ganttTarget.innerHTML =
+      rows || '<div class="task">No tasks for gantt view.</div>';
+  }
+
+  function renderGraph(tasks) {
+    if (!graphTarget) return;
+    const rows = tasks
+      .filter((t) => (t.dependencies || []).length)
+      .map(
+        (t) =>
+          `<div class="task"><strong>${escapeHtml(t.title || t.id)}</strong><div class="desc">Depends on: ${escapeHtml((t.dependencies || []).join(", "))}</div></div>`,
+      )
+      .join("");
+    graphTarget.innerHTML =
+      rows || '<div class="task">No dependencies to display.</div>';
+  }
+
+  async function renderCurrent() {
+    const tasks = filteredTasks();
+    updateKanbanOverview(allTasks);
+    renderMetaCard();
+    renderProjectSummary(tasks);
+    syncViewButtons();
+    if (view === "board" && boardTarget) {
+      createKanbanBoard(tasks, boardTarget, null, refreshAll);
+    } else if (view === "gantt") {
+      renderGantt(tasks);
+    } else {
+      renderGraph(tasks);
+    }
+  }
+
+  async function refreshAll() {
+    const res = await fetch("/api/kanban/tasks");
+    const data = res.ok ? await res.json() : { tasks: [] };
+    allTasks = data.tasks || [];
+    const metaRes = await fetch("/api/kanban/meta");
+    meta = metaRes.ok ? await metaRes.json() : {};
+    if (filterSel) {
+      const current = filterSel.value;
+      const projects = [
+        ...new Set(allTasks.map((t) => t.project).filter(Boolean)),
+      ].sort();
+      filterSel.innerHTML = `<option value="">All projects</option>${projects.map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("")}`;
+      if (current && projects.includes(current)) filterSel.value = current;
+      projectFilter = filterSel.value;
+    }
+    await renderCurrent();
+  }
+
+  document.getElementById("view-board")?.addEventListener("click", async () => {
+    view = "board";
+    await renderCurrent();
+  });
+  document.getElementById("view-gantt")?.addEventListener("click", async () => {
+    view = "gantt";
+    await renderCurrent();
+  });
+  document.getElementById("view-graph")?.addEventListener("click", async () => {
+    view = "graph";
+    await renderCurrent();
+  });
+  filterSel?.addEventListener("change", async () => {
+    projectFilter = filterSel.value || "";
+    await renderCurrent();
+  });
+
+  document.getElementById("kanban-new-task")?.addEventListener("click", () => {
+    createOverlay?.classList.add("open");
+  });
+  document
+    .getElementById("kanban-create-close")
+    ?.addEventListener("click", () => {
+      createOverlay?.classList.remove("open");
+    });
+  createOverlay?.addEventListener("click", (e) => {
+    if (e.target === createOverlay) createOverlay.classList.remove("open");
+  });
+  document
+    .getElementById("kanban-create-submit")
+    ?.addEventListener("click", async () => {
+      const title = document
+        .getElementById("kanban-create-title")
+        ?.value?.trim();
+      if (!title) return;
+      const project =
+        document.getElementById("kanban-create-project")?.value?.trim() || "";
+      const priority =
+        document.getElementById("kanban-create-priority")?.value || "Medium";
+      const effortRaw =
+        document.getElementById("kanban-create-effort")?.value?.trim() || "";
+      const assignee =
+        document.getElementById("kanban-create-assignee")?.value?.trim() ||
+        "DomBot";
+      const description =
+        document.getElementById("kanban-create-description")?.value?.trim() ||
+        "";
+      const effort_hours = effortRaw ? Number(effortRaw) : null;
+      const res = await fetch("/api/kanban/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          project,
+          priority,
+          effort_hours,
+          assignee,
+          description,
+        }),
+      });
+      if (!res.ok) return alert("Create failed");
+      createOverlay?.classList.remove("open");
+      await refreshAll();
+    });
+
+  document
+    .getElementById("kanban-open-archive")
+    ?.addEventListener("click", async () => {
+      archiveOverlay?.classList.add("open");
+      if (!archiveContent) return;
+      archiveContent.innerHTML = '<div class="task">Loading archive...</div>';
+      const res = await fetch("/api/kanban/tasks/archive");
+      const data = res.ok ? await res.json() : { tasks: [] };
+      const archived = data.tasks || [];
+      archiveContent.innerHTML =
+        archived
+          .map(
+            (t) => `<div class="task">
+            <div style="display:flex;justify-content:space-between;gap:8px;">
+              <strong>${escapeHtml(t.title || t.id)}</strong>
+              <button class="btn" data-restore-task="${escapeHtml(t.id)}" type="button">Restore</button>
+            </div>
+            <div class="desc">${escapeHtml(t.project || "")}</div>
+          </div>`,
+          )
+          .join("") || '<div class="task">No archived tasks.</div>';
+      archiveContent.querySelectorAll("[data-restore-task]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const taskId = btn.dataset.restoreTask;
+          const resp = await fetch(
+            `/api/kanban/tasks/${encodeURIComponent(taskId)}/restore`,
+            {
+              method: "PUT",
+            },
+          );
+          if (!resp.ok) return alert("Restore failed");
+          await refreshAll();
+          btn.closest(".task")?.remove();
+        });
+      });
+    });
+  document
+    .getElementById("kanban-archive-close")
+    ?.addEventListener("click", () => {
+      archiveOverlay?.classList.remove("open");
+    });
+  archiveOverlay?.addEventListener("click", (e) => {
+    if (e.target === archiveOverlay) archiveOverlay.classList.remove("open");
+  });
+
+  // Keyboard shortcut: 'n' to open new task
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      createOverlay?.classList.remove("open");
+      archiveOverlay?.classList.remove("open");
+      document
+        .getElementById("kanban-detail-overlay")
+        ?.classList.remove("open");
+    }
+    if (
+      e.key === "n" &&
+      !e.ctrlKey &&
+      !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)
+    ) {
+      createOverlay?.classList.add("open");
+    }
+  });
+
+  await refreshAll();
 }
 
 async function wireHome() {
   const modal = document.getElementById("modal");
-  document
-    .getElementById("new-project")
-    .addEventListener("click", () => modal.classList.add("open"));
+  const tagsInput = document.getElementById("project-tags");
+  const tagsList = document.getElementById("project-tags-list");
+  let tagValues = [];
+
+  function renderTags() {
+    tagsList.innerHTML = tagValues
+      .map(
+        (t, i) =>
+          `<button type="button" class="tag-pill" data-tag-index="${i}">${escapeHtml(t)} ×</button>`,
+      )
+      .join("");
+    tagsList.querySelectorAll(".tag-pill").forEach((el) => {
+      el.addEventListener("click", () => {
+        const idx = Number(el.dataset.tagIndex);
+        tagValues = tagValues.filter((_, i) => i !== idx);
+        renderTags();
+      });
+    });
+  }
+
+  function addTag(raw) {
+    const tag = (raw || "").trim().replace(/^#/, "");
+    if (!tag) return;
+    if (tagValues.find((t) => t.toLowerCase() === tag.toLowerCase())) return;
+    tagValues.push(tag.slice(0, 24));
+    tagValues = tagValues.slice(0, 8);
+    renderTags();
+  }
+
+  tagsInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag(tagsInput.value);
+      tagsInput.value = "";
+      return;
+    }
+    if (e.key === "Backspace" && !tagsInput.value && tagValues.length) {
+      tagValues.pop();
+      renderTags();
+    }
+  });
+
+  tagsInput.addEventListener("blur", () => {
+    if (tagsInput.value.trim()) {
+      addTag(tagsInput.value);
+      tagsInput.value = "";
+    }
+  });
+
+  document.getElementById("new-project").addEventListener("click", () => {
+    tagValues = [];
+    renderTags();
+    modal.classList.add("open");
+  });
   document
     .getElementById("close-modal")
     .addEventListener("click", () => modal.classList.remove("open"));
@@ -393,10 +2285,11 @@ async function wireHome() {
         .getElementById("project-description")
         .value.trim();
       if (!name || !description) return;
-      const tags = (document.getElementById("project-tags").value || "")
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
+      if (tagsInput.value.trim()) {
+        addTag(tagsInput.value);
+        tagsInput.value = "";
+      }
+      const tags = tagValues;
       const template = document.getElementById("project-template").value;
       const stage = document.getElementById("project-stage").value;
       const res = await fetch("/api/kanban/hub/projects", {
@@ -424,33 +2317,40 @@ function wireSystemStatus() {
 
   async function loadStats() {
     try {
-      const response = await fetch("/api/system.json");
+      const response = await fetch("/api/system.json", { cache: "no-store" });
       if (response.ok) {
-        const stats = await response.json();
-        if (stats.success) {
-          document.getElementById("cpu-percent").textContent =
-            stats.cpu_percent + "%";
+        const raw = await response.json();
+        const stats = raw?.system_info || raw;
+        const cpu = Number(stats?.cpu_percent);
+        const ram = Number(stats?.ram_percent);
+        const ramUsed = Number(stats?.ram_used_gb);
+        const ramTotal = Number(stats?.ram_total_gb);
+        const disk = Number(stats?.disk_percent);
+        const diskUsed = Number(stats?.disk_used_gb);
+        const diskTotal = Number(stats?.disk_total_gb);
+        if (Number.isFinite(cpu) && Number.isFinite(ram)) {
+          document.getElementById("cpu-percent").textContent = `${cpu}%`;
           document.getElementById("cpu-fill").style.width =
-            Math.min(stats.cpu_percent, 100) + "%";
+            `${Math.min(cpu, 100)}%`;
 
-          document.getElementById("ram-percent").textContent =
-            stats.ram_percent + "%";
-          document.getElementById("ram-fill").style.width =
-            stats.ram_percent + "%";
+          document.getElementById("ram-percent").textContent = `${ram}%`;
+          document.getElementById("ram-fill").style.width = `${ram}%`;
           document.getElementById("ram-detail").textContent =
-            stats.ram_used_gb + " / " + stats.ram_total_gb + " GB";
+            Number.isFinite(ramUsed) && Number.isFinite(ramTotal)
+              ? `${ramUsed} / ${ramTotal} GB`
+              : "N/A";
 
-          if (stats.disk_percent !== undefined) {
-            document.getElementById("disk-percent").textContent =
-              stats.disk_percent + "%";
-            document.getElementById("disk-fill").style.width =
-              stats.disk_percent + "%";
+          if (Number.isFinite(disk)) {
+            document.getElementById("disk-percent").textContent = `${disk}%`;
+            document.getElementById("disk-fill").style.width = `${disk}%`;
             document.getElementById("disk-detail").textContent =
-              stats.disk_used_gb + " / " + stats.disk_total_gb + " GB";
+              Number.isFinite(diskUsed) && Number.isFinite(diskTotal)
+                ? `${diskUsed} / ${diskTotal} GB`
+                : "N/A";
 
             const fill = document.getElementById("disk-fill");
-            if (stats.disk_percent > 90) fill.style.background = "#ef4444";
-            else if (stats.disk_percent > 75) fill.style.background = "#f59e0b";
+            if (disk > 90) fill.style.background = "#ef4444";
+            else if (disk > 75) fill.style.background = "#f59e0b";
           }
         }
       }
@@ -462,10 +2362,43 @@ function wireSystemStatus() {
 }
 
 async function wireSettings() {
+  const t = SETTINGS_TEXT[settingsLocale()];
+  const settingsFeedback = document.getElementById("settings-save-feedback");
+  const providerFeedback = document.getElementById("provider-save-feedback");
+  const runtimeHealth = document.getElementById("health-runtime");
+  const workspaceHealth = document.getElementById("health-workspace");
+  const instancesHealth = document.getElementById("health-instances");
+  const setHealth = (el, ok, text) => {
+    if (!el) return;
+    el.className = `health-pill ${ok ? "ok" : "warn"}`;
+    el.textContent = text;
+  };
+  const isRuntimeConfigured = () => {
+    const provider = localStorage.getItem("ai-provider") || "claude";
+    return (
+      (provider === "claude" && !!localStorage.getItem("ai-claude-key")) ||
+      (provider === "mistral" && !!localStorage.getItem("ai-mistral-key")) ||
+      (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"))
+    );
+  };
+  const refreshRuntimeHealth = () => {
+    const ok = isRuntimeConfigured();
+    setHealth(runtimeHealth, ok, ok ? t.configured : t.notConfigured);
+    const wbtn = document.getElementById("open-ai-wizard");
+    if (wbtn) wbtn.textContent = ok ? t.modifyRuntime : t.configureRuntime;
+  };
+  const refreshWorkspaceHealth = () => {
+    const root = document.getElementById("projects-root")?.value?.trim() || "";
+    setHealth(workspaceHealth, !!root, !!root ? t.configured : t.notConfigured);
+  };
+
   const res = await fetch("/api/kanban/hub/settings");
   if (res.ok) {
     const data = await res.json();
     document.getElementById("projects-root").value = data.projects_root || "";
+    document.getElementById("instances-external-root").value =
+      data.instances_external_root || "";
+    refreshWorkspaceHealth();
   }
   document
     .getElementById("save-settings")
@@ -473,26 +2406,417 @@ async function wireSettings() {
       const projects_root = document
         .getElementById("projects-root")
         .value.trim();
+      const instances_external_root = document
+        .getElementById("instances-external-root")
+        .value.trim();
       const save = await fetch("/api/kanban/hub/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projects_root }),
+        body: JSON.stringify({ projects_root, instances_external_root }),
       });
-      if (!save.ok) return alert("Save failed");
-      alert("Saved");
+      if (!save.ok) {
+        if (settingsFeedback) {
+          settingsFeedback.className = "test-result fail";
+          settingsFeedback.textContent = t.saveFailed;
+          settingsFeedback.style.display = "inline-block";
+        }
+        return;
+      }
+      if (settingsFeedback) {
+        settingsFeedback.className = "test-result ok";
+        settingsFeedback.textContent = t.workspaceSaved;
+        settingsFeedback.style.display = "inline-block";
+      }
+      refreshWorkspaceHealth();
     });
   const dark = document.getElementById("appearance-dark");
   const light = document.getElementById("appearance-light");
+  function syncThemeCards(nextTheme) {
+    document.querySelectorAll(".theme-card").forEach((card) => {
+      card.classList.toggle("active", card.dataset.value === nextTheme);
+    });
+  }
   if (dark && light) {
-    dark.addEventListener("click", () => applyTheme("dark"));
-    light.addEventListener("click", () => applyTheme("light"));
+    dark.checked = theme() === "dark";
+    light.checked = theme() === "light";
+    syncThemeCards(theme());
+    dark.addEventListener("change", () => {
+      applyTheme("dark");
+      syncThemeCards("dark");
+    });
+    light.addEventListener("change", () => {
+      applyTheme("light");
+      syncThemeCards("light");
+    });
+  }
+
+  let activeProvider = localStorage.getItem("ai-provider") || "claude";
+
+  // Wizard IA
+  const wizardOverlay = document.getElementById("ai-wizard-overlay");
+  const isFr = settingsLocale() === "fr";
+  let wizardProvider = activeProvider;
+
+  function wizardShowStep(n) {
+    [1, 2, 3].forEach((i) => {
+      const el = document.getElementById(`wizard-step-${i}`);
+      if (el) el.style.display = i === n ? "" : "none";
+    });
+  }
+  function wizardBuildStep2Fields(provider) {
+    const title = document.getElementById("wizard-step2-title");
+    const desc = document.getElementById("wizard-step2-desc");
+    const fields = document.getElementById("wizard-step2-fields");
+    if (!title || !desc || !fields) return;
+    if (provider === "claude") {
+      title.textContent = "Claude (Anthropic)";
+      desc.textContent = isFr
+        ? "Entrez votre clé API Anthropic. Elle sera stockée uniquement dans ce navigateur."
+        : "Enter your Anthropic API key. It is stored only in this browser.";
+      fields.innerHTML = `<label>API key</label><input id="wizard-claude-key" type="password" placeholder="sk-ant-..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-claude-key") || "")}" /><p class="hint">${t.getClaudeKey}</p>`;
+    } else if (provider === "mistral") {
+      title.textContent = "Mistral AI";
+      desc.textContent = isFr
+        ? "Entrez votre clé API Mistral."
+        : "Enter your Mistral API key.";
+      fields.innerHTML = `<label>API key</label><input id="wizard-mistral-key" type="password" placeholder="..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-mistral-key") || "")}" /><p class="hint">${t.getMistralKey}</p>`;
+    } else {
+      title.textContent = "OpenClaw";
+      desc.textContent = isFr
+        ? "Entrez l'URL de votre instance OpenClaw self-hosted."
+        : "Enter the URL of your self-hosted OpenClaw instance.";
+      fields.innerHTML = `<label>URL</label><input id="wizard-openclaw-url" type="text" placeholder="http://localhost:3333" value="${escapeHtml(localStorage.getItem("ai-openclaw-url") || "")}" /><label style="margin-top:8px;">API key (${isFr ? "optionnel" : "optional"})</label><input id="wizard-openclaw-key" type="password" placeholder="..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-openclaw-key") || "")}" /><p class="hint">${t.openclawHint}</p>`;
+    }
+  }
+  function wizardSaveFromStep2() {
+    if (wizardProvider === "claude") {
+      const v =
+        document.getElementById("wizard-claude-key")?.value.trim() || "";
+      localStorage.setItem("ai-claude-key", v);
+    } else if (wizardProvider === "mistral") {
+      const v =
+        document.getElementById("wizard-mistral-key")?.value.trim() || "";
+      localStorage.setItem("ai-mistral-key", v);
+    } else {
+      localStorage.setItem(
+        "ai-openclaw-url",
+        document.getElementById("wizard-openclaw-url")?.value.trim() || "",
+      );
+      localStorage.setItem(
+        "ai-openclaw-key",
+        document.getElementById("wizard-openclaw-key")?.value.trim() || "",
+      );
+    }
+    localStorage.setItem("ai-provider", wizardProvider);
+    activeProvider = wizardProvider;
+    refreshRuntimeHealth();
+  }
+  async function wizardRunTest() {
+    const resultEl = document.getElementById("wizard-test-result");
+    if (!resultEl) return false;
+    resultEl.textContent = isFr ? "Test en cours..." : "Testing...";
+    resultEl.className = "wizard-test-result";
+    try {
+      let ok = false;
+      if (wizardProvider === "claude") {
+        const key = localStorage.getItem("ai-claude-key") || "";
+        if (!key) throw new Error("No key");
+        const r = await fetch("https://api.anthropic.com/v1/models", {
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
+        });
+        ok = r.ok;
+      } else if (wizardProvider === "mistral") {
+        const key = localStorage.getItem("ai-mistral-key") || "";
+        if (!key) throw new Error("No key");
+        const r = await fetch("https://api.mistral.ai/v1/models", {
+          headers: { Authorization: `Bearer ${key}` },
+        });
+        ok = r.ok;
+      } else {
+        const url =
+          localStorage.getItem("ai-openclaw-url") || "http://localhost:3333";
+        const r = await fetch(`${url}/health`).catch(() => null);
+        ok = !!r?.ok;
+      }
+      resultEl.textContent = ok
+        ? isFr
+          ? "Connexion réussie !"
+          : "Connection successful!"
+        : t.connectionFailed;
+      resultEl.className = `wizard-test-result ${ok ? "ok" : "fail"}`;
+      return ok;
+    } catch {
+      resultEl.textContent = t.checkKeyOrUrl;
+      resultEl.className = "wizard-test-result fail";
+      return false;
+    }
+  }
+
+  document.getElementById("open-ai-wizard")?.addEventListener("click", () => {
+    wizardProvider = activeProvider;
+    document.getElementById("wizard-test-result") &&
+      (document.getElementById("wizard-test-result").textContent = "");
+    wizardOverlay?.querySelectorAll(".wizard-provider-card").forEach((c) => {
+      c.classList.toggle("active", c.dataset.wizardProvider === wizardProvider);
+    });
+    if (isRuntimeConfigured()) {
+      wizardBuildStep2Fields(wizardProvider);
+      wizardShowStep(2);
+    } else {
+      wizardShowStep(1);
+    }
+    wizardOverlay?.classList.add("open");
+  });
+  document
+    .getElementById("ai-wizard-close")
+    ?.addEventListener("click", () => wizardOverlay?.classList.remove("open"));
+  wizardOverlay?.addEventListener("click", (e) => {
+    if (e.target === wizardOverlay) wizardOverlay.classList.remove("open");
+  });
+
+  wizardOverlay?.querySelectorAll(".wizard-provider-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      wizardOverlay
+        .querySelectorAll(".wizard-provider-card")
+        .forEach((c) => c.classList.remove("active"));
+      card.classList.add("active");
+      wizardProvider = card.dataset.wizardProvider;
+      wizardBuildStep2Fields(wizardProvider);
+      wizardShowStep(2);
+    });
+  });
+  document
+    .getElementById("wizard-back-1")
+    ?.addEventListener("click", () => wizardShowStep(1));
+  document.getElementById("wizard-next-2")?.addEventListener("click", () => {
+    wizardSaveFromStep2();
+    document.getElementById("wizard-test-result") &&
+      (document.getElementById("wizard-test-result").textContent = "");
+    wizardShowStep(3);
+  });
+  document.getElementById("wizard-back-2")?.addEventListener("click", () => {
+    wizardBuildStep2Fields(wizardProvider);
+    wizardShowStep(2);
+  });
+  document
+    .getElementById("wizard-test-btn")
+    ?.addEventListener("click", wizardRunTest);
+  document
+    .getElementById("wizard-save-btn")
+    ?.addEventListener("click", async () => {
+      wizardSaveFromStep2();
+      wizardOverlay?.classList.remove("open");
+      if (providerFeedback) {
+        providerFeedback.className = "test-result ok";
+        providerFeedback.textContent = t.runtimeSaved;
+        providerFeedback.style.display = "inline-block";
+      }
+      refreshRuntimeHealth();
+    });
+
+  async function loadInstances() {
+    const sel = document.getElementById("instances-multi");
+    if (!sel) return;
+    sel.innerHTML = `<option disabled>${escapeHtml(t.loadingInstances)}</option>`;
+    const r = await fetch("/api/kanban/hub/instances");
+    if (!r.ok) {
+      sel.innerHTML = `<option disabled>${escapeHtml(t.loadInstancesFailed)}</option>`;
+      setHealth(instancesHealth, false, `0 ${t.linked}`);
+      return;
+    }
+    const payload = await r.json();
+    const instances = payload.instances || [];
+    const linkedCount = instances.filter((it) => !!it.linked).length;
+    setHealth(instancesHealth, linkedCount > 0, `${linkedCount} ${t.linked}`);
+    if (!instances.length) {
+      sel.innerHTML = `<option disabled>${escapeHtml(t.noInstances)}</option>`;
+      return;
+    }
+    sel.innerHTML = instances
+      .map((it) => {
+        const path = it.path || "";
+        const dot = it.linked ? "⬤" : "◯";
+        const miss = it.missing ? ` · ${t.missingStatus}` : "";
+        const line = `${dot}  ${it.name || "instance"} · ${it.source || "—"}${miss}`;
+        return `<option value="${escapeHtml(path)}" data-linked="${it.linked ? "1" : "0"}">${escapeHtml(line)}</option>`;
+      })
+      .join("");
+  }
+
+  async function applyInstancesBatch(link) {
+    const sel = document.getElementById("instances-multi");
+    if (!sel) return;
+    const opts = [...sel.selectedOptions].filter((o) => !o.disabled && o.value);
+    if (!opts.length) return;
+    const paths = opts
+      .filter((o) =>
+        link ? o.dataset.linked !== "1" : o.dataset.linked === "1",
+      )
+      .map((o) => o.value);
+    if (!paths.length) return;
+    const url = link
+      ? "/api/kanban/hub/instances/link"
+      : "/api/kanban/hub/instances/unlink";
+    const results = await Promise.all(
+      paths.map((pathValue) =>
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: pathValue }),
+        }),
+      ),
+    );
+    if (results.some((x) => !x.ok)) return alert(t.actionFailed);
+    await loadInstances();
+  }
+
+  document
+    .getElementById("instances-link-selected")
+    ?.addEventListener("click", () => {
+      applyInstancesBatch(true);
+    });
+  document
+    .getElementById("instances-unlink-selected")
+    ?.addEventListener("click", () => {
+      applyInstancesBatch(false);
+    });
+
+  document
+    .getElementById("refresh-instances")
+    .addEventListener("click", loadInstances);
+  document
+    .getElementById("projects-root")
+    .addEventListener("input", refreshWorkspaceHealth);
+  refreshRuntimeHealth();
+  refreshWorkspaceHealth();
+  await loadInstances();
+}
+
+async function refreshBrainSourceHint() {
+  const el = document.getElementById("brain-source-hint");
+  if (!el) return;
+  const fr = settingsLocale() === "fr";
+  try {
+    const r = await fetch("/api/kanban/hub/settings");
+    const d = r.ok ? await r.json() : {};
+    const p = (d.active_brain_memory || "").trim();
+    el.textContent = p
+      ? fr
+        ? `Mémoire affichée : ${p}`
+        : `Memory in use: ${p}`
+      : "";
+  } catch {
+    el.textContent = "";
   }
 }
 
 async function wireMemoryEditor() {
+  const fr = settingsLocale() === "fr";
+  const quartzSelect = document.getElementById("quartz-page-select");
+  const quartzFrame = document.getElementById("quartz-frame");
+  const quartzRefresh = document.getElementById("quartz-refresh");
+  const quartzRebuild = document.getElementById("quartz-rebuild");
+  const previewHint = document.getElementById("brain-preview-hint");
+  if (!quartzSelect || !quartzFrame || !quartzRefresh) return;
+
+  let brainPreviewKind = "html";
+
+  await refreshBrainSourceHint();
+
+  async function loadQuartzList() {
+    const res = await fetch("/api/kanban/memory/quartz");
+    const payload = res.ok ? await res.json() : { files: [] };
+    let files = payload.files || [];
+    brainPreviewKind = "html";
+    if (!files.length) {
+      const mres = await fetch("/api/kanban/memory/projects");
+      const mp = mres.ok ? await mres.json() : { files: [] };
+      files = (mp.files || []).filter((f) =>
+        String(f).toLowerCase().endsWith(".md"),
+      );
+      brainPreviewKind = "md";
+    }
+    if (previewHint) {
+      previewHint.textContent =
+        brainPreviewKind === "md"
+          ? fr
+            ? "Aperçu mis en forme (style lecture). Pour exporter des pages .html sur disque : « Générer l'aperçu HTML » ou redémarrer Clawvis."
+            : "Typeset reading preview. To write .html to disk: « Generate HTML preview » or restart Clawvis."
+          : "";
+    }
+    quartzSelect.innerHTML = files
+      .map((f) => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`)
+      .join("");
+    if (!files.length) {
+      quartzFrame.srcdoc = fr
+        ? '<div style="font-family:Inter,system-ui,sans-serif;padding:20px;color:#9aa6cf">Aucune page à afficher : pas de .html ni de .md dans <code>memory/projects/</code>.</div>'
+        : '<div style="font-family:Inter,system-ui,sans-serif;padding:20px;color:#9aa6cf">Nothing to show: no .html or .md in <code>memory/projects/</code>.</div>';
+      return;
+    }
+    if (!quartzSelect.value) quartzSelect.value = files[0];
+    await loadQuartzPage(quartzSelect.value);
+  }
+
+  async function loadQuartzPage(filename) {
+    if (brainPreviewKind === "md") {
+      const res = await fetch(
+        `/api/kanban/memory/projects/${encodeURIComponent(filename)}`,
+      );
+      const payload = res.ok ? await res.json() : { content: "" };
+      const text = (payload.content || "").trim();
+      quartzFrame.srcdoc = markdownToBrainSrcdoc(text);
+      return;
+    }
+    const res = await fetch(
+      `/api/kanban/memory/quartz/${encodeURIComponent(filename)}`,
+    );
+    const payload = res.ok ? await res.json() : { content: "" };
+    let html = (payload.content || "").trim();
+    if (html && !/<!DOCTYPE/i.test(html) && !/<html[\s>]/i.test(html)) {
+      html = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"></head><body>${html}</body></html>`;
+    }
+    quartzFrame.srcdoc =
+      html ||
+      '<div style="font-family:system-ui,sans-serif;padding:20px;color:#9aa6cf">Contenu vide ou introuvable.</div>';
+  }
+
+  quartzSelect.addEventListener("change", async () => {
+    if (!quartzSelect.value) return;
+    await loadQuartzPage(quartzSelect.value);
+  });
+  quartzRefresh.addEventListener("click", loadQuartzList);
+  quartzRebuild?.addEventListener("click", async () => {
+    const res = await fetch("/api/kanban/hub/brain/rebuild-static", {
+      method: "POST",
+    });
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {
+      /* ignore */
+    }
+    if (!res.ok || !data.ok) {
+      const tail = (data.stderr || data.stdout || "").toString().slice(-600);
+      const msg = data.error || data.detail || "Rebuild failed";
+      alert(tail ? `${msg}\n${tail}` : msg);
+      return;
+    }
+    await loadQuartzList();
+  });
+  await loadQuartzList();
+}
+
+async function wireMemoryEdit() {
+  const editBrainLink = document.getElementById("edit-brain-link");
   const select = document.getElementById("memory-file-select");
   const name = document.getElementById("memory-file-name");
   const content = document.getElementById("memory-content");
+  if (!editBrainLink || !select || !name || !content) return;
+
+  editBrainLink.href = `${window.location.protocol}//${window.location.hostname}:3099`;
+
+  await refreshBrainSourceHint();
+
   async function loadList() {
     const res = await fetch("/api/kanban/memory/projects");
     const payload = res.ok ? await res.json() : { files: [] };
@@ -534,13 +2858,181 @@ async function wireMemoryEditor() {
   await loadList();
 }
 
+async function wireMemoryGraph() {
+  const host = document.getElementById("memory-graph");
+  const summary = document.getElementById("graph-summary");
+  const search = document.getElementById("graph-search");
+  const clearFocus = document.getElementById("graph-clear-focus");
+  if (!host || !summary || !search || !clearFocus) return;
+
+  let focusedId = null;
+  let state = null;
+
+  function renderGraph(nodes, edges, init = false) {
+    const width = Math.max(900, host.clientWidth || 900);
+    const height = 560;
+    const nodeMap =
+      state && !init
+        ? state.nodeMap
+        : new Map(
+            nodes.map((n) => [
+              n.id,
+              {
+                ...n,
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: 0,
+                vy: 0,
+              },
+            ]),
+          );
+
+    for (let i = 0; i < 220; i += 1) {
+      edges.forEach((e) => {
+        const a = nodeMap.get(e.source);
+        const b = nodeMap.get(e.target);
+        if (!a || !b) return;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const spring = (dist - 90) * 0.0016;
+        const fx = (dx / dist) * spring;
+        const fy = (dy / dist) * spring;
+        a.vx += fx;
+        a.vy += fy;
+        b.vx -= fx;
+        b.vy -= fy;
+      });
+      const arr = Array.from(nodeMap.values());
+      for (let j = 0; j < arr.length; j += 1) {
+        for (let k = j + 1; k < arr.length; k += 1) {
+          const a = arr[j];
+          const b = arr[k];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const distSq = dx * dx + dy * dy || 1;
+          const rep = 700 / distSq;
+          a.vx -= dx * rep * 0.0008;
+          a.vy -= dy * rep * 0.0008;
+          b.vx += dx * rep * 0.0008;
+          b.vy += dy * rep * 0.0008;
+        }
+      }
+      nodeMap.forEach((n) => {
+        n.vx *= 0.92;
+        n.vy *= 0.92;
+        n.x = Math.min(width - 20, Math.max(20, n.x + n.vx));
+        n.y = Math.min(height - 20, Math.max(20, n.y + n.vy));
+      });
+    }
+
+    const neighbors = new Set();
+    if (focusedId) {
+      neighbors.add(focusedId);
+      edges.forEach((e) => {
+        if (e.source === focusedId) neighbors.add(e.target);
+        if (e.target === focusedId) neighbors.add(e.source);
+      });
+    }
+
+    const lines = edges.map((e) => {
+      const a = nodeMap.get(e.source);
+      const b = nodeMap.get(e.target);
+      if (!a || !b) return "";
+      const active =
+        !focusedId ||
+        (neighbors.has(e.source) &&
+          neighbors.has(e.target) &&
+          (e.source === focusedId || e.target === focusedId));
+      return `<line class="${active ? "" : "dim"}" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" />`;
+    });
+    const circles = Array.from(nodeMap.values()).map((n) => {
+      const isFocused = focusedId === n.id;
+      const isVisible = !focusedId || neighbors.has(n.id);
+      const classes = [
+        n.kind === "project" ? "node-project" : "node-ref",
+        isFocused ? "focused" : "",
+        isVisible ? "" : "dim",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return `
+        <g class="graph-node" data-node-id="${escapeHtml(n.id)}">
+          <circle class="${classes}" cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${n.kind === "project" ? 9 : 7}" />
+          <text class="${isVisible ? "" : "dim"}" x="${(n.x + 11).toFixed(1)}" y="${(n.y - 10).toFixed(1)}">${escapeHtml(n.label || n.id)}</text>
+        </g>
+      `;
+    });
+
+    host.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Memory graph">
+        <g class="graph-links">${lines.join("")}</g>
+        <g class="graph-nodes">${circles.join("")}</g>
+      </svg>
+    `;
+
+    host.querySelectorAll(".graph-node").forEach((el) => {
+      el.addEventListener("click", () => {
+        const id = el.dataset.nodeId || "";
+        focusedId = focusedId === id ? null : id;
+        search.value = focusedId || "";
+        renderGraph(nodes, edges, false);
+      });
+    });
+    state = { nodes, edges, nodeMap };
+  }
+
+  async function loadGraph() {
+    const res = await fetch("/api/kanban/memory/graph");
+    const data = res.ok ? await res.json() : { nodes: [], edges: [] };
+    const nodes = data.nodes || [];
+    const edges = data.edges || [];
+    summary.textContent = `${nodes.length} nodes, ${edges.length} links`;
+    if (!nodes.length) {
+      host.innerHTML =
+        '<div class="task">No links found yet. Add wiki-links like [[project-name]] in your markdown pages.</div>';
+      state = null;
+      return;
+    }
+    renderGraph(nodes, edges, true);
+  }
+
+  document.getElementById("graph-refresh").addEventListener("click", loadGraph);
+  search.addEventListener("input", () => {
+    if (!state) return;
+    const query = search.value.trim().toLowerCase();
+    if (!query) {
+      focusedId = null;
+      renderGraph(state.nodes, state.edges, false);
+      return;
+    }
+    const match = state.nodes.find(
+      (n) =>
+        (n.id || "").toLowerCase().includes(query) ||
+        (n.label || "").toLowerCase().includes(query),
+    );
+    focusedId = match ? match.id : null;
+    renderGraph(state.nodes, state.edges, false);
+  });
+  clearFocus.addEventListener("click", () => {
+    focusedId = null;
+    search.value = "";
+    if (state) renderGraph(state.nodes, state.edges, false);
+  });
+  await loadGraph();
+}
+
 async function boot() {
   if (path.startsWith("/settings")) renderSettings();
   else if (path.startsWith("/logs")) renderLogs();
   else if (path.startsWith("/kanban")) renderKanbanPage();
+  else if (path.startsWith("/memory/edit")) renderMemoryEditPage();
   else if (path.startsWith("/memory")) renderMemoryPage();
+  else if (path.startsWith("/project/"))
+    renderProjectPage(path.replace("/project/", ""));
   else renderHome();
   applyTheme(theme());
+  wireActiveServicesCount();
   const themeToggle = document.getElementById("theme-toggle");
   const themeToggleIcon = document.getElementById("theme-toggle-icon");
   if (themeToggle) {
@@ -554,7 +3046,9 @@ async function boot() {
   if (path.startsWith("/settings")) await wireSettings();
   else if (path.startsWith("/logs")) await wireLogs();
   else if (path.startsWith("/kanban")) await wireKanbanPage();
+  else if (path.startsWith("/memory/edit")) await wireMemoryEdit();
   else if (path.startsWith("/memory")) await wireMemoryEditor();
+  else if (path.startsWith("/project/")) await wireProjectPage();
   else await wireHome();
 }
 

@@ -1,4 +1,5 @@
 """SSE endpoint — live kanban stream with hash-based deduplication."""
+
 import asyncio
 import hashlib
 import json
@@ -23,6 +24,7 @@ def _build_state() -> str:
 @router.get("/stream")
 async def stream_kanban():
     """SSE endpoint: push full state on change, heartbeat otherwise."""
+
     async def event_generator():
         yield ": ping\n\n"
         last_hash = ""
