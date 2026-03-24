@@ -51,17 +51,23 @@ class AgentMetrics:
             return HealthStatus.UNHEALTHY
         if self.uptime_percent < 95 or self.response_time_ms > 5000:
             return HealthStatus.DEGRADED
-        if self.uptime_percent >= 95 and self.response_time_ms <= 5000 and self.consecutive_failures < 2:
+        if (
+            self.uptime_percent >= 95
+            and self.response_time_ms <= 5000
+            and self.consecutive_failures < 2
+        ):
             return HealthStatus.HEALTHY
         return HealthStatus.UNKNOWN
 
-    def record_success(self, response_time_ms: float, cost_usd: float = 0.0, tokens: int = 0):
+    def record_success(
+        self, response_time_ms: float, cost_usd: float = 0.0, tokens: int = 0
+    ):
         self.total_tasks += 1
         self.successful_tasks += 1
         self.consecutive_failures = 0
         self.response_time_ms = (
-            (self.response_time_ms * (self.total_tasks - 1) + response_time_ms) / self.total_tasks
-        )
+            self.response_time_ms * (self.total_tasks - 1) + response_time_ms
+        ) / self.total_tasks
         self.cost_usd += cost_usd
         self.tokens_used += tokens
         self.last_health_check = datetime.now()
@@ -98,8 +104,12 @@ class AgentRegistry:
         self.agents: Dict[str, AgentMetrics] = {}
         self._health_check_task: Optional[asyncio.Task] = None
 
-    def register(self, agent_id: str, capabilities: set, runtime: str = "unknown") -> AgentMetrics:
-        metrics = AgentMetrics(agent_id=agent_id, capabilities=capabilities, runtime=runtime)
+    def register(
+        self, agent_id: str, capabilities: set, runtime: str = "unknown"
+    ) -> AgentMetrics:
+        metrics = AgentMetrics(
+            agent_id=agent_id, capabilities=capabilities, runtime=runtime
+        )
         self.agents[agent_id] = metrics
         logger.info(f"Registered agent: {agent_id} ({runtime})")
         return metrics
@@ -119,7 +129,11 @@ class AgentRegistry:
 
     def get_healthy_agents(self) -> List[AgentMetrics]:
         return sorted(
-            [m for m in self.agents.values() if m.health_status == HealthStatus.HEALTHY],
+            [
+                m
+                for m in self.agents.values()
+                if m.health_status == HealthStatus.HEALTHY
+            ],
             key=lambda m: m.success_rate,
             reverse=True,
         )
@@ -128,7 +142,8 @@ class AgentRegistry:
         self, required_capabilities: set, optimize_for: str = "quality"
     ) -> Optional[str]:
         candidates = [
-            m for m in self.agents.values()
+            m
+            for m in self.agents.values()
             if required_capabilities.issubset(m.capabilities)
             and m.health_status != HealthStatus.UNHEALTHY
         ]
@@ -149,7 +164,12 @@ class AgentRegistry:
     def get_registry_status(self) -> dict:
         agents = list(self.agents.values())
         if not agents:
-            return {"total_agents": 0, "healthy_agents": 0, "avg_success_rate": 0, "total_cost_usd": 0}
+            return {
+                "total_agents": 0,
+                "healthy_agents": 0,
+                "avg_success_rate": 0,
+                "total_cost_usd": 0,
+            }
 
         healthy = sum(1 for m in agents if m.health_status == HealthStatus.HEALTHY)
         avg_success = sum(m.success_rate for m in agents) / len(agents)
@@ -157,8 +177,12 @@ class AgentRegistry:
         return {
             "total_agents": len(agents),
             "healthy_agents": healthy,
-            "degraded_agents": sum(1 for m in agents if m.health_status == HealthStatus.DEGRADED),
-            "unhealthy_agents": sum(1 for m in agents if m.health_status == HealthStatus.UNHEALTHY),
+            "degraded_agents": sum(
+                1 for m in agents if m.health_status == HealthStatus.DEGRADED
+            ),
+            "unhealthy_agents": sum(
+                1 for m in agents if m.health_status == HealthStatus.UNHEALTHY
+            ),
             "avg_success_rate": round(avg_success, 2),
             "total_tasks": sum(m.total_tasks for m in agents),
             "total_cost_usd": round(sum(m.cost_usd for m in agents), 4),
@@ -183,7 +207,11 @@ class AgentRegistry:
     async def _health_check_loop(self, interval_seconds: int):
         while True:
             try:
-                healthy = sum(1 for m in self.agents.values() if m.health_status == HealthStatus.HEALTHY)
+                healthy = sum(
+                    1
+                    for m in self.agents.values()
+                    if m.health_status == HealthStatus.HEALTHY
+                )
                 logger.debug(f"Health: {healthy}/{len(self.agents)} agents healthy")
                 await asyncio.sleep(interval_seconds)
             except asyncio.CancelledError:

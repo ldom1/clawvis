@@ -21,7 +21,14 @@ from loguru import logger
 
 def is_rate_limit_error(error_message: str) -> bool:
     """Return True if the error indicates API rate limiting."""
-    phrases = ["rate limit", "quota exceeded", "too many requests", "429", "throttle", "api limit"]
+    phrases = [
+        "rate limit",
+        "quota exceeded",
+        "too many requests",
+        "429",
+        "throttle",
+        "api limit",
+    ]
     return any(phrase in error_message.lower() for phrase in phrases)
 
 
@@ -37,7 +44,9 @@ def get_claude_usage_percent() -> Optional[float]:
     try:
         result = subprocess.run(
             ["openclaw", "status", "--json"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode == 0:
             data = json.loads(result.stdout)
@@ -92,8 +101,11 @@ def try_mammouth_request(
     try:
         logger.info("🦣 Fallback: attempting MammouthAI request...")
         result = mammouth.complete(
-            prompt=prompt, system=system,
-            max_tokens=max_tokens, temperature=temperature, timeout=30,
+            prompt=prompt,
+            system=system,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            timeout=30,
         )
         if result.get("success"):
             logger.info("✅ MammouthAI request succeeded")
@@ -115,7 +127,11 @@ def with_mammouth_fallback(func: Callable) -> Callable:
             if isinstance(result, str) and "API rate limit reached" in result:
                 logger.warning("Claude API rate limit hit, switching to MammouthAI")
                 return _retry_with_mammouth(func, *args, **kwargs)
-            if isinstance(result, dict) and result.get("error") and is_rate_limit_error(result["error"]):
+            if (
+                isinstance(result, dict)
+                and result.get("error")
+                and is_rate_limit_error(result["error"])
+            ):
                 logger.warning("Claude API rate limit hit, switching to MammouthAI")
                 return _retry_with_mammouth(func, *args, **kwargs)
             return result

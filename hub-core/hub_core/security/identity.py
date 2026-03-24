@@ -59,22 +59,34 @@ def get_capabilities(role: AgentRole) -> Set[str]:
     sets = {
         AgentRole.ORCHESTRATOR: {
             "*",
-            "kanban.read", "kanban.write", "kanban.delete",
-            "logs.read", "logs.write",
-            "agents.list", "agents.health", "agents.manage",
-            "workflows.list", "workflows.execute", "workflows.manage",
+            "kanban.read",
+            "kanban.write",
+            "kanban.delete",
+            "logs.read",
+            "logs.write",
+            "agents.list",
+            "agents.health",
+            "agents.manage",
+            "workflows.list",
+            "workflows.execute",
+            "workflows.manage",
             "network.configure",
         },
         AgentRole.AGENT: {
-            "kanban.read", "kanban.write",
-            "logs.read", "logs.write",
-            "agents.list", "agents.health",
-            "workflows.list", "workflows.execute",
+            "kanban.read",
+            "kanban.write",
+            "logs.read",
+            "logs.write",
+            "agents.list",
+            "agents.health",
+            "workflows.list",
+            "workflows.execute",
         },
         AgentRole.VIEWER: {
             "kanban.read",
             "logs.read",
-            "agents.list", "agents.health",
+            "agents.list",
+            "agents.health",
             "workflows.list",
         },
     }
@@ -97,7 +109,9 @@ def get_agent_identity() -> AgentIdentity:
     try:
         role = AgentRole[role_str]
     except KeyError:
-        raise ValueError(f"Invalid AGENT_ROLE: {role_str}. Must be one of: {[r.name for r in AgentRole]}")
+        raise ValueError(
+            f"Invalid AGENT_ROLE: {role_str}. Must be one of: {[r.name for r in AgentRole]}"
+        )
 
     network_allowlist = None
     if allowlist_str := os.getenv("NETWORK_ALLOWLIST"):

@@ -1,4 +1,5 @@
 """SSE /stream — TestClient bloque sur les flux infinis ; on teste le contrat sans stream HTTP."""
+
 from __future__ import annotations
 
 import json

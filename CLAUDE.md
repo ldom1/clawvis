@@ -1,5 +1,19 @@
 # CLAUDE.md
 
+## Identité Clawvis — Modes historiques
+
+Clawvis assume une identité inspirée de Clovis et des Mérovingiens pour rendre l'onboarding mémorable & amusante, sans sacrifier la clarté UX. Il faut que ce projet vive par la force de son identité, amusante, française et accessible.
+
+Mode:
+1) Franc (Recommandé)
+   Démarrage rapide. Tout est configuré pour toi. (Nécessite docker)
+2) Mérovingien (Avancé)
+   Pour un déploiement serveur ou VPS. Ports et chemins configurables.
+3) Soissons (contribution)
+   Pour contribuer au projet open source Clawvis !
+
+Référence d'identité: https://fr.wikipedia.org/wiki/Clovis_Ier
+
 ## Purpose
 
 Clawvis is the shared core platform.
@@ -198,7 +212,38 @@ If a change is instance-specific:
 - implement in `instances/<instance_name>/`
 - do not modify core behavior
 
+## Repository Visibility
+
+- The GitHub repo **must be public** for `get.sh` (one-liner) to work. A private repo returns 404.
+- For private deployments: use `git clone` with SSH keys, or host `get.sh` on your own CDN.
+- The README must document this clearly — the one-liner is the front door; it breaks silently if the repo is private.
+
+## Install = Just Launch, No Provider Friction
+
+**The install flow must NOT ask for AI provider/API keys.**
+
+- Install goal: instance name → start Hub → done.
+- Provider configuration happens **post-install**, via the Hub UI (`/settings/` → AI Runtime section).
+- `install.sh` and the CLI install wizard must skip provider setup entirely for the default "Simple" mode.
+- `--skip-primary` is always set when mode = Simple or Dev light.
+- Provider setup via CLI: `clawvis setup provider` (future command, post-install).
+
+## Hub UI — AI Runtime Connection
+
+The Hub settings page (`/settings/`) must include an **AI Runtime** section where users can:
+- Select their provider (OpenClaw / Claude / Mistral)
+- Enter their API key directly in the browser
+- Test the connection before saving
+
+Implementation rules:
+- Keys saved via the settings UI are stored in the browser's localStorage for frontend-initiated calls.
+- A note in the UI must explain that backend/server API key changes require editing `.env` and restarting.
+- Provider status (connected / not configured) must be visible on the Hub home page.
+- This is the primary adoption surface — it must be polished, zero-friction.
+
 ## TODO (Next step)
 
 - Connect Clawvis to the OpenClaw instance deployed on Hostinger.
+- Make repo public (or host get.sh separately) so the one-liner works.
+- Add `clawvis setup provider` command to CLI for post-install provider config.
 

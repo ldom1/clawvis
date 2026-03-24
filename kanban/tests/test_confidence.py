@@ -1,6 +1,8 @@
 """TDD: confidence field on Task model (Kahneman-inspired 0-1 scale)."""
+
 import pytest
 from pydantic import ValidationError
+
 from kanban_api.models import Task, TaskCreate, TaskUpdate
 
 
@@ -53,13 +55,15 @@ def test_task_update_confidence_default_none():
 
 def test_blocked_status_is_valid():
     from kanban_api.models import Task
+
     t = Task(id="x", title="T", status="Blocked")
     assert t.status == "Blocked"
 
 
 def test_blocked_status_in_statuses_list():
-    from kanban_api.models import STATUSES
     from kanban_api.core import STATUSES as CORE_STATUSES
+    from kanban_api.models import STATUSES
+
     assert "Blocked" in STATUSES
     assert "Blocked" in CORE_STATUSES
     # Blocked doit être entre In Progress et Review
@@ -73,7 +77,8 @@ def test_blocked_status_in_statuses_list():
 
 def test_blocked_skips_dependency_check():
     """Passer en Blocked ne déclenche pas _check_dependencies."""
-    from kanban_api.core import _check_dependencies, DependencyBlockedError
+    from kanban_api.core import DependencyBlockedError, _check_dependencies
+
     data = {
         "tasks": [
             {"id": "dep-1", "title": "Dep", "status": "To Start"},
@@ -84,4 +89,6 @@ def test_blocked_skips_dependency_check():
     try:
         _check_dependencies(data, task, "Blocked")
     except DependencyBlockedError:
-        pytest.fail("_check_dependencies levé pour status Blocked — ne doit pas arriver")
+        pytest.fail(
+            "_check_dependencies levé pour status Blocked — ne doit pas arriver"
+        )

@@ -3,9 +3,8 @@
 
 import subprocess
 import psutil
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from dataclasses import dataclass
-from pathlib import Path
 
 from loguru import logger
 from hub_core.config import LAB_DIR
@@ -14,6 +13,7 @@ from hub_core.config import LAB_DIR
 @dataclass
 class Service:
     """Service definition."""
+
     name: str
     port: int
     process_name: str  # Part of command to identify process
@@ -64,7 +64,7 @@ SERVICES = {
 
 class ServiceManager:
     """Manage Lab service lifecycle."""
-    
+
     @staticmethod
     def get_all_services() -> Dict[str, Dict]:
         """Get status of all services."""
@@ -72,34 +72,34 @@ class ServiceManager:
         for service_id, service in SERVICES.items():
             result[service_id] = ServiceManager.get_status(service_id)
         return result
-    
+
     @staticmethod
     def get_status(service_id: str) -> Dict:
         """Get status of a single service."""
         if service_id not in SERVICES:
             return {"error": f"Unknown service: {service_id}"}
-        
+
         service = SERVICES[service_id]
-        
+
         # Check if running
         running = False
         pid = None
         ram_used = 0
-        
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
-                cmdline = " ".join(proc.info['cmdline'] or [])
+                cmdline = " ".join(proc.info["cmdline"] or [])
                 if service.process_name in cmdline:
                     running = True
-                    pid = proc.info['pid']
+                    pid = proc.info["pid"]
                     try:
                         ram_used = proc.memory_info().rss / 1024 / 1024  # MB
-                    except:
+                    except Exception:
                         ram_used = service.ram_mb or 0
                     break
-            except:
+            except Exception:
                 continue
-        
+
         return {
             "id": service_id,
             "name": service.name,
@@ -109,20 +109,20 @@ class ServiceManager:
             "ram_mb": round(ram_used, 1),
             "estimated_ram_mb": service.ram_mb,
         }
-    
+
     @staticmethod
     def start(service_id: str) -> Dict:
         """Start a service."""
         if service_id not in SERVICES:
             return {"error": f"Unknown service: {service_id}", "success": False}
-        
+
         status = ServiceManager.get_status(service_id)
         if status["running"]:
             return {"message": f"{status['name']} already running", "success": True}
-        
+
         service = SERVICES[service_id]
         logger.info("Starting {}: {}", service.name, service.start_cmd)
-        
+
         try:
             subprocess.Popen(
                 service.start_cmd,
@@ -142,20 +142,20 @@ class ServiceManager:
                 "success": False,
                 "error": str(e),
             }
-    
+
     @staticmethod
     def stop(service_id: str) -> Dict:
         """Stop a service to free RAM."""
         if service_id not in SERVICES:
             return {"error": f"Unknown service: {service_id}", "success": False}
-        
+
         status = ServiceManager.get_status(service_id)
         if not status["running"]:
             return {"message": f"{status['name']} not running", "success": True}
-        
+
         service = SERVICES[service_id]
         logger.info("Stopping {}", service.name)
-        
+
         try:
             # Kill by process name
             subprocess.run(
@@ -163,19 +163,16 @@ class ServiceManager:
                 shell=True,
                 capture_output=True,
             )
-            
+
             # Verify it's stopped
             import time
+
             time.sleep(1)
             status_after = ServiceManager.get_status(service_id)
-            
+
             if not status_after["running"]:
                 ram_freed = status.get("ram_mb", service.ram_mb or 0)
-                logger.info(
-                    "{} stopped (freed ~{} MB RAM)",
-                    service.name,
-                    ram_freed
-                )
+                logger.info("{} stopped (freed ~{} MB RAM)", service.name, ram_freed)
                 return {
                     "success": True,
                     "message": f"{service.name} stopped",
@@ -193,17 +190,18 @@ class ServiceManager:
                 "success": False,
                 "error": str(e),
             }
-    
+
     @staticmethod
     def restart(service_id: str) -> Dict:
         """Restart a service."""
         result_stop = ServiceManager.stop(service_id)
         if not result_stop.get("success"):
             return result_stop
-        
+
         import time
+
         time.sleep(2)  # Wait before restarting
-        
+
         return ServiceManager.start(service_id)
 
 

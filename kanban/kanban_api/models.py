@@ -1,13 +1,24 @@
 """Pydantic models for the Kanban API."""
+
 from __future__ import annotations
 
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Status = Literal["Backlog", "To Start", "In Progress", "Blocked", "Review", "Done", "Archived"]
+Status = Literal[
+    "Backlog", "To Start", "In Progress", "Blocked", "Review", "Done", "Archived"
+]
 Priority = Literal["Critical", "High", "Medium", "Low"]
-STATUSES: list[str] = ["Backlog", "To Start", "In Progress", "Blocked", "Review", "Done", "Archived"]
+STATUSES: list[str] = [
+    "Backlog",
+    "To Start",
+    "In Progress",
+    "Blocked",
+    "Review",
+    "Done",
+    "Archived",
+]
 
 
 class Task(BaseModel):
@@ -84,7 +95,7 @@ class MetaUpdate(BaseModel):
     pr_links: list[str] | None = None
 
 
-TemplateType = Literal["python", "vite", "nextjs", "empty"]
+TemplateType = str
 ProjectStage = Literal["PoC", "MVP", "Production"]
 
 

@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Tests for Notion client helpers."""
 
-from hub_core.notion_client import get_page_title, get_page_property, format_pages_for_display
+from hub_core.notion_client import (
+    get_page_title,
+    get_page_property,
+    format_pages_for_display,
+)
 
 
 def test_get_page_title_with_title_property():
@@ -19,7 +23,10 @@ def test_get_page_title_with_title_property():
 def test_get_page_property_variants():
     page = {
         "properties": {
-            "Rich": {"type": "rich_text", "rich_text": [{"plain_text": "A"}, {"plain_text": "B"}]},
+            "Rich": {
+                "type": "rich_text",
+                "rich_text": [{"plain_text": "A"}, {"plain_text": "B"}],
+            },
             "Select": {"type": "select", "select": {"name": "X"}},
             "Checkbox": {"type": "checkbox", "checkbox": True},
             "Date": {"type": "date", "date": {"start": "2024-01-01"}},
@@ -58,4 +65,3 @@ def test_format_pages_for_display_skips_archived_and_maps_fields():
     assert item["url"] == "u"
     assert item["created"] == "c"
     assert item["edited"] == "e"
-

@@ -1,0 +1,32 @@
+[project]
+name = "{{cookiecutter.project_slug}}"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn>=0.35.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.6.0",
+  "pylint>=3.0.0"
+]
+docs = [
+  "sphinx>=8.0.0"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pylint.main]
+fail-under = 9.5

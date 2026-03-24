@@ -10,14 +10,14 @@ from .style_guide import StyleGuide, load_or_create_style_guide
 @dataclass
 class TaskConfig:
     """Configuration for task routing."""
-    
+
     task_id: str
     instruction: str
     agent_id: str
     priority: str = "normal"
     context: str = ""
     timeout_seconds: int = 300
-    
+
     def to_dict(self) -> dict:
         return {
             "task_id": self.task_id,
@@ -31,21 +31,21 @@ class TaskConfig:
 
 class AgentRouter:
     """Routes tasks through agents with unified style guide."""
-    
+
     def __init__(self, style_guide: Optional[StyleGuide] = None):
         """Initialize router with style guide."""
         if style_guide is None:
             style_guide = load_or_create_style_guide()
-        
+
         self.style_guide = style_guide
         self.logger = logger.bind(component="agent-router")
-        
+
         self.logger.info(
-            f"AgentRouter initialized with style guide",
+            "AgentRouter initialized with style guide",
             style_name=style_guide.name,
             confidence=style_guide.confidence,
         )
-    
+
     def route_task(
         self,
         task_id: str,
@@ -57,7 +57,7 @@ class AgentRouter:
     ) -> TaskConfig:
         """
         Route a task through an agent with unified style.
-        
+
         Args:
             task_id: Unique task identifier
             instruction: What the agent should do
@@ -65,11 +65,11 @@ class AgentRouter:
             context: Additional context
             priority: Task priority (low, normal, high)
             apply_style: Whether to apply style guide (default: True)
-        
+
         Returns:
             TaskConfig with routed instruction
         """
-        
+
         # Apply style guide to instruction
         if apply_style:
             enhanced_instruction = self._apply_style_to_instruction(
@@ -78,7 +78,7 @@ class AgentRouter:
             )
         else:
             enhanced_instruction = instruction
-        
+
         config = TaskConfig(
             task_id=task_id,
             instruction=enhanced_instruction,
@@ -86,7 +86,7 @@ class AgentRouter:
             priority=priority,
             context=context,
         )
-        
+
         self.logger.info(
             "Task routed",
             task_id=task_id,
@@ -94,9 +94,9 @@ class AgentRouter:
             priority=priority,
             style_applied=apply_style,
         )
-        
+
         return config
-    
+
     def route_multiple_tasks(
         self,
         tasks: list[Dict[str, str]],
@@ -114,18 +114,18 @@ class AgentRouter:
                 apply_style=apply_style,
             )
             routed.append(config)
-        
+
         return routed
-    
+
     def _apply_style_to_instruction(
         self,
         instruction: str,
         context: str = "",
     ) -> str:
         """Apply style guide to instruction."""
-        
+
         context_section = f"\n\nContext: {context}" if context else ""
-        
+
         return f"""{instruction}
 
 ---
@@ -135,7 +135,7 @@ class AgentRouter:
 {self.style_guide.prompt}{context_section}
 
 (Confidence: {self.style_guide.confidence:.0%})"""
-    
+
     def get_style_info(self) -> Dict[str, Any]:
         """Get style guide information."""
         return {
@@ -146,7 +146,7 @@ class AgentRouter:
             "use_case": self.style_guide.use_case,
             "target_audience": self.style_guide.target_audience,
         }
-    
+
     def update_style_guide(
         self,
         example_text: str,
@@ -154,19 +154,19 @@ class AgentRouter:
     ) -> StyleGuide:
         """Update style guide from reverse-prompt example."""
         from .style_guide import update_style_guide_from_reverse_prompt
-        
+
         self.style_guide = update_style_guide_from_reverse_prompt(
             example_text,
             name=self.style_guide.name,
             reverse_prompt_engine=reverse_prompt_engine,
         )
-        
+
         self.logger.info(
             "Style guide updated from reverse-prompt",
             confidence=self.style_guide.confidence,
             patterns=len(self.style_guide.patterns),
         )
-        
+
         return self.style_guide
 
 

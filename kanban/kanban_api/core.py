@@ -1,26 +1,27 @@
 """Kanban business logic: tasks.json load/save, CRUD, dependencies."""
+
 from __future__ import annotations
 
 import hashlib
-import os
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .models import (
-    DependenciesUpdate,
-    CommentCreate,
-    TaskCreate,
-    TaskUpdate,
-    Status,
     STATUSES,
-    SplitTaskRequest,
+    CommentCreate,
+    DependenciesUpdate,
+    HubSettingsUpdate,
     MetaUpdate,
     ProjectCreate,
-    HubSettingsUpdate,
+    SplitTaskRequest,
+    TaskCreate,
+    TaskUpdate,
 )
 
 _CLAWVIS_ROOT = Path(__file__).resolve().parents[2]
@@ -37,7 +38,8 @@ _kanban_dir = str(TASKS_FILE.parent)
 if _kanban_dir not in sys.path:
     sys.path.insert(0, _kanban_dir)
 try:
-    from kanban_parser.markdown_writer import write_task_to_md, create_task_in_md
+    from kanban_parser.markdown_writer import create_task_in_md, write_task_to_md
+
     _MD_SYNC = True
 except ImportError:
     _MD_SYNC = False
@@ -45,10 +47,22 @@ except ImportError:
 _LOGGER_DIR = str(Path.home() / ".openclaw/skills/logger/core")
 HUB_SETTINGS_FILE = _memory_root_path / "kanban" / "hub_settings.json"
 HUB_METADATA_FILE = ".clawvis-project.json"
+PROJECT_TEMPLATES_DIR = _CLAWVIS_ROOT / "project-templates"
 
 
 def _log(level: str, action: str, message: str, metadata: dict | None = None):
-    cmd = ["uv", "run", "--directory", _LOGGER_DIR, "dombot-log", level, "project:kanban-api", "system", action, message]
+    cmd = [
+        "uv",
+        "run",
+        "--directory",
+        _LOGGER_DIR,
+        "dombot-log",
+        level,
+        "project:kanban-api",
+        "system",
+        action,
+        message,
+    ]
     if metadata:
         cmd.append(json.dumps(metadata))
     try:
@@ -64,7 +78,13 @@ def now_iso() -> str:
 def _load_raw() -> dict:
     if not TASKS_FILE.exists():
         TASKS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        return {"tasks": [], "generated": now_iso(), "meta": {}, "stats": {}, "kanban": {}}
+        return {
+            "tasks": [],
+            "generated": now_iso(),
+            "meta": {},
+            "stats": {},
+            "kanban": {},
+        }
     with open(TASKS_FILE, encoding="utf-8") as f:
         return json.load(f)
 
@@ -116,7 +136,9 @@ def _compute_stats(tasks: list[dict]) -> dict:
 
 
 def _compute_kanban(tasks: list[dict]) -> dict:
-    return {s: [t["id"] for t in tasks if t["status"] == s] for s in STATUSES + ["Archived"]}
+    return {
+        s: [t["id"] for t in tasks if t["status"] == s] for s in STATUSES + ["Archived"]
+    }
 
 
 def _normalize_tasks(tasks: list[dict]) -> list[dict]:
@@ -183,9 +205,12 @@ def create_task(body: TaskCreate) -> dict:
     ts = now_iso()
     source_file = ""
     task_data = {
-        "title": body.title, "priority": body.priority,
-        "effort_hours": body.effort_hours, "status": "To Start",
-        "start_date": body.start_date, "end_date": body.end_date,
+        "title": body.title,
+        "priority": body.priority,
+        "effort_hours": body.effort_hours,
+        "status": "To Start",
+        "start_date": body.start_date,
+        "end_date": body.end_date,
     }
     if _MD_SYNC:
         try:
@@ -193,7 +218,10 @@ def create_task(body: TaskCreate) -> dict:
         except Exception:
             pass
     if source_file:
-        tid = "task-" + hashlib.md5(f"{body.title}:{source_file}".encode()).hexdigest()[:8]
+        tid = (
+            "task-"
+            + hashlib.md5(f"{body.title}:{source_file}".encode()).hexdigest()[:8]
+        )
     else:
         tid = "task-" + hashlib.md5(f"{body.title}:{ts}".encode()).hexdigest()[:8]
     task = {
@@ -223,7 +251,12 @@ def create_task(body: TaskCreate) -> dict:
     data.setdefault("tasks", []).insert(0, task)
     _bump_counter(data, "created_total")
     save(data)
-    _log("INFO", "task:create", f"Created '{body.title}'", {"id": tid, "project": body.project})
+    _log(
+        "INFO",
+        "task:create",
+        f"Created '{body.title}'",
+        {"id": tid, "project": body.project},
+    )
     return _fill(task)
 
 
@@ -271,7 +304,12 @@ def update_task(task_id: str, body: TaskUpdate) -> dict:
     elif task.get("status") == "In Progress":
         task.setdefault("progress", 0.5)
     save(data)
-    _log("INFO", "task:update", f"Updated '{task['title']}'", {"id": task_id, "fields": list(updates.keys())})
+    _log(
+        "INFO",
+        "task:update",
+        f"Updated '{task['title']}'",
+        {"id": task_id, "fields": list(updates.keys())},
+    )
     return _fill(task)
 
 
@@ -310,7 +348,9 @@ def add_comment(task_id: str, body: CommentCreate) -> dict:
     data = _load_raw()
     task = _find_task(data, task_id)
     comment = {
-        "id": hashlib.md5(f"{task_id}:{now_iso()}:{body.text}".encode()).hexdigest()[:8],
+        "id": hashlib.md5(f"{task_id}:{now_iso()}:{body.text}".encode()).hexdigest()[
+            :8
+        ],
         "text": body.text,
         "author": body.author,
         "created_at": now_iso(),
@@ -368,7 +408,9 @@ def split_task(task_id: str, body: SplitTaskRequest) -> dict:
     children: list[dict] = []
     base = body.base_title or parent.get("title") or "Subtask"
     for idx in range(1, body.count + 1):
-        cid = "task-" + hashlib.md5(f"{parent['id']}:{idx}:{ts}".encode()).hexdigest()[:8]
+        cid = (
+            "task-" + hashlib.md5(f"{parent['id']}:{idx}:{ts}".encode()).hexdigest()[:8]
+        )
         child = {
             "id": cid,
             "title": f"{base} #{idx}" if body.count > 1 else base,
@@ -447,7 +489,9 @@ def get_hub_settings() -> dict:
         "projects_root": str(current.get("projects_root") or defaults["projects_root"]),
     }
     HUB_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    HUB_SETTINGS_FILE.write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    HUB_SETTINGS_FILE.write_text(
+        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     return out
 
 
@@ -456,7 +500,9 @@ def update_hub_settings(body: HubSettingsUpdate) -> dict:
         "projects_root": body.projects_root,
     }
     HUB_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    HUB_SETTINGS_FILE.write_text(json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8")
+    HUB_SETTINGS_FILE.write_text(
+        json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     return settings
 
 
@@ -513,8 +559,10 @@ def _parse_markdown_major_info(content: str) -> dict:
             continue
         if current:
             sections[current] += f"{line}\n"
+
     def clean(name: str) -> str:
         return (sections.get(name, "") or "").strip()
+
     return {
         "title": title,
         "objective": clean("objective"),
@@ -587,18 +635,93 @@ def _template_files(template: str, project_name: str) -> dict[str, str]:
     return {"README.md": f"# {project_name}\n\nEmpty starter.\n"}
 
 
+def _render_template_content(raw: str, project_name: str, project_slug: str) -> str:
+    return raw.replace("{{PROJECT_NAME}}", project_name).replace(
+        "{{PROJECT_SLUG}}", project_slug
+    )
+
+
+def _copy_cookiecutter_template(
+    template: str, project_name: str, project_slug: str, repo_dir: Path
+) -> bool:
+    template_dir = PROJECT_TEMPLATES_DIR / template
+    if not template_dir.exists() or not template_dir.is_dir():
+        return False
+    for src in template_dir.rglob("*"):
+        if src.is_dir():
+            continue
+        rel = src.relative_to(template_dir)
+        if src.name == ".gitkeep":
+            continue
+        dest = repo_dir / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if src.suffix.lower() in {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".webp",
+            ".ico",
+            ".pdf",
+        }:
+            shutil.copy2(src, dest)
+        else:
+            content = src.read_text(encoding="utf-8")
+            dest.write_text(
+                _render_template_content(content, project_name, project_slug),
+                encoding="utf-8",
+            )
+    return True
+
+
+def _run_cookiecutter_template(
+    template: str, projects_root: Path, project_name: str, project_slug: str
+) -> bool:
+    template_dir = PROJECT_TEMPLATES_DIR / template
+    if not (template_dir / "cookiecutter.json").exists():
+        return False
+    cmd = [
+        "uv",
+        "run",
+        "--with",
+        "cookiecutter",
+        "cookiecutter",
+        str(template_dir),
+        "--no-input",
+        "-o",
+        str(projects_root),
+        f"project_name={project_name}",
+        f"project_slug={project_slug}",
+    ]
+    try:
+        subprocess.run(
+            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        return True
+    except Exception:
+        return False
+
+
 def _maybe_init_git(repo_dir: Path, enabled: bool) -> None:
     if not enabled:
         return
     try:
-        subprocess.run(["git", "init"], cwd=str(repo_dir), check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            ["git", "init"],
+            cwd=str(repo_dir),
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     except Exception:
         pass
 
 
 def _seed_project_tasks(project_slug: str, project_name: str) -> None:
     data = _load_raw()
-    existing = [t for t in data.get("tasks", []) if (t.get("project") or "") == project_slug]
+    existing = [
+        t for t in data.get("tasks", []) if (t.get("project") or "") == project_slug
+    ]
     if existing:
         return
     ts = now_iso()
@@ -608,7 +731,10 @@ def _seed_project_tasks(project_slug: str, project_name: str) -> None:
         ("First user-facing milestone", "To Start", "High"),
     ]
     for title, status, priority in templates:
-        tid = "task-" + hashlib.md5(f"{project_slug}:{title}:{ts}".encode()).hexdigest()[:8]
+        tid = (
+            "task-"
+            + hashlib.md5(f"{project_slug}:{title}:{ts}".encode()).hexdigest()[:8]
+        )
         data.setdefault("tasks", []).append(
             {
                 "id": tid,
@@ -649,11 +775,20 @@ def create_project(body: ProjectCreate) -> dict:
     repo_dir = root / slug
     if repo_dir.exists() and any(repo_dir.iterdir()):
         raise ValueError(f"Project already exists: {slug}")
-    repo_dir.mkdir(parents=True, exist_ok=True)
-    for rel_path, content in _template_files(body.template, name).items():
-        file_path = repo_dir / rel_path
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(content, encoding="utf-8")
+    used_cookiecutter_cli = _run_cookiecutter_template(body.template, root, name, slug)
+    if not used_cookiecutter_cli:
+        repo_dir.mkdir(parents=True, exist_ok=True)
+    if not used_cookiecutter_cli:
+        used_cookiecutter_copy = _copy_cookiecutter_template(
+            body.template, name, slug, repo_dir
+        )
+    else:
+        used_cookiecutter_copy = False
+    if not used_cookiecutter_cli and not used_cookiecutter_copy:
+        for rel_path, content in _template_files(body.template, name).items():
+            file_path = repo_dir / rel_path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_text(content, encoding="utf-8")
     _maybe_init_git(repo_dir, body.init_git)
     memory_file = _memory_file_for(slug)
     memory_file.parent.mkdir(parents=True, exist_ok=True)
@@ -678,7 +813,9 @@ def create_project(body: ProjectCreate) -> dict:
         "repo_path": str(repo_dir),
         "memory_path": str(memory_file),
     }
-    (repo_dir / HUB_METADATA_FILE).write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+    (repo_dir / HUB_METADATA_FILE).write_text(
+        json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     return metadata
 
 
@@ -731,6 +868,103 @@ def get_project(project_slug: str) -> dict:
     }
 
 
+def _find_project_or_raise(project_slug: str) -> dict:
+    projects = list_projects().get("projects", [])
+    project = next((p for p in projects if p.get("slug") == project_slug), None)
+    if not project:
+        raise KeyError("Project not found")
+    return project
+
+
+def _archive_project_tasks(project_slug: str) -> int:
+    data = _load_raw()
+    ts = now_iso()
+    changed = 0
+    for task in data.get("tasks", []):
+        if (task.get("project") or "") == project_slug:
+            task["status"] = "Archived"
+            task["archived_at"] = ts
+            task["updated"] = ts
+            changed += 1
+    if changed:
+        save(data)
+    return changed
+
+
+def _delete_project_tasks(project_slug: str) -> int:
+    data = _load_raw()
+    tasks = data.get("tasks", [])
+    removed_ids = {
+        t.get("id") for t in tasks if (t.get("project") or "") == project_slug
+    }
+    kept = [t for t in tasks if (t.get("project") or "") != project_slug]
+    if removed_ids:
+        for task in kept:
+            deps = task.get("dependencies") or []
+            task["dependencies"] = [d for d in deps if d not in removed_ids]
+    removed_count = len(tasks) - len(kept)
+    if removed_count:
+        data["tasks"] = kept
+        save(data)
+    return removed_count
+
+
+def archive_project(project_slug: str) -> dict:
+    project = _find_project_or_raise(project_slug)
+    repo_dir = Path(project["repo_path"]).expanduser()
+    if not repo_dir.exists():
+        raise KeyError("Project not found")
+    settings = get_hub_settings()
+    projects_root = Path(settings["projects_root"]).expanduser()
+    archived_root = projects_root / "archived"
+    archived_root.mkdir(parents=True, exist_ok=True)
+    suffix = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    target = archived_root / f"{project_slug}-{suffix}"
+    shutil.move(str(repo_dir), str(target))
+
+    memory_file = _memory_file_for(project_slug)
+    archived_memory_dir = _memory_root_path / "archive" / "projects"
+    archived_memory_dir.mkdir(parents=True, exist_ok=True)
+    archived_memory_file = archived_memory_dir / f"{project_slug}-{suffix}.md"
+    if memory_file.exists():
+        shutil.move(str(memory_file), str(archived_memory_file))
+
+    archived_tasks = _archive_project_tasks(project_slug)
+    _log(
+        "INFO",
+        "project:archive",
+        f"Archived project '{project_slug}'",
+        {"slug": project_slug, "tasks_archived": archived_tasks},
+    )
+    return {
+        "ok": True,
+        "slug": project_slug,
+        "repo_archived_to": str(target),
+        "memory_archived_to": str(archived_memory_file)
+        if archived_memory_file.exists()
+        else "",
+        "tasks_archived": archived_tasks,
+    }
+
+
+def delete_project(project_slug: str) -> dict:
+    project = _find_project_or_raise(project_slug)
+    repo_dir = Path(project["repo_path"]).expanduser()
+    if repo_dir.exists():
+        shutil.rmtree(repo_dir)
+    memory_file = _memory_file_for(project_slug)
+    if memory_file.exists():
+        memory_file.unlink()
+    deleted_tasks = _delete_project_tasks(project_slug)
+    _log(
+        "INFO",
+        "project:delete",
+        f"Deleted project '{project_slug}'",
+        {"slug": project_slug, "tasks_deleted": deleted_tasks},
+    )
+    return {"ok": True, "slug": project_slug, "tasks_deleted": deleted_tasks}
+
+
 def list_memory_project_files() -> dict:
     projects_dir = _memory_root_path / "projects"
     projects_dir.mkdir(parents=True, exist_ok=True)
@@ -746,7 +980,11 @@ def read_memory_project_file(filename: str) -> dict:
     if not path.exists():
         raise KeyError("Memory file not found")
     content = path.read_text(encoding="utf-8")
-    return {"filename": safe, "content": content, "major": _parse_markdown_major_info(content)}
+    return {
+        "filename": safe,
+        "content": content,
+        "major": _parse_markdown_major_info(content),
+    }
 
 
 def save_memory_project_file(filename: str, content: str) -> dict:

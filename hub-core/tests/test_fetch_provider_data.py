@@ -2,7 +2,6 @@
 
 from unittest.mock import patch
 
-import pytest
 
 from hub_core.fetch.provider_data import get_providers_response
 from hub_core.models import MammouthUsage, ProvidersResponse

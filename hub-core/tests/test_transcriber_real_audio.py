@@ -26,4 +26,3 @@ def test_transcribe_real_audio_example():
     nt, ne = norm(text), norm(expected_txt)
     for frag in ("kimi com", "comment", "fonctionne", "seconde"):
         assert frag in nt, f"Missing {frag!r}. Expected around: {ne!r}. Got: {nt!r}"
-

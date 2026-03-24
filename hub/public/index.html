@@ -276,6 +276,15 @@
     </div>
   </header>
 
+  <!-- AI RUNTIME BANNER -->
+  <div id="ai-banner" style="display:none; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:.65rem 1rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; font-size:.8rem;">
+    <div style="display:flex;align-items:center;gap:.6rem;">
+      <span id="ai-dot" style="width:7px;height:7px;border-radius:50%;background:#eab308;display:inline-block;flex-shrink:0;"></span>
+      <span id="ai-label" style="color:var(--muted);">AI runtime not configured</span>
+    </div>
+    <a href="/settings/" style="color:var(--accent);text-decoration:none;font-weight:500;white-space:nowrap;">Connect →</a>
+  </div>
+
   <!-- SYSTEM CARD -->
   <div class="system-card">
     <div class="system-title">System Status</div>
@@ -506,6 +515,24 @@ async function loadStats() {
 
 loadStats();
 setInterval(loadStats, 30000);
+
+// AI Runtime banner
+(function() {
+  const provider = localStorage.getItem('ai-provider') || 'claude';
+  const hasKey = (provider === 'claude' && localStorage.getItem('ai-claude-key')) ||
+                 (provider === 'mistral' && localStorage.getItem('ai-mistral-key')) ||
+                 (provider === 'openclaw' && localStorage.getItem('ai-openclaw-url'));
+  const banner = document.getElementById('ai-banner');
+  const dot = document.getElementById('ai-dot');
+  const label = document.getElementById('ai-label');
+  banner.style.display = 'flex';
+  if (hasKey) {
+    dot.style.background = '#22c55e';
+    label.textContent = `AI runtime: ${provider}`;
+    label.style.color = 'var(--text)';
+    banner.querySelector('a').textContent = 'Change →';
+  }
+})();
 
 // SSE - Live log stream (kanban API)
 (function() {

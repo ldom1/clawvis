@@ -1,4 +1,5 @@
 """Kanban REST routes."""
+
 import os
 from pathlib import Path
 
@@ -7,39 +8,41 @@ from fastapi.responses import PlainTextResponse
 
 from .core import (
     DependencyBlockedError,
+    add_comment,
+    add_dependencies,
+    archive_project,
+    archive_task,
+    create_project,
+    create_task,
+    delete_comment,
+    delete_dependency,
+    delete_project,
+    get_hub_settings,
+    get_meta,
+    get_project,
+    get_stats,
     list_active_tasks,
     list_archive_tasks,
-    get_stats,
-    create_task,
-    update_task,
-    archive_task,
-    restore_task,
-    add_comment,
-    delete_comment,
-    add_dependencies,
-    delete_dependency,
-    split_task,
-    get_meta,
-    update_meta,
-    get_hub_settings,
-    update_hub_settings,
-    create_project,
-    list_projects,
-    get_project,
     list_memory_project_files,
+    list_projects,
     read_memory_project_file,
+    restore_task,
     save_memory_project_file,
+    split_task,
+    update_hub_settings,
+    update_meta,
+    update_task,
 )
 from .models import (
-    TaskCreate,
-    TaskUpdate,
     CommentCreate,
     DependenciesUpdate,
-    SplitTaskRequest,
-    MetaUpdate,
     HubSettingsUpdate,
-    ProjectCreate,
     MemoryFileSave,
+    MetaUpdate,
+    ProjectCreate,
+    SplitTaskRequest,
+    TaskCreate,
+    TaskUpdate,
 )
 from .weekly_stats import get_weekly_stats_data
 
@@ -60,12 +63,16 @@ def get_archive():
 @router.get("/stats")
 def stats():
     return get_stats()
+
+
 @router.get("/stats/weekly")
 async def get_weekly_stats():
     data = list_active_tasks()
     tasks = data["tasks"]
     lab_repos = os.environ.get("LAB_REPOS", "")
     return await get_weekly_stats_data(tasks, lab_repos)
+
+
 @router.get("/meta")
 def get_meta_endpoint():
     return get_meta()
@@ -107,6 +114,22 @@ def get_project_endpoint(project_slug: str):
         raise HTTPException(404, "Project not found")
 
 
+@router.post("/hub/projects/{project_slug}/archive")
+def archive_project_endpoint(project_slug: str):
+    try:
+        return archive_project(project_slug)
+    except KeyError:
+        raise HTTPException(404, "Project not found")
+
+
+@router.delete("/hub/projects/{project_slug}")
+def delete_project_endpoint(project_slug: str):
+    try:
+        return delete_project(project_slug)
+    except KeyError:
+        raise HTTPException(404, "Project not found")
+
+
 @router.get("/memory/projects")
 def list_memory_projects_endpoint():
     return list_memory_project_files()
@@ -133,7 +156,9 @@ def save_memory_project_endpoint(body: MemoryFileSave):
 @router.get("/codir")
 def get_codir():
     if CODIR_FILE.exists():
-        return PlainTextResponse(CODIR_FILE.read_text(encoding="utf-8"), media_type="text/markdown")
+        return PlainTextResponse(
+            CODIR_FILE.read_text(encoding="utf-8"), media_type="text/markdown"
+        )
     raise HTTPException(404, "CODIR report not generated yet")
 
 
@@ -221,11 +246,13 @@ def update_meta_endpoint(body: MetaUpdate):
 def sync_endpoint():
     """Trigger full parser rebuild from .md sources (requires kanban_parser on path)."""
     import sys
+
     codir_parent = str(CODIR_FILE.parent)
     if codir_parent not in sys.path:
         sys.path.insert(0, codir_parent)
     try:
         from kanban_parser.parser import KanbanParser
+
         parser = KanbanParser()
         output = parser.run()
         return {

@@ -42,7 +42,11 @@ def get_status_response(
     providers: ProvidersResponse | None = None, *, write: bool = True
 ) -> StatusResponse:
     """Build status from providers (Mammouth credits)."""
-    mammouth = providers.mammouth_ai if providers is not None else get_mammouth_usage_from_file()
+    mammouth = (
+        providers.mammouth_ai
+        if providers is not None
+        else get_mammouth_usage_from_file()
+    )
     response = StatusResponse(mammouth_usage=mammouth)
     if write:
         STATUS_JSON.parent.mkdir(parents=True, exist_ok=True)

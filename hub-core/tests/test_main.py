@@ -5,12 +5,26 @@ from unittest.mock import patch
 import pytest
 
 from hub_core.main import get_hub_state, main
-from hub_core.models import CpuRam, HubState, MammouthUsage, ProvidersResponse, StatusResponse
+from hub_core.models import (
+    CpuRam,
+    HubState,
+    MammouthUsage,
+    ProvidersResponse,
+    StatusResponse,
+)
 
 # New session-based token stats format returned by get_token_stats()
 _MOCK_TOKEN_STATS = {
-    "claude": {"usage_percent": 22.5, "tokens_used": "65.8k", "tokens_limit": "300k", "reset_time": "19:00 UTC"},
-    "mammouth": {"subscription": "pro", "credits": {"available": 100.0, "limit": 200.0, "currency": "EUR"}},
+    "claude": {
+        "usage_percent": 22.5,
+        "tokens_used": "65.8k",
+        "tokens_limit": "300k",
+        "reset_time": "19:00 UTC",
+    },
+    "mammouth": {
+        "subscription": "pro",
+        "credits": {"available": 100.0, "limit": 200.0, "currency": "EUR"},
+    },
     "timestamp": "2026-02-26T12:00:00",
 }
 
@@ -27,7 +41,9 @@ def mock_status():
 
 @pytest.fixture
 def mock_cpu_ram():
-    return CpuRam(cpu_percent=10.5, ram_percent=42.0, ram_used_gb=6.0, ram_total_gb=15.0)
+    return CpuRam(
+        cpu_percent=10.5, ram_percent=42.0, ram_used_gb=6.0, ram_total_gb=15.0
+    )
 
 
 @pytest.fixture
@@ -78,7 +94,14 @@ def test_get_hub_state_full(
     assert state.system_timestamp
 
     d = state.model_dump()
-    assert set(d.keys()) == {"providers", "status", "cpu_ram", "tokens_today", "tokens_month", "system_timestamp"}
+    assert set(d.keys()) == {
+        "providers",
+        "status",
+        "cpu_ram",
+        "tokens_today",
+        "tokens_month",
+        "system_timestamp",
+    }
     assert d["tokens_today"] == "N/A"
     assert d["tokens_month"] == "N/A"
     assert d["cpu_ram"]["cpu_percent"] == 10.5
@@ -98,7 +121,9 @@ def test_get_hub_state_structure_and_dump(
 ):
     mock_get_providers.return_value = ProvidersResponse(mammouth_ai=MammouthUsage())
     mock_get_status.return_value = StatusResponse()
-    mock_get_cpu_ram.return_value = CpuRam(cpu_percent=0, ram_percent=0, ram_used_gb=0, ram_total_gb=0)
+    mock_get_cpu_ram.return_value = CpuRam(
+        cpu_percent=0, ram_percent=0, ram_used_gb=0, ram_total_gb=0
+    )
     mock_get_token_stats.return_value = _MOCK_TOKEN_STATS
 
     state = get_hub_state(write_json=False)
@@ -169,6 +194,9 @@ def test_get_simple_state_shape(
     assert set(d.keys()) == {"providers", "system_info", "system_timestamp"}
     llm = d["providers"]["llm_providers"]
     assert "mammouth_ai" in llm
-    assert llm["mammouth_ai"]["credits_available"] == mock_providers.mammouth_ai.credits.available
+    assert (
+        llm["mammouth_ai"]["credits_available"]
+        == mock_providers.mammouth_ai.credits.available
+    )
     assert "cpu_percent" in d["system_info"]
     assert "ram_percent" in d["system_info"]

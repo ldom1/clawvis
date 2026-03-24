@@ -334,6 +334,38 @@ select {
   border-radius: 10px;
   padding: 10px;
 }
+.tags-wrap {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 8px;
+}
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.tags-wrap input {
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  outline: none;
+}
+.tag-pill {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.tag-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .project-hub {
   margin-top: 12px;
 }

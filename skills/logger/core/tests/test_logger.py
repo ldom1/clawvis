@@ -1,11 +1,8 @@
 """Tests for dombot_logger.logger — writes to temp files."""
 import json
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
-from dombot_logger.logger import DomBotLogger, get_logger, log, _write, LOG_JSONL, LOG_TEXT
-from dombot_logger.models import LogEntry
+from dombot_logger.logger import DomBotLogger, get_logger, log
 
 
 @pytest.fixture(autouse=True)

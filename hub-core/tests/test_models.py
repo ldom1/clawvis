@@ -1,8 +1,6 @@
 """Tests for hub_core.models."""
 
-import json
 
-import pytest
 
 from hub_core.models import (
     CpuRam,
@@ -52,7 +50,9 @@ def test_status_response_defaults():
 
 
 def test_status_response_real():
-    s = StatusResponse(mammouth_usage=MammouthUsage(credits=MammouthCredits(available=7.5, limit=12.0)))
+    s = StatusResponse(
+        mammouth_usage=MammouthUsage(credits=MammouthCredits(available=7.5, limit=12.0))
+    )
     assert s.mammouth_usage.credits.available == 7.5
     d = s.model_dump()
     assert d["mammouth_usage"]["credits"]["available"] == 7.5

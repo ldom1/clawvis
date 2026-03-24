@@ -7,7 +7,6 @@ Usage:
 """
 
 import os
-import pytest
 
 from hub_core.agents.mammouth import DynamicMammouthAdapter, MAMMOUTH_MODELS
 

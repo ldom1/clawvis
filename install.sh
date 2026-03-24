@@ -149,8 +149,14 @@ migrate_memory_if_needed() {
 
 parse_args "$@"
 
-info "Clawvis setup wizard"
-echo "This script prepares a ready-to-run instance step by step."
+# When called directly (not from CLI), redirect to pretty CLI wizard if node is available
+if [ "${NON_INTERACTIVE}" -eq 0 ] && [ -z "${CLAWVIS_NO_NODE_WRAPPER:-}" ]; then
+  CLI_MJS="${ROOT_DIR}/clawvis-cli/cli.mjs"
+  if command -v node >/dev/null 2>&1 && [ -f "${CLI_MJS}" ]; then
+    exec node "${CLI_MJS}" install "$@"
+  fi
+fi
+
 chmod +x "${ROOT_DIR}/clawvis"
 ensure_cli_shim
 

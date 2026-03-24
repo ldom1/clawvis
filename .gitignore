@@ -62,3 +62,8 @@ instances/*
 # Keep template/test instances tracked.
 !instances/example/
 !instances/example/**
+
+########################
+# Private projects
+########################
+.tmp/

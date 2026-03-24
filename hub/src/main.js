@@ -115,9 +115,20 @@ function renderHome() {
         <div class="row">
           <input id="project-name" placeholder="Nom du projet" />
           <textarea id="project-description" rows="4" placeholder="Description"></textarea>
-          <input id="project-tags" placeholder="Tags (ai, saas, infra)" />
+          <div id="project-tags-wrap" class="tags-wrap">
+            <div id="project-tags-list" class="tags-list"></div>
+            <input id="project-tags" placeholder="Tags (Entrée pour ajouter)" />
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <select id="project-template"><option value="python">Python</option><option value="vite">Vite</option><option value="nextjs">Next.js</option><option value="empty">Other</option></select>
+            <select id="project-template">
+              <option value="python-fastapi">Python FastAPI</option>
+              <option value="node-api">Node API</option>
+              <option value="frontend-vite">Frontend Vite</option>
+              <option value="python">Python (legacy)</option>
+              <option value="vite">Vite (legacy)</option>
+              <option value="nextjs">Next.js (legacy)</option>
+              <option value="empty">Other</option>
+            </select>
             <select id="project-stage"><option value="PoC">PoC</option><option value="MVP">MVP</option><option value="Production">Production</option></select>
             <button id="create-project" class="btn" type="button">Créer</button>
           </div>
@@ -223,6 +234,25 @@ function renderSettings() {
   `;
 }
 
+function renderProjectPage(projectSlug) {
+  app.innerHTML = `
+    <div class="wrap">
+      ${topbar()}
+      <div class="hero">
+        <img src="/clawvis-mascot.svg" alt="Clawvis" />
+        <div><h1>Project</h1><p id="project-subtitle">${escapeHtml(projectSlug || "")}</p></div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <a class="btn" href="/">← Back to Hub</a>
+        <button class="btn" id="archive-project-btn" type="button" style="margin-left:8px;">Archive project</button>
+        <button class="btn" id="delete-project-btn" type="button" style="margin-left:8px;border-color:#ef4444;color:#ef4444;">Delete project</button>
+      </div>
+      <div id="project-details" class="tile"></div>
+      <div id="project-kanban" class="kanban-board"></div>
+    </div>
+  `;
+}
+
 const STATUSES = [
   "Backlog",
   "To Start",
@@ -297,42 +327,84 @@ async function loadProjects() {
   const data = await res.json();
   (data.projects || []).forEach((project) => {
     const card = document.createElement("a");
-    card.href = "#";
+    card.href = `/project/${encodeURIComponent(project.slug)}`;
     card.className = "card";
     const tags = (project.tags || [])
       .map((t) => `<span class="chip">${t}</span>`)
       .join("");
     card.innerHTML = `<div class="title">${project.name} · ${project.stage || "PoC"}</div><div class="desc">${project.description || ""}</div>${tags ? `<div class="chips">${tags}</div>` : ""}`;
-    card.addEventListener("click", async (e) => {
-      e.preventDefault();
-      const [projectRes, taskRes] = await Promise.all([
-        fetch(`/api/kanban/hub/projects/${encodeURIComponent(project.slug)}`),
-        fetch(`/api/kanban/tasks?project=${encodeURIComponent(project.slug)}`),
-      ]);
-      if (!projectRes.ok) return;
-      const payload = await projectRes.json();
-      const tasks = taskRes.ok ? await taskRes.json() : { tasks: [] };
-      const root = document.getElementById("project-hub");
-      const major = payload.major || {};
-      root.innerHTML = `
-        <div class="tile">
-          <div class="title">${escapeHtml(major.title || payload.project.name)}</div>
-          ${major.objective ? `<div class="desc"><strong>Objective</strong><br>${escapeHtml(major.objective)}</div>` : ""}
-          ${major.context ? `<div class="desc" style="margin-top:8px;"><strong>Context</strong><br>${escapeHtml(major.context)}</div>` : ""}
-          ${major.kanban ? `<div class="desc" style="margin-top:8px;"><strong>Kanban</strong><br>${escapeHtml(major.kanban)}</div>` : ""}
-          ${major.links ? `<div class="desc" style="margin-top:8px;"><strong>Links</strong><br>${escapeHtml(major.links)}</div>` : ""}
-          ${major.notes ? `<div class="desc" style="margin-top:8px;"><strong>Notes</strong><br>${escapeHtml(major.notes)}</div>` : ""}
-        </div>
-        <div id="project-kanban-${project.slug}" class="kanban-board"></div>
-      `;
-      createKanbanBoard(
-        tasks.tasks || [],
-        document.getElementById(`project-kanban-${project.slug}`),
-        project.slug,
-      );
-    });
     grid.appendChild(card);
   });
+}
+
+async function wireProjectPage() {
+  const slug = decodeURIComponent(
+    path.replace("/project/", "").split("/")[0] || "",
+  );
+  if (!slug) return;
+  const [projectRes, taskRes] = await Promise.all([
+    fetch(`/api/kanban/hub/projects/${encodeURIComponent(slug)}`),
+    fetch(`/api/kanban/tasks?project=${encodeURIComponent(slug)}`),
+  ]);
+  if (!projectRes.ok) {
+    document.getElementById("project-details").innerHTML =
+      `<div class="title">Project not found</div>`;
+    return;
+  }
+  const payload = await projectRes.json();
+  const tasks = taskRes.ok ? await taskRes.json() : { tasks: [] };
+  const major = payload.major || {};
+  document.getElementById("project-subtitle").textContent =
+    payload.project?.name || slug;
+  document.getElementById("project-details").innerHTML = `
+    <div class="title">${escapeHtml(major.title || payload.project?.name || slug)}</div>
+    ${major.objective ? `<div class="desc"><strong>Objective</strong><br>${escapeHtml(major.objective)}</div>` : ""}
+    ${major.context ? `<div class="desc" style="margin-top:8px;"><strong>Context</strong><br>${escapeHtml(major.context)}</div>` : ""}
+    ${major.kanban ? `<div class="desc" style="margin-top:8px;"><strong>Kanban</strong><br>${escapeHtml(major.kanban)}</div>` : ""}
+    ${major.links ? `<div class="desc" style="margin-top:8px;"><strong>Links</strong><br>${escapeHtml(major.links)}</div>` : ""}
+    ${major.notes ? `<div class="desc" style="margin-top:8px;"><strong>Notes</strong><br>${escapeHtml(major.notes)}</div>` : ""}
+  `;
+  createKanbanBoard(
+    tasks.tasks || [],
+    document.getElementById("project-kanban"),
+    slug,
+  );
+  document
+    .getElementById("archive-project-btn")
+    .addEventListener("click", async () => {
+      if (
+        !confirm(
+          "Archive this project? Repo will move to archived folder and tasks will be archived.",
+        )
+      )
+        return;
+      const res = await fetch(
+        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/archive`,
+        {
+          method: "POST",
+        },
+      );
+      if (!res.ok) return alert("Archive failed");
+      window.location.href = "/";
+    });
+  document
+    .getElementById("delete-project-btn")
+    .addEventListener("click", async () => {
+      if (
+        !confirm(
+          "Delete this project permanently? Repo, memory file and tasks will be removed.",
+        )
+      )
+        return;
+      const res = await fetch(
+        `/api/kanban/hub/projects/${encodeURIComponent(slug)}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (!res.ok) return alert("Delete failed");
+      window.location.href = "/";
+    });
 }
 
 async function wireLogs() {
@@ -379,9 +451,60 @@ async function wireKanbanPage() {
 
 async function wireHome() {
   const modal = document.getElementById("modal");
-  document
-    .getElementById("new-project")
-    .addEventListener("click", () => modal.classList.add("open"));
+  const tagsInput = document.getElementById("project-tags");
+  const tagsList = document.getElementById("project-tags-list");
+  let tagValues = [];
+
+  function renderTags() {
+    tagsList.innerHTML = tagValues
+      .map(
+        (t, i) =>
+          `<button type="button" class="tag-pill" data-tag-index="${i}">${escapeHtml(t)} ×</button>`,
+      )
+      .join("");
+    tagsList.querySelectorAll(".tag-pill").forEach((el) => {
+      el.addEventListener("click", () => {
+        const idx = Number(el.dataset.tagIndex);
+        tagValues = tagValues.filter((_, i) => i !== idx);
+        renderTags();
+      });
+    });
+  }
+
+  function addTag(raw) {
+    const tag = (raw || "").trim().replace(/^#/, "");
+    if (!tag) return;
+    if (tagValues.find((t) => t.toLowerCase() === tag.toLowerCase())) return;
+    tagValues.push(tag.slice(0, 24));
+    tagValues = tagValues.slice(0, 8);
+    renderTags();
+  }
+
+  tagsInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag(tagsInput.value);
+      tagsInput.value = "";
+      return;
+    }
+    if (e.key === "Backspace" && !tagsInput.value && tagValues.length) {
+      tagValues.pop();
+      renderTags();
+    }
+  });
+
+  tagsInput.addEventListener("blur", () => {
+    if (tagsInput.value.trim()) {
+      addTag(tagsInput.value);
+      tagsInput.value = "";
+    }
+  });
+
+  document.getElementById("new-project").addEventListener("click", () => {
+    tagValues = [];
+    renderTags();
+    modal.classList.add("open");
+  });
   document
     .getElementById("close-modal")
     .addEventListener("click", () => modal.classList.remove("open"));
@@ -393,10 +516,11 @@ async function wireHome() {
         .getElementById("project-description")
         .value.trim();
       if (!name || !description) return;
-      const tags = (document.getElementById("project-tags").value || "")
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
+      if (tagsInput.value.trim()) {
+        addTag(tagsInput.value);
+        tagsInput.value = "";
+      }
+      const tags = tagValues;
       const template = document.getElementById("project-template").value;
       const stage = document.getElementById("project-stage").value;
       const res = await fetch("/api/kanban/hub/projects", {
@@ -539,6 +663,8 @@ async function boot() {
   else if (path.startsWith("/logs")) renderLogs();
   else if (path.startsWith("/kanban")) renderKanbanPage();
   else if (path.startsWith("/memory")) renderMemoryPage();
+  else if (path.startsWith("/project/"))
+    renderProjectPage(path.replace("/project/", ""));
   else renderHome();
   applyTheme(theme());
   const themeToggle = document.getElementById("theme-toggle");
@@ -555,6 +681,7 @@ async function boot() {
   else if (path.startsWith("/logs")) await wireLogs();
   else if (path.startsWith("/kanban")) await wireKanbanPage();
   else if (path.startsWith("/memory")) await wireMemoryEditor();
+  else if (path.startsWith("/project/")) await wireProjectPage();
   else await wireHome();
 }
 

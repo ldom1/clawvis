@@ -34,12 +34,8 @@ def cmd_transcribe(args):
         return 1
 
     logger.info("Transcribing: {}", args.file)
-    text = transcribe(
-        args.file,
-        language=args.language,
-        model_size=args.model
-    )
-    
+    text = transcribe(args.file, language=args.language, model_size=args.model)
+
     if text:
         print(text)
         if args.output:
@@ -72,22 +68,22 @@ def cmd_services(args):
             status = ServiceManager.get_status(args.service)
             print("\n" + str(status) + "\n")
         return 0
-    
+
     elif args.action == "start":
         result = ServiceManager.start(args.service)
         print(result)
         return 0 if result.get("success") else 1
-    
+
     elif args.action == "stop":
         result = ServiceManager.stop(args.service)
         print(result)
         return 0 if result.get("success") else 1
-    
+
     elif args.action == "restart":
         result = ServiceManager.restart(args.service)
         print(result)
         return 0 if result.get("success") else 1
-    
+
     return 1
 
 
@@ -111,26 +107,37 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         prog="hub_core",
-        description="DomBot's Hub Core - AI news, transcription, system monitoring"
+        description="DomBot's Hub Core - AI news, transcription, system monitoring",
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Commands")
-    
+
     # status command
     parser_status = subparsers.add_parser("status", help="Show hub status")
     parser_status.set_defaults(func=cmd_status)
-    
+
     # transcribe command
     parser_transcribe = subparsers.add_parser("transcribe", help="Transcribe audio")
     parser_transcribe.add_argument("file", nargs="?", help="Audio file path")
-    parser_transcribe.add_argument("-l", "--language", default="fr", help="Language (default: fr)")
-    parser_transcribe.add_argument("-m", "--model", default="base", help="Model size (tiny, base, small, medium, large)")
+    parser_transcribe.add_argument(
+        "-l", "--language", default="fr", help="Language (default: fr)"
+    )
+    parser_transcribe.add_argument(
+        "-m",
+        "--model",
+        default="base",
+        help="Model size (tiny, base, small, medium, large)",
+    )
     parser_transcribe.add_argument("-o", "--output", help="Output text file")
     parser_transcribe.set_defaults(func=cmd_transcribe)
-    
+
     # services command
-    parser_services = subparsers.add_parser("services", help="Manage Lab services (start/stop/status)")
-    parser_services.add_argument("action", choices=["status", "start", "stop", "restart"], help="Action")
+    parser_services = subparsers.add_parser(
+        "services", help="Manage Lab services (start/stop/status)"
+    )
+    parser_services.add_argument(
+        "action", choices=["status", "start", "stop", "restart"], help="Action"
+    )
     parser_services.add_argument(
         "-s",
         "--service",
@@ -147,13 +154,13 @@ def main():
         help="Only update status JSON, or run git-sync.sh then update status",
     )
     parser_git.set_defaults(func=cmd_git)
-    
+
     args = parser.parse_args()
-    
+
     if not hasattr(args, "func"):
         parser.print_help()
         return 0
-    
+
     return args.func(args)
 
 

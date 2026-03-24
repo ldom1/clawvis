@@ -7,10 +7,8 @@ Usage:
   uv run pytest tests/test_integration.py -v
 """
 
-import asyncio
 import logging
 import os
-from typing import Dict
 
 import pytest
 
@@ -20,11 +18,13 @@ os.environ["AGENT_ROLE"] = "ORCHESTRATOR"
 os.environ["NETWORK_MODE"] = "allowlist"
 os.environ["NETWORK_ALLOWLIST"] = "api.anthropic.com,api.openai.com"
 
-from hub_core.security.identity import get_agent_identity, current_identity, reset_identity
+from hub_core.security.identity import (
+    get_agent_identity,
+    reset_identity,
+)
 from hub_core.security.rbac import require_capability, UnauthorizedError
 from hub_core.security.network import get_network_policy
-from hub_core.agents.registry import AgentRegistry, HealthStatus
-from hub_core.agents.base import IAgentAdapter, TaskResult
+from hub_core.agents.registry import AgentRegistry
 from hub_core.agents.openclaw import OpenClawAdapter
 
 logger = logging.getLogger(__name__)
