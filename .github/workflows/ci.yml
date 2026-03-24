@@ -18,8 +18,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "yarn"
-          cache-dependency-path: "hub/yarn.lock"
+
+      - name: Enable Corepack (Yarn Berry 4)
+        run: corepack enable
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -34,6 +35,8 @@ jobs:
           bash -n scripts/start.sh
           bash -n scripts/deploy.sh
           bash -n scripts/upgrade.sh
+          bash -n scripts/setup-quartz.sh
+          bash -n scripts/setup-runtime.sh
           bash -n clawvis
           bash -n install.sh
           bash -n get.sh
