@@ -416,29 +416,11 @@ function renderHome() {
         </div>
       </div>
 
+      <div class="section-header" style="margin-top:4px">
+        <div class="section-label">System Status</div>
+      </div>
       <div id="system-card" class="system-card">
-        <div class="system-title"><span class="system-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path><path d="M7 10h2l1-2 2 4 1-2h4"></path></svg></span>System Status</div>
-        <div class="system-row">
-          <div class="system-stat">
-            <div class="stat-label">CPU</div>
-            <div class="stat-value" id="cpu-percent">—%</div>
-            <div class="progress-bar"><div class="progress-fill" id="cpu-fill" style="width:0%"></div></div>
-          </div>
-          <div class="system-stat">
-            <div class="stat-label">RAM</div>
-            <div class="stat-value" id="ram-percent">—%</div>
-            <div class="progress-bar"><div class="progress-fill" id="ram-fill" style="width:0%; background: #22c55e;"></div></div>
-            <div class="stat-detail" id="ram-detail">— GB</div>
-          </div>
-          <div class="system-stat">
-            <div class="stat-label">Disk</div>
-            <div class="stat-value" id="disk-percent">—%</div>
-            <div class="progress-bar"><div class="progress-fill" id="disk-fill" style="width:0%; background: #f59e0b;"></div></div>
-            <div class="stat-detail" id="disk-detail">— GB</div>
-          </div>
-        </div>
-        <div class="system-divider"></div>
-        <div class="system-row system-kpi-row">
+        <div class="system-kpi-row">
           <div class="system-kpi">
             <div class="kpi-value" id="kpi-projects">—</div>
             <div class="kpi-label">${escapeHtml(t.kpiProjects)}</div>
@@ -455,6 +437,25 @@ function renderHome() {
             <div class="kpi-value" id="kpi-brain-notes">—</div>
             <div class="kpi-label">${escapeHtml(t.kpiBrain)}</div>
           </div>
+        </div>
+        <div class="system-infra-strip">
+          <span class="infra-item">
+            <span class="infra-label">CPU</span>
+            <span class="infra-bar"><span class="infra-bar-fill" id="cpu-fill" style="width:0%"></span></span>
+            <span class="infra-value" id="cpu-percent">—%</span>
+          </span>
+          <span class="infra-item">
+            <span class="infra-label">RAM</span>
+            <span class="infra-bar"><span class="infra-bar-fill" id="ram-fill" style="width:0%;background:#22c55e"></span></span>
+            <span class="infra-value" id="ram-percent">—%</span>
+            <span class="infra-detail" id="ram-detail"></span>
+          </span>
+          <span class="infra-item">
+            <span class="infra-label">Disk</span>
+            <span class="infra-bar"><span class="infra-bar-fill" id="disk-fill" style="width:0%;background:#f59e0b"></span></span>
+            <span class="infra-value" id="disk-percent">—%</span>
+            <span class="infra-detail" id="disk-detail"></span>
+          </span>
         </div>
       </div>
 
@@ -3243,7 +3244,7 @@ async function wireChat() {
 
   // Fetch provider status from backend
   try {
-    const res = await fetch("/api/kanban/chat/status");
+    const res = await fetch("/api/kanban/hub/chat/status");
     if (res.ok) {
       const s = await res.json();
       const configured =
@@ -3259,7 +3260,7 @@ async function wireChat() {
         statusBar.className = `chat-status-bar ${configured ? "ok" : "warn"}`;
         statusBar.innerHTML = configured
           ? `<span class="chat-status-dot ok"></span>${labels[s.provider] || s.provider} — ${fr ? "Connecté" : "Connected"}`
-          : `<span class="chat-status-dot warn"></span>${fr ? "Runtime IA non configuré — " : "AI Runtime not configured — "}<a href="/settings/">${fr ? "Configurer" : "Configure"}</a>`;
+          : `<span class="chat-status-dot warn"></span>${fr ? "Runtime IA non configuré. " : "AI Runtime not configured. "}<a href="/settings/" class="chat-setup-link">${fr ? "Configurer le runtime →" : "Setup runtime →"}</a>`;
       }
     }
   } catch {
@@ -3296,7 +3297,7 @@ async function wireChat() {
     let full = "";
 
     try {
-      const res = await fetch("/api/kanban/chat", {
+      const res = await fetch("/api/kanban/hub/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg, history: history.slice(0, -1) }),

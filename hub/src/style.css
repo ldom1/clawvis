@@ -211,48 +211,94 @@ body {
 }
 .ai-runtime-banner-right {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .system-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 12px 14px 10px;
   margin-bottom: 14px;
-}
-.system-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 12px 0;
 }
 .system-kpi-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+  margin-bottom: 10px;
 }
 .system-kpi {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 4px;
+  padding: 10px 4px 8px;
   border-radius: 10px;
   background: rgba(99, 102, 241, 0.04);
   border: 1px solid rgba(99, 102, 241, 0.1);
   text-align: center;
 }
 .kpi-value {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   line-height: 1;
   color: var(--text);
 }
 .kpi-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-top: 4px;
+  margin-top: 5px;
+}
+/* Compact infra strip — CPU / RAM / Disk at bottom-right */
+.system-infra-strip {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.infra-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.infra-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  min-width: 28px;
+}
+.infra-bar {
+  display: inline-block;
+  width: 44px;
+  height: 4px;
+  background: rgba(99, 102, 241, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.infra-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.infra-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 32px;
+}
+.infra-detail {
+  font-size: 10px;
+  color: var(--muted);
 }
 @media (max-width: 600px) {
   .system-kpi-row {
@@ -261,6 +307,9 @@ body {
   .ai-runtime-banner {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .system-infra-strip {
+    justify-content: flex-start;
   }
 }
 
@@ -2632,4 +2681,12 @@ body {
   font-size: 11px;
   color: var(--muted);
   text-align: center;
+}
+.chat-setup-link {
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.chat-setup-link:hover {
+  text-decoration: underline;
 }

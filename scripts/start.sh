@@ -61,6 +61,7 @@ uv run --directory "${ROOT_DIR}/kanban" python -m uvicorn \
   --port "${API_PORT}" \
   --reload \
   --reload-dir "${ROOT_DIR}/kanban/kanban_api" \
+  --reload-dir "${ROOT_DIR}/hub-core/hub_core" \
   "${uvicorn_extra[@]}" &
 API_PID=$!
 
