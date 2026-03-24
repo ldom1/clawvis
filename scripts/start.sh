@@ -16,7 +16,7 @@ API_PORT="${KANBAN_API_PORT:-8090}"
 if [ -z "${CLAWVIS_SKIP_START_ECHO:-}" ]; then
   echo "Starting Clawvis dev server on http://localhost:${PORT}"
   echo "Starting Kanban API on http://localhost:${API_PORT}"
-  echo "Starting Vite Hub app on http://localhost:${PORT}"
+  echo "Starting Vite Hub app (port ${PORT}, or next free if busy; URL in Vite output)"
   echo "Ensuring Brain runtime on http://localhost:${MEMORY_PORT:-3099}"
   echo "If port is busy, run: clawvis shutdown   (or: docker compose down)"
 fi
@@ -77,6 +77,6 @@ rebuild_hub_yarn
 
 if [ -n "${CLAWVIS_QUIET_START:-}" ]; then
   exec node "${ROOT_DIR}/hub/node_modules/vite/bin/vite.js" "${ROOT_DIR}/hub" \
-    --port "${PORT}" --logLevel silent
+    --port "${PORT}" --no-strictPort --logLevel silent
 fi
-exec yarn --cwd "${ROOT_DIR}/hub" dev --port "${PORT}"
+exec yarn --cwd "${ROOT_DIR}/hub" dev --port "${PORT}" --no-strictPort

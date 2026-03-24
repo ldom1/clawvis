@@ -28,7 +28,7 @@ init_instance_memory() {
 rebuild_hub_yarn() {
   ensure_yarn
   if [ -n "${CLAWVIS_QUIET_START:-}" ]; then
-    if ! yarn --cwd "${ROOT_DIR}/hub" install --frozen-lockfile --silent >/dev/null 2>&1; then
+    if ! yarn --cwd "${ROOT_DIR}/hub" install --immutable --silent >/dev/null 2>&1; then
       echo "[clawvis] hub: yarn install a échoué (lance cd hub && yarn install)" >&2
       exit 1
     fi
@@ -38,7 +38,7 @@ rebuild_hub_yarn() {
     fi
   else
     echo "Rebuilding hub dependencies and bundle with yarn..."
-    yarn --cwd "${ROOT_DIR}/hub" install --frozen-lockfile
+    yarn --cwd "${ROOT_DIR}/hub" install --immutable
     yarn --cwd "${ROOT_DIR}/hub" build
   fi
 }

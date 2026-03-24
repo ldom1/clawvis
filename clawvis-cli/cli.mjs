@@ -132,9 +132,9 @@ function runStart() {
         `${chalk.dim("Kanban API")}    ${chalk.cyan(`http://localhost:${apiPort}/`)}`,
         `${chalk.dim("Brain (Logseq)")} ${chalk.cyan(`http://localhost:${memoryPort}/`)}`,
         "",
-        chalk.yellow("Port occupé ?") +
+        chalk.yellow("Hub Docker sur 8088 ?") +
           " " +
-          chalk.dim("`docker compose down` puis relance."),
+          chalk.dim("`docker compose down` puis `clawvis shutdown`, ou change `HUB_PORT`."),
       ].join("\n"),
       {
         padding: { left: 1, right: 1, top: 0, bottom: 0 },
@@ -149,7 +149,6 @@ function runStart() {
     env: {
       ...mergedEnv(),
       CLAWVIS_SKIP_START_ECHO: "1",
-      CLAWVIS_QUIET_START: "1",
     },
   });
   child.on("exit", (code) => process.exit(code ?? 1));
@@ -174,10 +173,7 @@ function runRestart() {
       },
     ),
   );
-  runLegacy(["restart"], {
-    CLAWVIS_QUIET_START: "1",
-    CLAWVIS_SKIP_START_ECHO: "1",
-  });
+  runLegacy(["restart"]);
 }
 
 /** Load `.env` so doctor works when not exported in the shell (process.env wins). */

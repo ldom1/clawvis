@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       port,
-      strictPort: true,
+      strictPort: false,
       proxy: {
         "/api/kanban": {
           target: `http://127.0.0.1:${kanbanPort}`,
@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
     preview: {
       host: true,
       port,
+      strictPort: false,
     },
   };
 });

@@ -152,8 +152,19 @@ parse_args "$@"
 # When called directly (not from CLI), redirect to pretty CLI wizard if node is available
 if [ "${NON_INTERACTIVE}" -eq 0 ] && [ -z "${CLAWVIS_NO_NODE_WRAPPER:-}" ]; then
   CLI_MJS="${ROOT_DIR}/clawvis-cli/cli.mjs"
+  CLI_PKG="${ROOT_DIR}/clawvis-cli"
   if command -v node >/dev/null 2>&1 && [ -f "${CLI_MJS}" ]; then
-    exec node "${CLI_MJS}" install "$@"
+    if [ ! -d "${CLI_PKG}/node_modules/commander" ]; then
+      if command -v npm >/dev/null 2>&1; then
+        info "Installing CLI dependencies"
+        (cd "${CLI_PKG}" && npm ci --no-audit --no-fund) || (cd "${CLI_PKG}" && npm install --no-audit --no-fund)
+      else
+        warn "npm not found; skipping Node install wizard (set CLAWVIS_NO_NODE_WRAPPER=1 to silence)"
+      fi
+    fi
+    if [ -d "${CLI_PKG}/node_modules/commander" ]; then
+      exec node "${CLI_MJS}" install "$@"
+    fi
   fi
 fi
 
