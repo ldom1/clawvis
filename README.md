@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/lgiron/clawvis/actions/workflows/ci.yml"><img src="https://github.com/lgiron/clawvis/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/lgiron/clawvis/actions/workflows/release.yml"><img src="https://github.com/lgiron/clawvis/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+  <a href="https://github.com/lgiron/clawvis/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/lgiron/clawvis/ci.yml?branch=main&label=CI" alt="CI"></a>
+  <a href="https://github.com/lgiron/clawvis/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/lgiron/clawvis/release.yml?label=Release" alt="Release"></a>
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT">
 </p>
 

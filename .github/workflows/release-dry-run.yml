@@ -19,4 +19,4 @@ jobs:
       - name: Validate release workflow regex
         run: |
           test -f .github/workflows/release.yml
-          grep -q "v\\\[0-9\\\]" .github/workflows/release.yml
+          grep -qE "v\[0-9\]" .github/workflows/release.yml
