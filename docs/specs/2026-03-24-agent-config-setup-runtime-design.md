@@ -38,19 +38,25 @@ In `hub/src/main.js`:
 
 Step state is managed by a local `let step = 1` variable (1–4). No URL change between steps — everything stays at `/setup/runtime/`.
 
-### API endpoints (correct paths)
+### API endpoints (new routing)
 
-| Purpose | Endpoint |
-|---------|----------|
-| Test connection (step 3) | `GET /api/hub/chat/status` |
-| Live test ping (step 3) | `POST /api/hub/chat` |
-| Mini-chat (step 4) | `POST /api/hub/chat` |
+The current chat endpoints are mounted under `/api/kanban/hub/chat`. As part of this work, the backend routing is restructured to expose them at the cleaner paths below. This is a deliberate design decision, not backward-compatible aliasing.
 
-No new backend endpoints needed. The existing chat endpoints are reused.
+| Purpose | New endpoint | Current (to remove) |
+|---------|-------------|---------------------|
+| Test connection (step 3) | `GET /api/hub/chat/status` | `/api/kanban/hub/chat/status` |
+| Live test ping (step 3) | `POST /api/hub/chat` | `/api/kanban/hub/chat` |
+| Mini-chat (step 4) | `POST /api/hub/chat` | `/api/kanban/hub/chat` |
 
-### Storage
+The backend mount change is part of this spec's scope. All existing callers of `/api/kanban/hub/chat` (the Chat page `wireChat()`) must be updated to `/api/hub/chat` at the same time.
 
-Credentials stay in `localStorage` (unchanged from current behavior):
+### Storage — write timing
+
+Credentials are held **in memory** (wizard local variables) throughout steps 1–3. They are written to `localStorage` only when the user clicks **"Terminer →"** on step 4.
+
+This prevents partially-validated credentials from persisting if the user abandons the wizard mid-way or fails the connection test.
+
+Keys written on "Terminer →":
 - `ai-provider`
 - `ai-claude-key`
 - `ai-mistral-key`
@@ -137,6 +143,7 @@ Horizontal bar, fixed below the header:
 - Completed = green check
 - Future = grey
 - Completed steps are clickable (to go back); future steps are not
+- **Navigating back to step 1 or step 2 resets step 3 to idle state** (clears test result, disables "Next →" on step 3). This prevents a successful test result from a previous provider being inherited after a provider change.
 
 ---
 
@@ -161,6 +168,14 @@ Horizontal bar, fixed below the header:
 - Text: "Connecté · Claude" (or Mistral / OpenClaw)
 - CTA: "Modifier" → `/setup/runtime/` (fields pre-filled from localStorage)
 
+### Returning user behaviour (already configured)
+
+When the user navigates to `/setup/runtime/` and `ai-provider` is already set in localStorage:
+- Land on **step 1**, with the current provider card pre-selected
+- Steps 1, 2, 3 are marked "completed" (green check) and clickable
+- Step 4 is not pre-marked completed — the user must click "Terminer →" again to re-save
+- This allows changing the provider or key freely without forcing a full re-test
+
 ---
 
 ## What Is Removed
@@ -177,7 +192,22 @@ Horizontal bar, fixed below the header:
 | `hub/src/main.js` | + `renderSetupRuntime()`, `wireSetupRuntime()`, router entry. Update `renderHome()` banner CTA. Update `renderSettings()` (remove modal, replace button with link). Update `renderChatPage()` warn link. |
 | `hub/src/style.css` | + stepper styles, provider-detail block, live test result, inline mini-chat |
 | `clawvis-cli/cli.mjs` | `doneSettings` URL → `/setup/runtime/` |
-| `docs/playwright-persona.md` | Rewrite Persona 1 (4-step full page wizard). Fix Persona 5 (no modal in settings). Fix Persona 6 (warn link → `/setup/runtime/`). |
+| `docs/playwright-persona.md` | See detailed changes below. |
+| `kanban/kanban_api/` (or nginx config) | Remount chat routes from `/api/kanban/hub/chat` to `/api/hub/chat`. Update all existing callers in `hub/src/main.js` (`wireChat()` at line ~3247, ~3300). |
+
+### `docs/playwright-persona.md` changes (detailed)
+
+**Persona 1 — rewrite steps 2–5:**
+- Step 2: Navigate via AI runtime banner CTA → assert URL is `/setup/runtime/` (not `/settings/`)
+- Step 3: Assert stepper is visible with 4 steps. Assert step 1 is active. Assert 3 provider cards visible (Claude, Mistral, OpenClaw). Click "Claude".
+- Step 4: Assert stepper advances to step 2. Assert API key input visible (`type=password`, placeholder `sk-ant-...`). Enter `sk-ant-test-key-00000000`. Click "Next →".
+- Step 5: Assert stepper is on step 3. Click "Lancer le test". Assert test result shown (error acceptable — key is fake). Assert "Next →" remains **disabled** (test failed). *(Note: step 4 mini-chat is not tested with a fake key — end the Persona 1 journey here, after asserting the test gate works.)*
+
+**Persona 5 — step 3 correction:**
+- Current: "Click 'Configure' button → assert wizard modal opens". New: "Assert runtime section shows a link 'Configurer le runtime →' that href is `/setup/runtime/`. Assert **no modal** is present on the page."
+
+**Persona 6 — step 1 correction:**
+- Current: "assert warn status bar with link to settings". New: "assert warn status bar contains a link with `href='/setup/runtime/'` and visible text matching 'Configurer le runtime' / 'Setup runtime'."
 
 ---
 
