@@ -1335,9 +1335,23 @@ function createKanbanBoard(
 async function loadProjects() {
   const grid = document.getElementById("projects-grid");
   const res = await fetch("/api/kanban/hub/projects");
-  if (!res.ok) return;
+  if (!res.ok) {
+    const fr = settingsLocale() === "fr";
+    grid.insertAdjacentHTML(
+      "beforeend",
+      `<div class="onboarding-hint">${fr ? "Kanban API non disponible — lance <code>clawvis start</code>" : "Kanban API unavailable — run <code>clawvis start</code>"}</div>`,
+    );
+    return;
+  }
   const data = await res.json();
   const v = Date.now();
+  if (!(data.projects || []).length) {
+    const fr = settingsLocale() === "fr";
+    grid.insertAdjacentHTML(
+      "beforeend",
+      `<div class="onboarding-hint">${fr ? "Aucun projet — clique sur <strong>+</strong> pour créer le premier." : "No projects yet — click <strong>+</strong> to create your first one."}</div>`,
+    );
+  }
   (data.projects || []).forEach((project) => {
     const card = document.createElement("a");
     card.href = `/project/${encodeURIComponent(project.slug)}`;

@@ -2225,6 +2225,20 @@ body {
   color: var(--accent);
   min-height: 130px;
 }
+.onboarding-hint {
+  grid-column: 1 / -1;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: var(--card-bg);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.onboarding-hint code,
+.onboarding-hint strong {
+  color: var(--text);
+}
 .settings-header {
   margin-bottom: 1rem;
 }

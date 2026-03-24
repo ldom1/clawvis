@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Your personal AI workspace — Hub, Kanban, Memory, Skills. One command to start.</strong>
+  <strong>Self-hosted control center for your AI agents — Hub, Kanban, Memory, Skills.</strong>
 </p>
 
 <p align="center">
@@ -16,26 +16,44 @@
 
 ---
 
-Clawvis gives you a self-hosted control center for your AI agents: a dashboard Hub, a Kanban board with confidence scoring, a searchable memory Brain, and a pluggable skills system — all wired to your preferred AI runtime (Claude, Mistral, or self-hosted OpenClaw).
+## What is Clawvis?
 
-Your customizations stay in `instances/<your-name>/` and are never touched by core updates.
+You run AI agents — Claude, Mistral, or your own OpenClaw instance. But you have no single place to see what they're doing, manage their tasks, or keep project notes alongside them.
+
+**Clawvis is that place.** One `docker compose up` gives you:
+
+| Service | Default URL | What it does |
+|---------|-------------|--------------|
+| **Hub** | `localhost:8088` | Dashboard — system status, agent activity, projects |
+| **Kanban** | `localhost:8088/kanban/` | Task board with confidence scoring and memory sync |
+| **Brain** | `localhost:8088/memory/` | Project knowledge base (markdown → searchable pages) |
+| **Logs** | `localhost:8088/logs/` | Real-time log stream from all your agents |
+| **Settings** | `localhost:8088/settings/` | AI runtime config, workspace paths, linked instances |
+
+Your data stays in `instances/<your-name>/` — never touched by core updates.
+
+---
+
+## Prerequisites
+
+- **Docker** (Engine 24+ or Docker Desktop) — [install](https://docs.docker.com/get-docker/)
+- **Git** — to clone the repo (`get.sh` handles this automatically)
+
+For dev mode only: Node.js >= 18, uv (Python)
+
+---
 
 ## Install
+
+**One command:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/lgiron/clawvis/main/get.sh | bash
 ```
 
-That's it. The installer handles the symlink, PATH, and guides you through the setup wizard.
+This clones the repo to `~/.clawvis`, runs the interactive wizard, and starts the stack.
 
-After install, reload your shell and verify:
-
-```bash
-source ~/.bashrc   # or source ~/.zshrc
-clawvis doctor
-```
-
-**With git:**
+**With git (if you prefer to control where it lives):**
 
 ```bash
 git clone https://github.com/lgiron/clawvis && cd clawvis && ./install.sh
@@ -44,26 +62,42 @@ git clone https://github.com/lgiron/clawvis && cd clawvis && ./install.sh
 **Non-interactive (CI / scripted):**
 
 ```bash
-./install.sh --non-interactive --instance myname --provider claude --claude-api-key "sk-ant-..." --mode docker
+./install.sh --non-interactive --instance myname --mode docker
 ```
 
-## What you get
+After install, open `http://localhost:8088` and configure your AI runtime in **Settings → AI Runtime**.
 
-| Service | URL (default) | Description |
-|---------|--------------|-------------|
-| Hub | `http://localhost:8088` | Dashboard — agent activity, logs, status |
-| Kanban | `http://localhost:8088/kanban/` | Task board with Kahneman-style confidence scoring |
-| Brain | `http://localhost:8088/memory/` | Searchable PARA memory vault |
-| Logs | `http://localhost:8088/logs/` | Live SSE log stream |
+---
 
 ## Daily use
 
 ```bash
-clawvis start          # start the stack
-clawvis doctor         # health check all services
-clawvis update wizard  # interactive upgrade
-clawvis backup create  # snapshot your instance before updates
+clawvis start       # start the stack (dev mode)
+clawvis doctor      # health check — shows what's up and what's not
+clawvis shutdown    # graceful stop
+clawvis restart     # stop + start
 ```
+
+---
+
+## AI Runtime
+
+No API key is required at install time. Configure post-install:
+
+**Option A — Browser (recommended):**
+Go to `http://localhost:8088/settings/` → AI Runtime section.
+Keys are stored in your browser's localStorage.
+
+**Option B — .env file (backend / persistent):**
+Edit `.env` and restart:
+```bash
+CLAUDE_API_KEY=sk-ant-...        # Anthropic Claude
+MISTRAL_API_KEY=...              # Mistral
+OPENCLAW_BASE_URL=http://host    # Self-hosted OpenClaw
+OPENCLAW_API_KEY=...             # OpenClaw key (optional)
+```
+
+---
 
 ## Stay up to date
 
@@ -72,51 +106,106 @@ Core updates never touch your instance data:
 ```bash
 clawvis update status
 clawvis update --tag v2026-03-23
-# or
 clawvis update --channel stable
 ```
 
-Rollback anytime:
+Backup and restore:
 
 ```bash
+clawvis backup create
 clawvis backup list
 clawvis restore <backup-id>
 ```
 
-## Providers
+---
 
-Choose your AI runtime during install — switch anytime in `.env`:
+## Deploy to a server (Hostinger / VPS)
 
-| Provider | Variable |
-|----------|----------|
-| Claude (Anthropic) | `CLAUDE_API_KEY` |
-| Mistral | `MISTRAL_API_KEY` |
-| OpenClaw (self-hosted) | `OPENCLAW_BASE_URL` + `OPENCLAW_API_KEY` |
-
-## Private instance (fork pattern)
-
-Run your own private fork that stays upgradeable from upstream:
-
+**1. Set deploy target in `.env`:**
 ```bash
-git clone https://github.com/lgiron/clawvis hub-myname
-cd hub-myname
-git remote rename origin upstream
-git remote add origin git@github.com:YOURNAME/hub-myname.git
-./install.sh
+DEPLOY_HOST=your-vps-ip
+DEPLOY_USER=ubuntu
+DEPLOY_PATH=/opt/clawvis
+DEPLOY_SSH_PORT=22
 ```
 
-All your customizations go in `instances/myname/` — merge upstream updates freely.
+**2. Deploy:**
+```bash
+clawvis deploy
+# or directly:
+bash scripts/deploy.sh
+```
+
+This rsyncs the repo, builds Docker images on the remote, and starts the stack.
+
+**Reverse proxy (nginx on VPS):**
+```nginx
+server {
+    server_name clawvis.yourdomain.com;
+    location / {
+        proxy_pass http://localhost:8088;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+---
+
+## Brain (Knowledge base)
+
+The Brain shows your project markdown files from `instances/<name>/memory/projects/`.
+
+It works out of the box — no Quartz installation needed. A lightweight Python renderer converts your `.md` files to HTML automatically. If you want the full Quartz static site experience, clone Quartz to `quartz/` in the repo root and run `clawvis start` — it will be picked up automatically.
+
+---
 
 ## What's inside
 
 | Directory | Purpose |
 |-----------|---------|
-| `hub/` | Vite frontend + nginx production image |
-| `hub-core/` | Python library — identity, RBAC, adapters, registry |
-| `kanban/` | Task board API with confidence scoring |
-| `skills/` | Pre-configured agent skills |
+| `hub/` | Vite SPA frontend + nginx Docker image |
+| `hub-core/` | Python lib — identity, RBAC, AI adapters |
+| `kanban/` | Task board FastAPI — tasks, projects, memory sync |
+| `skills/` | Pre-configured agent skills (kanban, logger, brain…) |
 | `openclaw/` | OpenClaw wrapper + config |
-| `instances/` | Your instance config — never overwritten by updates |
+| `instances/` | Your instance data — never overwritten by updates |
+| `project-templates/` | Starter templates for new projects |
+
+---
+
+## Troubleshooting
+
+**Hub shows blank page:**
+The Kanban API may not be running. Check: `clawvis doctor` or `docker compose ps`.
+If using Docker mode, make sure you ran `docker compose up kanban-api`.
+
+**`clawvis: command not found` after install:**
+Reload your shell: `source ~/.zshrc` (or `~/.bashrc`).
+Or run: `export PATH="$HOME/.local/bin:$PATH"`.
+
+**Docker not running:**
+Start Docker Desktop, or: `sudo systemctl start docker`.
+
+**Port already in use:**
+Change `HUB_PORT` in `.env` (e.g. to `8089`), then restart.
+
+**AI runtime shows "not configured":**
+Go to `localhost:8088/settings/` and configure your provider, or add your key to `.env`.
+
+---
+
+## Contributing
+
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
+Mode Soissons (contribution) in the installer sets up your dev environment.
+
+```bash
+./install.sh  # choose mode 3 (Soissons)
+clawvis start
+```
+
+---
 
 ## License
 

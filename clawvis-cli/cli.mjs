@@ -640,6 +640,85 @@ program
     );
   });
 
+// clawvis setup provider — intercepted before commander routing
+// (The top-level `setup` command is a passthrough alias for install.)
+if (process.argv[2] === "setup" && process.argv[3] === "provider") {
+  runSetupProvider(process.argv.slice(4));
+  // runSetupProvider calls process.exit or falls through
+}
+
+function runSetupProvider(args) {
+  const env = mergedEnv();
+  const hubPort = env.HUB_PORT || "8088";
+  const current = env.PRIMARY_AI_PROVIDER || "(not set)";
+  const claudeSet = !!(env.CLAUDE_API_KEY || "").trim();
+  const mistralSet = !!(env.MISTRAL_API_KEY || "").trim();
+  const openclawSet =
+    !!(env.OPENCLAW_BASE_URL || "").trim() &&
+    env.OPENCLAW_BASE_URL !== "http://localhost:3333";
+
+  // Flag parsing: --provider, --key, --url
+  let provider = "";
+  let key = "";
+  let url = "";
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--provider" && args[i + 1]) provider = args[++i];
+    else if (args[i] === "--key" && args[i + 1]) key = args[++i];
+    else if (args[i] === "--url" && args[i + 1]) url = args[++i];
+  }
+
+  if (provider || key || url) {
+    // Write to .env via bash setup-runtime passthrough
+    const extraArgs = [];
+    if (provider) extraArgs.push("--provider", provider);
+    if (key) {
+      if (provider === "claude" || (!provider && claudeSet))
+        extraArgs.push("--claude-api-key", key);
+      else if (provider === "mistral")
+        extraArgs.push("--mistral-api-key", key);
+      else if (provider === "openclaw")
+        extraArgs.push("--openclaw-api-key", key);
+    }
+    if (url) extraArgs.push("--openclaw-base-url", url);
+    runLegacy(["setup-runtime", "--non-interactive", ...extraArgs]);
+    return;
+  }
+
+  printHeader();
+  console.log(
+    boxen(
+      [
+        chalk.bold("AI Runtime — configuration actuelle"),
+        "",
+        `${chalk.dim("Provider actif")} : ${chalk.cyan(current)}`,
+        `${chalk.dim("Claude")}         : ${claudeSet ? chalk.green("configuré") : chalk.yellow("non configuré")}`,
+        `${chalk.dim("Mistral")}        : ${mistralSet ? chalk.green("configuré") : chalk.yellow("non configuré")}`,
+        `${chalk.dim("OpenClaw")}       : ${openclawSet ? chalk.green("configuré") : chalk.yellow("non configuré")}`,
+        "",
+        chalk.bold("Pour configurer :"),
+        "",
+        `${chalk.cyan("A)")} Hub Settings (recommandé) :`,
+        `   ${chalk.green(`http://localhost:${hubPort}/settings/`)} → section "AI Runtime"`,
+        "",
+        `${chalk.cyan("B)")} Ligne de commande :`,
+        `   ${chalk.dim("clawvis setup provider --provider claude --key sk-ant-...")}`,
+        `   ${chalk.dim("clawvis setup provider --provider mistral --key ...")}`,
+        `   ${chalk.dim("clawvis setup provider --provider openclaw --url http://host:3333")}`,
+        "",
+        `${chalk.cyan("C)")} Fichier .env :`,
+        `   ${chalk.dim("CLAUDE_API_KEY / MISTRAL_API_KEY / OPENCLAW_BASE_URL")}`,
+        `   ${chalk.dim("Then: docker compose restart  (or clawvis restart)")}`,
+      ].join("\n"),
+      {
+        padding: 1,
+        borderStyle: "round",
+        borderColor: current === "(not set)" ? "yellow" : "green",
+      },
+    ),
+  );
+  process.exit(0);
+}
+
 if (process.argv.length <= 2 || process.argv.includes("--help") || process.argv.includes("-h")) {
   printHeader();
 }
