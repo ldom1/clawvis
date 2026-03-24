@@ -13,7 +13,7 @@ services:
     tmpfs:
       - /tmp
     labels:
-      - "app=clawpilot"
+      - "app=clawvis"
 
   memory:
     image: ghcr.io/logseq/logseq-webapp:latest

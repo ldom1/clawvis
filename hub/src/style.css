@@ -1520,7 +1520,11 @@ body.theme-light .settings-section.card {
   margin-bottom: 1.25rem;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(99,102,241,0.07) 0%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.07) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
 }
 .settings-health-banner-title {
   font-size: 0.72rem;
@@ -1615,7 +1619,9 @@ body.theme-light .settings-section.card {
   color: var(--muted);
   line-height: 1;
   background: var(--surface-2);
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 .settings-info-hold:hover .settings-info-i,
 .settings-info-hold:focus-visible .settings-info-i {
@@ -1646,7 +1652,9 @@ body.theme-light .settings-section.card {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.12s ease, visibility 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    visibility 0.12s ease;
   text-align: left;
 }
 .settings-info-popover::before {
@@ -1659,7 +1667,8 @@ body.theme-light .settings-section.card {
 }
 .settings-heading-row:has(.settings-info-hold:hover) .settings-info-popover,
 .settings-heading-row:has(.settings-info-popover:hover) .settings-info-popover,
-.settings-heading-row:has(.settings-info-hold:focus-visible) .settings-info-popover {
+.settings-heading-row:has(.settings-info-hold:focus-visible)
+  .settings-info-popover {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -1718,7 +1727,10 @@ body.theme-light .settings-section.card {
   border: 1px solid var(--border);
   cursor: pointer;
   background: var(--surface-2);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 .theme-card:hover {
   border-color: rgba(99, 102, 241, 0.35);
@@ -1746,12 +1758,7 @@ body.theme-light .settings-section.card {
   box-sizing: border-box;
 }
 .theme-card-dark .theme-card-preview {
-  background: linear-gradient(
-    145deg,
-    #242838 0%,
-    #12151f 45%,
-    #1e2230 100%
-  );
+  background: linear-gradient(145deg, #242838 0%, #12151f 45%, #1e2230 100%);
   border: 1px solid rgba(255, 255, 255, 0.07);
 }
 .theme-card-light .theme-card-preview {
@@ -1815,7 +1822,9 @@ body.theme-light .settings-section.card {
   background: var(--surface-2);
   color: var(--text);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   text-align: center;
 }
 .wizard-provider-card:hover {
@@ -1823,7 +1832,7 @@ body.theme-light .settings-section.card {
 }
 .wizard-provider-card.active {
   border-color: var(--accent);
-  background: rgba(99,102,241,0.12);
+  background: rgba(99, 102, 241, 0.12);
 }
 .wizard-provider-card strong {
   font-size: 0.9rem;
@@ -1853,13 +1862,13 @@ body.theme-light .settings-section.card {
 }
 .wizard-test-result.ok {
   color: #22c55e;
-  background: rgba(34,197,94,0.12);
-  border-color: rgba(34,197,94,0.3);
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
 }
 .wizard-test-result.fail {
   color: #ef4444;
-  background: rgba(239,68,68,0.12);
-  border-color: rgba(239,68,68,0.3);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 #wizard-step2-fields label {
   display: block;
@@ -1880,10 +1889,10 @@ body.theme-light .settings-section.card {
 .brain-edit-notice {
   font-size: 0.8rem;
   color: var(--muted);
-  border: 1px solid rgba(245,158,11,0.35);
+  border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
-  background: rgba(245,158,11,0.07);
+  background: rgba(245, 158, 11, 0.07);
   margin-top: 10px;
 }
 
@@ -1909,7 +1918,10 @@ body.theme-light .settings-section.card {
   color: var(--muted);
   font-size: 0.78rem;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
 }
 .priority-btn:hover {
   border-color: var(--pcolor, var(--accent));

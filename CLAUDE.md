@@ -460,3 +460,36 @@ rtk init --global       # Add RTK to ~/.claude/CLAUDE.md
 
 Overall average: **60-90% token reduction** on common development operations.
 <!-- /rtk-instructions -->
+
+## Audit findings (2026-03-24) — technical debt & architecture notes
+
+### Architecture réelle du stack
+
+- **Dev mode** (`clawvis start` / `start.sh`): Vite sur `HUB_PORT` (défaut 8088 ou 64163), proxy Vite `/api/kanban/*` → Kanban API uvicorn sur `KANBAN_API_PORT` (8090). La `system.json` est un fichier statique dans `hub/public/api/` mis à jour par cron via `hub-core`.
+- **Docker mode** (`docker compose up hub memory`): nginx sert `hub/dist/` (SPA compilée). **Le Kanban API n'est PAS dans le docker-compose** → tous les appels `/api/kanban/*` échouent en production Docker. **Gap critique à corriger** : ajouter le service `kanban-api` au docker-compose avec proxy nginx.
+- **Brain** = Logseq web app (`ghcr.io/logseq/logseq-webapp`) sur `MEMORY_PORT`. La route `/memory/` dans le Hub est un embed iframe.
+
+### Bugs corrigés dans cette session
+
+1. **hub-core pylint E0211** : `setup_runtime.py:21` — `get_providers()` manquait `@staticmethod` → corrigé.
+2. **Hub Prettier** : `src/main.js`, `src/style.css`, `vite.config.js` n'étaient pas formatés → corrigé (`yarn --cwd hub format`).
+3. **install.sh — `rg` (ripgrep) non-standard** : `migrate_memory_if_needed` utilisait `rg` → remplacé par `find`.
+4. **install.sh — Docker sans message utile** : Erreur vague → message d'erreur clair avec lien install + vérification que Docker tourne (`docker info`).
+5. **install.sh — Node version** : Aucune vérification avant d'utiliser le CLI Node → guard Node >= 18 ajouté.
+6. **install.sh — yarn absent en dev mode** : Pas de fallback → ajout `corepack enable` automatique + message d'erreur clair.
+7. **docker-compose.yml — label obsolète** : `app=clawpilot` (ancien nom) → corrigé en `app=clawvis`.
+8. **hub/src/main.js — compteur services** : `/openclaw/` (toujours 404) comptabilisé comme service "down" → marqué `optional: true`, exclu du comptage.
+9. **hub/src/main.js — i18n FR accents** : `"Parametres"` → `"Paramètres"`, `"A configurer"` → `"À configurer"`, `"liee(s)"` → `"liée(s)"`, `"Echec"` → `"Échec"`, etc.
+
+### Points de friction install non résolus (priorité pour prochaine session)
+
+- **Kanban API absent du docker-compose** : En mode `docker` (mode Franc), le tableau Kanban est inutilisable. Il faut ajouter un service `kanban-api` basé sur `hub-core` avec proxy nginx dans le conteneur hub.
+- **Quartz Brain build** : `scripts/build-quartz.sh` gère le build Quartz mais dépend d'un submodule optionnel. Si absent, le Brain n'affiche rien. Rendre la dégradation gracieuse.
+- **`clawvis setup provider`** : Commande CLI post-install pour configurer le provider depuis le terminal (mentionnée dans TODO CLAUDE.md mais non implémentée).
+
+### Règles d'outillage confirmées
+
+- Hub utilise **Yarn Berry 4** (`packageManager: yarn@4.12.0`) — toujours utiliser `yarn --cwd hub` et non `npm`.
+- CLI (`clawvis-cli/`) utilise **npm** (package-lock.json) — utiliser `npm ci` / `npm install`.
+- Kanban API et hub-core utilisent **uv** (pyproject.toml) — ne jamais utiliser pip directement.
+- CI gate : `bash tests/ci-all.sh` — doit retourner 0 avant tout merge.

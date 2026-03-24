@@ -18,6 +18,7 @@ class Provider(str, Enum):
     def get_provider(self) -> Provider:
         return self.value
 
+    @staticmethod
     def get_providers() -> tuple[Provider, ...]:
         return tuple[str, ...](p.value for p in Provider)
 

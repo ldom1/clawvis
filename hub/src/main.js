@@ -54,7 +54,7 @@ function settingsLocale() {
 
 const SETTINGS_TEXT = {
   fr: {
-    title: "Parametres",
+    title: "Paramètres",
     subtitle:
       "Configure ton runtime IA, ton workspace et l'apparence en un seul endroit.",
     back: "Retour au hub",
@@ -69,8 +69,8 @@ const SETTINGS_TEXT = {
     workspaceHealth: "Workspace config",
     instancesHealth: "Instances liees",
     configured: "Configure",
-    notConfigured: "A configurer",
-    linked: "liee(s)",
+    notConfigured: "À configurer",
+    linked: "liée(s)",
     runtimeTitle: "Runtime IA",
     runtimeDesc:
       "Le modele ou service utilise quand le Hub appelle l'intelligence artificielle.",
@@ -96,16 +96,15 @@ const SETTINGS_TEXT = {
     externalInstances: "Instances externes (optionnel)",
     saveWorkspace: "Sauvegarder le workspace",
     workspaceSaved: "Workspace sauvegarde",
-    saveFailed: "Echec sauvegarde",
+    saveFailed: "Échec sauvegarde",
     instancesTitle: "Explorateur d'instances",
-    instancesDesc:
-      "Instances detectees : lie-en plusieurs au Hub en une fois.",
+    instancesDesc: "Instances detectees : lie-en plusieurs au Hub en une fois.",
     instancesInfo:
       "Une instance est un dossier Clawvis (docker-compose local, .env, etc.). Les instances du depot sont listees ici ; tu peux en lier plusieurs au Hub pour les menus et la configuration. Utilise la liste deroulante a selection multiple pour en choisir plusieurs, puis Lie ou Retire. Plusieurs instances liees : l'API choisit d'abord celle dont le dossier memoire est egal a MEMORY_ROOT, sinon la premiere apres tri de chemins. Si tu as besoin de choisir explicitement quelle instance alimente le Brain, on pourra ajouter un champ dedie dans les reglages plus tard.",
     instancesLinkSelected: "Lier la selection",
     instancesUnlinkSelected: "Retirer la selection",
     instancesMultiHint:
-      "Selection multiple : Ctrl ou Cmd + clic, ou Maj + clic pour une plage. Gros disque plein = deja liee au Hub ; gros cercle vide = pas encore liee.",
+      "Sélection multiple : Ctrl ou Cmd + clic, ou Maj + clic pour une plage. Disque plein = déjà liée au Hub ; cercle vide = pas encore liée.",
     refreshInstances: "Rafraichir",
     loadingInstances: "Chargement des instances...",
     loadInstancesFailed: "Impossible de charger les instances.",
@@ -159,8 +158,7 @@ const SETTINGS_TEXT = {
     gotoActiveProvider: "Go to active provider",
     runtimeSaved: "AI runtime saved",
     workspaceTitle: "Workspace",
-    workspaceDesc:
-      "Paths on disk the Hub uses to find projects and instances.",
+    workspaceDesc: "Paths on disk the Hub uses to find projects and instances.",
     workspaceInfo:
       "Projects root: where your code or repos live that you want the Hub to reference. External instances (optional): an extra folder that holds additional Clawvis instance directories, besides this repo's instances/ folder. Values are saved via the Kanban API.",
     projectsRoot: "Projects root",
@@ -169,8 +167,7 @@ const SETTINGS_TEXT = {
     workspaceSaved: "Workspace saved",
     saveFailed: "Save failed",
     instancesTitle: "Instance explorer",
-    instancesDesc:
-      "Detected instances: link several to the Hub at once.",
+    instancesDesc: "Detected instances: link several to the Hub at once.",
     instancesInfo:
       "An instance is a Clawvis deployment folder (local compose, .env, etc.). Repo instances appear here; you can link many for Hub menus and settings. Use the multi-select list, then Link or Unlink. With several linked instances, the API first picks the one whose memory folder equals MEMORY_ROOT, otherwise the first after sorting paths. If you need to explicitly choose which instance feeds the Brain, a dedicated settings field can be added later.",
     instancesLinkSelected: "Link selection",
@@ -306,7 +303,11 @@ function wireActiveServicesCount() {
     { name: "Logs", url: "/logs/" },
     { name: "Settings", url: "/settings/" },
     { name: "Memory", url: "/memory/" },
-    { name: "OpenClaw", url: "/openclaw/" },
+    {
+      name: "OpenClaw",
+      url: "/openclaw/",
+      optional: true,
+    },
   ];
   const countUp = async () => {
     try {
@@ -320,9 +321,10 @@ function wireActiveServicesCount() {
           }
         }),
       );
-      const upCount = checks.filter((s) => s.up).length;
-      const total = checks.length;
-      const down = checks.filter((s) => !s.up).map((s) => s.name);
+      const required = checks.filter((s) => !s.optional);
+      const upCount = required.filter((s) => s.up).length;
+      const total = required.length;
+      const down = required.filter((s) => !s.up).map((s) => s.name);
       el.textContent = String(upCount);
       el.title = down.length
         ? `${upCount}/${total} up\nDown: ${down.join(", ")}`
@@ -1097,7 +1099,12 @@ function createKanbanBoard(
   });
   const overlay = document.getElementById("kanban-detail-overlay");
   const modal = document.getElementById("kanban-detail-modal");
-  const PRIORITY_COLORS = { Critical: "var(--red)", High: "var(--amber)", Medium: "var(--blue)", Low: "var(--muted)" };
+  const PRIORITY_COLORS = {
+    Critical: "var(--red)",
+    High: "var(--amber)",
+    Medium: "var(--blue)",
+    Low: "var(--muted)",
+  };
   const openDetail = (task) => {
     if (!overlay || !modal || !task) return;
     const score = Number(task.confidence ?? 0.5);
@@ -1154,7 +1161,14 @@ function createKanbanBoard(
     modal.querySelectorAll(".priority-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         selectedPriority = btn.dataset.priority;
-        modal.querySelectorAll(".priority-btn").forEach((b) => b.classList.toggle("active", b.dataset.priority === selectedPriority));
+        modal
+          .querySelectorAll(".priority-btn")
+          .forEach((b) =>
+            b.classList.toggle(
+              "active",
+              b.dataset.priority === selectedPriority,
+            ),
+          );
       });
     });
 
@@ -1178,11 +1192,15 @@ function createKanbanBoard(
     document
       .getElementById("kanban-detail-save")
       ?.addEventListener("click", async () => {
-        const notes = document.getElementById("kanban-detail-notes")?.value || "";
+        const notes =
+          document.getElementById("kanban-detail-notes")?.value || "";
         const effortRaw = document.getElementById("detail-effort")?.value;
-        const effort_hours = effortRaw !== "" && effortRaw != null ? Number(effortRaw) : null;
-        const timeline = document.getElementById("detail-timeline")?.value || null;
-        const assignee = document.getElementById("detail-assignee")?.value || null;
+        const effort_hours =
+          effortRaw !== "" && effortRaw != null ? Number(effortRaw) : null;
+        const timeline =
+          document.getElementById("detail-timeline")?.value || null;
+        const assignee =
+          document.getElementById("detail-assignee")?.value || null;
         const body = { notes, priority: selectedPriority };
         if (effort_hours !== null) body.effort_hours = effort_hours;
         if (timeline) body.timeline = timeline;
@@ -1490,51 +1508,53 @@ async function wireProjectPage() {
     slug,
   );
 
-  document.getElementById("project-logo-save")?.addEventListener("click", async () => {
-    const input = document.getElementById("project-logo-file");
-    const file = input?.files?.[0];
-    if (!file) {
-      alert(fr ? "Choisis d’abord une image." : "Pick an image first.");
-      return;
-    }
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch(
-      `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
-      { method: "PUT", body: fd },
-    );
-    if (!res.ok) {
-      let msg = fr ? "Échec envoi du logo." : "Logo upload failed.";
-      try {
-        const j = await res.json();
-        if (j.detail) msg = typeof j.detail === "string" ? j.detail : msg;
-      } catch {
-        /* ignore */
+  document
+    .getElementById("project-logo-save")
+    ?.addEventListener("click", async () => {
+      const input = document.getElementById("project-logo-file");
+      const file = input?.files?.[0];
+      if (!file) {
+        alert(fr ? "Choisis d’abord une image." : "Pick an image first.");
+        return;
       }
-      alert(msg);
-      return;
-    }
-    project = { ...project, has_logo: true };
-    syncProjectLogo();
-    if (input) input.value = "";
-  });
-  document.getElementById("project-logo-clear")?.addEventListener("click", async () => {
-    if (
-      !confirm(
-        fr
-          ? "Retirer le logo de ce projet ?"
-          : "Remove this project logo?",
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(
+        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
+        { method: "PUT", body: fd },
+      );
+      if (!res.ok) {
+        let msg = fr ? "Échec envoi du logo." : "Logo upload failed.";
+        try {
+          const j = await res.json();
+          if (j.detail) msg = typeof j.detail === "string" ? j.detail : msg;
+        } catch {
+          /* ignore */
+        }
+        alert(msg);
+        return;
+      }
+      project = { ...project, has_logo: true };
+      syncProjectLogo();
+      if (input) input.value = "";
+    });
+  document
+    .getElementById("project-logo-clear")
+    ?.addEventListener("click", async () => {
+      if (
+        !confirm(
+          fr ? "Retirer le logo de ce projet ?" : "Remove this project logo?",
+        )
       )
-    )
-      return;
-    const res = await fetch(
-      `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
-      { method: "DELETE" },
-    );
-    if (!res.ok) return;
-    project = { ...project, has_logo: false };
-    syncProjectLogo();
-  });
+        return;
+      const res = await fetch(
+        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) return;
+      project = { ...project, has_logo: false };
+      syncProjectLogo();
+    });
 
   async function loadBrainPreviewHtml() {
     const frame = document.getElementById("project-brain-frame");
@@ -1549,11 +1569,7 @@ async function wireProjectPage() {
     if (res.ok) {
       const data = await res.json();
       let html = (data.content || "").trim();
-      if (
-        html &&
-        !/<!DOCTYPE/i.test(html) &&
-        !/<html[\s>]/i.test(html)
-      ) {
+      if (html && !/<!DOCTYPE/i.test(html) && !/<html[\s>]/i.test(html)) {
         html = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"></head><body>${html}</body></html>`;
       }
       if (html) {
@@ -1601,20 +1617,22 @@ async function wireProjectPage() {
       const preview = document.getElementById("project-brain-preview");
       if (preview && !preview.hidden) await loadBrainPreviewHtml();
     });
-  document.getElementById("project-dev-btn").addEventListener("click", async () => {
-    const cmd = projectDevRunCommand(project.template, project.repo_path);
-    const okHint = fr
-      ? "Commande copiée (collez dans un terminal sur votre machine)."
-      : "Command copied (paste in a terminal on your machine).";
-    try {
-      await navigator.clipboard.writeText(cmd);
-      if (hintEl) {
-        hintEl.textContent = `${fr ? "Dépôt" : "Repo"}: ${project.repo_path || "—"} · ${okHint}`;
+  document
+    .getElementById("project-dev-btn")
+    .addEventListener("click", async () => {
+      const cmd = projectDevRunCommand(project.template, project.repo_path);
+      const okHint = fr
+        ? "Commande copiée (collez dans un terminal sur votre machine)."
+        : "Command copied (paste in a terminal on your machine).";
+      try {
+        await navigator.clipboard.writeText(cmd);
+        if (hintEl) {
+          hintEl.textContent = `${fr ? "Dépôt" : "Repo"}: ${project.repo_path || "—"} · ${okHint}`;
+        }
+      } catch {
+        window.prompt(fr ? "Copier la commande :" : "Copy command:", cmd);
       }
-    } catch {
-      window.prompt(fr ? "Copier la commande :" : "Copy command:", cmd);
-    }
-  });
+    });
   document
     .getElementById("project-save-memory")
     .addEventListener("click", async () => {
@@ -1640,7 +1658,9 @@ async function wireProjectPage() {
       );
       if (!res.ok) {
         if (status) {
-          status.textContent = fr ? "Échec de l'enregistrement." : "Save failed.";
+          status.textContent = fr
+            ? "Échec de l'enregistrement."
+            : "Save failed.";
         }
         return;
       }
@@ -2450,28 +2470,42 @@ async function wireSettings() {
     if (!title || !desc || !fields) return;
     if (provider === "claude") {
       title.textContent = "Claude (Anthropic)";
-      desc.textContent = isFr ? "Entrez votre clé API Anthropic. Elle sera stockée uniquement dans ce navigateur." : "Enter your Anthropic API key. It is stored only in this browser.";
+      desc.textContent = isFr
+        ? "Entrez votre clé API Anthropic. Elle sera stockée uniquement dans ce navigateur."
+        : "Enter your Anthropic API key. It is stored only in this browser.";
       fields.innerHTML = `<label>API key</label><input id="wizard-claude-key" type="password" placeholder="sk-ant-..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-claude-key") || "")}" /><p class="hint">${t.getClaudeKey}</p>`;
     } else if (provider === "mistral") {
       title.textContent = "Mistral AI";
-      desc.textContent = isFr ? "Entrez votre clé API Mistral." : "Enter your Mistral API key.";
+      desc.textContent = isFr
+        ? "Entrez votre clé API Mistral."
+        : "Enter your Mistral API key.";
       fields.innerHTML = `<label>API key</label><input id="wizard-mistral-key" type="password" placeholder="..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-mistral-key") || "")}" /><p class="hint">${t.getMistralKey}</p>`;
     } else {
       title.textContent = "OpenClaw";
-      desc.textContent = isFr ? "Entrez l'URL de votre instance OpenClaw self-hosted." : "Enter the URL of your self-hosted OpenClaw instance.";
+      desc.textContent = isFr
+        ? "Entrez l'URL de votre instance OpenClaw self-hosted."
+        : "Enter the URL of your self-hosted OpenClaw instance.";
       fields.innerHTML = `<label>URL</label><input id="wizard-openclaw-url" type="text" placeholder="http://localhost:3333" value="${escapeHtml(localStorage.getItem("ai-openclaw-url") || "")}" /><label style="margin-top:8px;">API key (${isFr ? "optionnel" : "optional"})</label><input id="wizard-openclaw-key" type="password" placeholder="..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-openclaw-key") || "")}" /><p class="hint">${t.openclawHint}</p>`;
     }
   }
   function wizardSaveFromStep2() {
     if (wizardProvider === "claude") {
-      const v = document.getElementById("wizard-claude-key")?.value.trim() || "";
+      const v =
+        document.getElementById("wizard-claude-key")?.value.trim() || "";
       localStorage.setItem("ai-claude-key", v);
     } else if (wizardProvider === "mistral") {
-      const v = document.getElementById("wizard-mistral-key")?.value.trim() || "";
+      const v =
+        document.getElementById("wizard-mistral-key")?.value.trim() || "";
       localStorage.setItem("ai-mistral-key", v);
     } else {
-      localStorage.setItem("ai-openclaw-url", document.getElementById("wizard-openclaw-url")?.value.trim() || "");
-      localStorage.setItem("ai-openclaw-key", document.getElementById("wizard-openclaw-key")?.value.trim() || "");
+      localStorage.setItem(
+        "ai-openclaw-url",
+        document.getElementById("wizard-openclaw-url")?.value.trim() || "",
+      );
+      localStorage.setItem(
+        "ai-openclaw-key",
+        document.getElementById("wizard-openclaw-key")?.value.trim() || "",
+      );
     }
     localStorage.setItem("ai-provider", wizardProvider);
     activeProvider = wizardProvider;
@@ -2487,19 +2521,28 @@ async function wireSettings() {
       if (wizardProvider === "claude") {
         const key = localStorage.getItem("ai-claude-key") || "";
         if (!key) throw new Error("No key");
-        const r = await fetch("https://api.anthropic.com/v1/models", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01" } });
+        const r = await fetch("https://api.anthropic.com/v1/models", {
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
+        });
         ok = r.ok;
       } else if (wizardProvider === "mistral") {
         const key = localStorage.getItem("ai-mistral-key") || "";
         if (!key) throw new Error("No key");
-        const r = await fetch("https://api.mistral.ai/v1/models", { headers: { Authorization: `Bearer ${key}` } });
+        const r = await fetch("https://api.mistral.ai/v1/models", {
+          headers: { Authorization: `Bearer ${key}` },
+        });
         ok = r.ok;
       } else {
-        const url = localStorage.getItem("ai-openclaw-url") || "http://localhost:3333";
+        const url =
+          localStorage.getItem("ai-openclaw-url") || "http://localhost:3333";
         const r = await fetch(`${url}/health`).catch(() => null);
         ok = !!r?.ok;
       }
-      resultEl.textContent = ok ? (isFr ? "Connexion réussie !" : "Connection successful!") : t.connectionFailed;
+      resultEl.textContent = ok
+        ? isFr
+          ? "Connexion réussie !"
+          : "Connection successful!"
+        : t.connectionFailed;
       resultEl.className = `wizard-test-result ${ok ? "ok" : "fail"}`;
       return ok;
     } catch {
@@ -2524,39 +2567,52 @@ async function wireSettings() {
     }
     wizardOverlay?.classList.add("open");
   });
-  document.getElementById("ai-wizard-close")?.addEventListener("click", () => wizardOverlay?.classList.remove("open"));
-  wizardOverlay?.addEventListener("click", (e) => { if (e.target === wizardOverlay) wizardOverlay.classList.remove("open"); });
+  document
+    .getElementById("ai-wizard-close")
+    ?.addEventListener("click", () => wizardOverlay?.classList.remove("open"));
+  wizardOverlay?.addEventListener("click", (e) => {
+    if (e.target === wizardOverlay) wizardOverlay.classList.remove("open");
+  });
 
   wizardOverlay?.querySelectorAll(".wizard-provider-card").forEach((card) => {
     card.addEventListener("click", () => {
-      wizardOverlay.querySelectorAll(".wizard-provider-card").forEach((c) => c.classList.remove("active"));
+      wizardOverlay
+        .querySelectorAll(".wizard-provider-card")
+        .forEach((c) => c.classList.remove("active"));
       card.classList.add("active");
       wizardProvider = card.dataset.wizardProvider;
       wizardBuildStep2Fields(wizardProvider);
       wizardShowStep(2);
     });
   });
-  document.getElementById("wizard-back-1")?.addEventListener("click", () => wizardShowStep(1));
+  document
+    .getElementById("wizard-back-1")
+    ?.addEventListener("click", () => wizardShowStep(1));
   document.getElementById("wizard-next-2")?.addEventListener("click", () => {
     wizardSaveFromStep2();
-    document.getElementById("wizard-test-result") && (document.getElementById("wizard-test-result").textContent = "");
+    document.getElementById("wizard-test-result") &&
+      (document.getElementById("wizard-test-result").textContent = "");
     wizardShowStep(3);
   });
   document.getElementById("wizard-back-2")?.addEventListener("click", () => {
     wizardBuildStep2Fields(wizardProvider);
     wizardShowStep(2);
   });
-  document.getElementById("wizard-test-btn")?.addEventListener("click", wizardRunTest);
-  document.getElementById("wizard-save-btn")?.addEventListener("click", async () => {
-    wizardSaveFromStep2();
-    wizardOverlay?.classList.remove("open");
-    if (providerFeedback) {
-      providerFeedback.className = "test-result ok";
-      providerFeedback.textContent = t.runtimeSaved;
-      providerFeedback.style.display = "inline-block";
-    }
-    refreshRuntimeHealth();
-  });
+  document
+    .getElementById("wizard-test-btn")
+    ?.addEventListener("click", wizardRunTest);
+  document
+    .getElementById("wizard-save-btn")
+    ?.addEventListener("click", async () => {
+      wizardSaveFromStep2();
+      wizardOverlay?.classList.remove("open");
+      if (providerFeedback) {
+        providerFeedback.className = "test-result ok";
+        providerFeedback.textContent = t.runtimeSaved;
+        providerFeedback.style.display = "inline-block";
+      }
+      refreshRuntimeHealth();
+    });
 
   async function loadInstances() {
     const sel = document.getElementById("instances-multi");
@@ -2593,7 +2649,9 @@ async function wireSettings() {
     const opts = [...sel.selectedOptions].filter((o) => !o.disabled && o.value);
     if (!opts.length) return;
     const paths = opts
-      .filter((o) => (link ? o.dataset.linked !== "1" : o.dataset.linked === "1"))
+      .filter((o) =>
+        link ? o.dataset.linked !== "1" : o.dataset.linked === "1",
+      )
       .map((o) => o.value);
     if (!paths.length) return;
     const url = link
@@ -2612,12 +2670,16 @@ async function wireSettings() {
     await loadInstances();
   }
 
-  document.getElementById("instances-link-selected")?.addEventListener("click", () => {
-    applyInstancesBatch(true);
-  });
-  document.getElementById("instances-unlink-selected")?.addEventListener("click", () => {
-    applyInstancesBatch(false);
-  });
+  document
+    .getElementById("instances-link-selected")
+    ?.addEventListener("click", () => {
+      applyInstancesBatch(true);
+    });
+  document
+    .getElementById("instances-unlink-selected")
+    ?.addEventListener("click", () => {
+      applyInstancesBatch(false);
+    });
 
   document
     .getElementById("refresh-instances")
@@ -2669,7 +2731,9 @@ async function wireMemoryEditor() {
     if (!files.length) {
       const mres = await fetch("/api/kanban/memory/projects");
       const mp = mres.ok ? await mres.json() : { files: [] };
-      files = (mp.files || []).filter((f) => String(f).toLowerCase().endsWith(".md"));
+      files = (mp.files || []).filter((f) =>
+        String(f).toLowerCase().endsWith(".md"),
+      );
       brainPreviewKind = "md";
     }
     if (previewHint) {
@@ -2708,11 +2772,7 @@ async function wireMemoryEditor() {
     );
     const payload = res.ok ? await res.json() : { content: "" };
     let html = (payload.content || "").trim();
-    if (
-      html &&
-      !/<!DOCTYPE/i.test(html) &&
-      !/<html[\s>]/i.test(html)
-    ) {
+    if (html && !/<!DOCTYPE/i.test(html) && !/<html[\s>]/i.test(html)) {
       html = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"></head><body>${html}</body></html>`;
     }
     quartzFrame.srcdoc =
