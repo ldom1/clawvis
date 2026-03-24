@@ -647,6 +647,11 @@ if (process.argv[2] === "setup" && process.argv[3] === "provider") {
   // runSetupProvider calls process.exit or falls through
 }
 
+// clawvis setup quartz — delegates to scripts/setup-quartz.sh
+if (process.argv[2] === "setup" && process.argv[3] === "quartz") {
+  runLegacy(["setup", "quartz", ...process.argv.slice(4)]);
+}
+
 function runSetupProvider(args) {
   const env = mergedEnv();
   const hubPort = env.HUB_PORT || "8088";

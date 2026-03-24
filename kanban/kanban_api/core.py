@@ -1372,21 +1372,39 @@ def list_memory_project_files() -> dict:
     return {"files": files}
 
 
+def _quartz_public_dir() -> Path | None:
+    """Return quartz/public/ if a real Quartz build is present, else None."""
+    quartz_public = _CLAWVIS_ROOT / "quartz" / "public"
+    if quartz_public.is_dir() and any(quartz_public.glob("*.html")):
+        return quartz_public
+    return None
+
+
 def list_memory_quartz_pages() -> dict:
+    quartz_dir = _quartz_public_dir()
+    if quartz_dir is not None:
+        # Serve real Quartz output — list top-level HTML pages
+        files = sorted(p.name for p in quartz_dir.glob("*.html"))
+        return {"files": files, "source": "quartz"}
+    # Fallback: Python-generated HTML alongside .md files
     projects_dir = active_brain_memory_root() / "projects"
     projects_dir.mkdir(parents=True, exist_ok=True)
     files = sorted(p.name for p in projects_dir.glob("*.html"))
-    return {"files": files}
+    return {"files": files, "source": "fallback"}
 
 
 def read_memory_quartz_page(filename: str) -> dict:
     safe = Path(filename).name
-    path = active_brain_memory_root() / "projects" / safe
-    if path.suffix.lower() != ".html":
+    if Path(safe).suffix.lower() != ".html":
         raise ValueError("Only .html files are allowed")
+    quartz_dir = _quartz_public_dir()
+    if quartz_dir is not None:
+        path = quartz_dir / safe
+    else:
+        path = active_brain_memory_root() / "projects" / safe
     if not path.exists():
         raise KeyError("Quartz page not found")
-    return {"filename": safe, "content": path.read_text(encoding="utf-8")}
+    return {"filename": safe, "content": path.read_text(encoding="utf-8"), "source": "quartz" if quartz_dir else "fallback"}
 
 
 def read_memory_project_file(filename: str) -> dict:

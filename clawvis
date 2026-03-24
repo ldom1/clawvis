@@ -171,10 +171,10 @@ cmd_update() {
   if [ -n "${channel}" ]; then
     case "${channel}" in
       stable)
-        tag="$(git -C "${ROOT_DIR}" tag --sort=-v:refname | rg -v "beta" | head -n1 || true)"
+        tag="$(git -C "${ROOT_DIR}" tag --sort=-v:refname | grep -v "beta" | head -n1 || true)"
         ;;
       beta)
-        tag="$(git -C "${ROOT_DIR}" tag --sort=-v:refname | rg "beta" | head -n1 || true)"
+        tag="$(git -C "${ROOT_DIR}" tag --sort=-v:refname | grep "beta" | head -n1 || true)"
         ;;
       dev)
         tag="main"
@@ -374,7 +374,16 @@ main() {
   shift || true
   case "${cmd}" in
     help|-h|--help) print_help ;;
-    install|setup) cmd_install "$@" ;;
+    install) cmd_install "$@" ;;
+    setup)
+      local sub="${1:-}"
+      case "${sub}" in
+        quartz) shift; CLAWVIS_NO_NODE_WRAPPER=1 bash "${ROOT_DIR}/scripts/setup-quartz.sh" "$@" ;;
+        provider) shift; CLAWVIS_NO_NODE_WRAPPER=1 bash "${ROOT_DIR}/scripts/setup-runtime.sh" --non-interactive "$@" 2>/dev/null || \
+          log "To configure a provider: clawvis setup provider --provider claude --key <key>" ;;
+        *) cmd_install "$@" ;;
+      esac
+      ;;
     start) cmd_start "$@" ;;
     deploy) cmd_deploy "$@" ;;
     update)

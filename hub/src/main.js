@@ -59,7 +59,7 @@ const SETTINGS_TEXT = {
       "Configure ton runtime IA, ton workspace et l'apparence en un seul endroit.",
     back: "Retour au hub",
     intro:
-      "Les cles sont stockees localement dans ce navigateur. Pour un usage serveur, renseigne aussi le fichier .env.",
+      "Configure le provider IA actif, puis teste la connexion avant de sauvegarder.",
     step1: "1. Runtime IA",
     step2: "2. Workspace",
     step3: "3. Instances",
@@ -75,7 +75,7 @@ const SETTINGS_TEXT = {
     runtimeDesc:
       "Le modele ou service utilise quand le Hub appelle l'intelligence artificielle.",
     runtimeInfo:
-      "Le runtime IA relie le Hub a un fournisseur : Claude (Anthropic), Mistral ou OpenClaw (auto-heberge). Les cles et l'URL OpenClaw sont enregistrees dans ce navigateur pour les essais depuis cette page ; sur un serveur, configure aussi le fichier .env pour le backend.",
+      "Le runtime IA relie le Hub a un fournisseur : Claude (Anthropic), Mistral ou OpenClaw (auto-heberge). La cle active est transmise via le backend Clawvis — configure le fichier .env sur le serveur pour la persistance.",
     moreInfo: "Plus d'infos",
     configureRuntime: "Configurer",
     modifyRuntime: "Modifier",
@@ -122,6 +122,15 @@ const SETTINGS_TEXT = {
     connected: "Connecte",
     connectionFailed: "Connexion echouee",
     checkKeyOrUrl: "Erreur: verifie la cle ou l'URL",
+    runtimeBannerTitle: "Runtime IA",
+    runtimeBannerNotConfigured: "Non configuré",
+    runtimeBannerCta: "Configurer →",
+    runtimeBannerConfigured: "Connecté",
+    runtimeBannerChange: "Modifier",
+    kpiProjects: "Projets",
+    kpiTasks: "Tâches actives",
+    kpiDone: "Terminées",
+    kpiBrain: "Notes Brain",
   },
   en: {
     title: "Settings",
@@ -129,7 +138,7 @@ const SETTINGS_TEXT = {
       "Configure your AI runtime, workspace, and appearance in one place.",
     back: "Back to hub",
     intro:
-      "Keys are stored locally in this browser. For server-side usage, also set values in .env.",
+      "Configure the active AI provider, then test the connection before saving.",
     step1: "1. AI runtime",
     step2: "2. Workspace",
     step3: "3. Instances",
@@ -145,7 +154,7 @@ const SETTINGS_TEXT = {
     runtimeDesc:
       "The model or service used when the Hub calls artificial intelligence.",
     runtimeInfo:
-      "The AI runtime connects the Hub to a provider: Claude (Anthropic), Mistral, or self-hosted OpenClaw. Keys and the OpenClaw URL are stored in this browser for calls started from the Hub; on a server, also set .env for the backend.",
+      "The AI runtime connects the Hub to a provider: Claude (Anthropic), Mistral, or self-hosted OpenClaw. The active key is forwarded via the Clawvis backend — set .env on the server for persistence.",
     moreInfo: "More info",
     configureRuntime: "Configure",
     modifyRuntime: "Change",
@@ -191,6 +200,15 @@ const SETTINGS_TEXT = {
     connected: "Connected",
     connectionFailed: "Connection failed",
     checkKeyOrUrl: "Error: check key or URL",
+    runtimeBannerTitle: "AI Runtime",
+    runtimeBannerNotConfigured: "Not configured",
+    runtimeBannerCta: "Configure →",
+    runtimeBannerConfigured: "Connected",
+    runtimeBannerChange: "Change",
+    kpiProjects: "Projects",
+    kpiTasks: "Active tasks",
+    kpiDone: "Done",
+    kpiBrain: "Brain notes",
   },
 };
 
@@ -340,6 +358,7 @@ function wireActiveServicesCount() {
 
 function renderHome() {
   const fr = settingsLocale() === "fr";
+  const t = SETTINGS_TEXT[settingsLocale()];
   const M = fr
     ? {
         modalTitle: "Nouveau projet",
@@ -372,6 +391,23 @@ function renderHome() {
   app.innerHTML = `
     <div class="container">
       ${topbar()}
+      <!-- AI Runtime banner -->
+      <div id="ai-runtime-banner" class="ai-runtime-banner">
+        <div class="ai-runtime-banner-left">
+          <span class="ai-runtime-banner-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z"/><circle cx="12" cy="13" r="2"/></svg>
+          </span>
+          <div class="ai-runtime-banner-info">
+            <span class="ai-runtime-banner-title">${escapeHtml(t.runtimeBannerTitle)}</span>
+            <span id="ai-runtime-status" class="ai-runtime-status-badge warn">${escapeHtml(t.runtimeBannerNotConfigured)}</span>
+            <span id="ai-runtime-provider-label" class="ai-runtime-provider-label"></span>
+          </div>
+        </div>
+        <div class="ai-runtime-banner-right">
+          <a href="/settings/" id="ai-runtime-cta" class="btn btn-primary ai-runtime-cta">${escapeHtml(t.runtimeBannerCta)}</a>
+        </div>
+      </div>
+
       <div id="system-card" class="system-card">
         <div class="system-title"><span class="system-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path><path d="M7 10h2l1-2 2 4 1-2h4"></path></svg></span>System Status</div>
         <div class="system-row">
@@ -391,6 +427,25 @@ function renderHome() {
             <div class="stat-value" id="disk-percent">—%</div>
             <div class="progress-bar"><div class="progress-fill" id="disk-fill" style="width:0%; background: #f59e0b;"></div></div>
             <div class="stat-detail" id="disk-detail">— GB</div>
+          </div>
+        </div>
+        <div class="system-divider"></div>
+        <div class="system-row system-kpi-row">
+          <div class="system-kpi">
+            <div class="kpi-value" id="kpi-projects">—</div>
+            <div class="kpi-label">${escapeHtml(t.kpiProjects)}</div>
+          </div>
+          <div class="system-kpi">
+            <div class="kpi-value" id="kpi-tasks-active">—</div>
+            <div class="kpi-label">${escapeHtml(t.kpiTasks)}</div>
+          </div>
+          <div class="system-kpi">
+            <div class="kpi-value" id="kpi-tasks-done">—</div>
+            <div class="kpi-label">${escapeHtml(t.kpiDone)}</div>
+          </div>
+          <div class="system-kpi">
+            <div class="kpi-value" id="kpi-brain-notes">—</div>
+            <div class="kpi-label">${escapeHtml(t.kpiBrain)}</div>
           </div>
         </div>
       </div>
@@ -749,17 +804,19 @@ function renderSettings() {
       </div>
 
       <div class="settings-sections">
-        <section class="card settings-card settings-section">
+        <section class="card settings-card settings-section settings-runtime-card">
           <div class="settings-card-header">
-            <div>
+            <div class="settings-runtime-info">
               <div class="settings-heading-row">
                 <h2 class="card-title settings-section-title">${t.runtimeTitle}</h2>
+                <span id="settings-runtime-status" class="ai-runtime-status-badge warn">${t.notConfigured}</span>
                 <span class="settings-info-hold" tabindex="0" aria-label="${escapeHtml(t.moreInfo)}">
                   <span class="settings-info-i" aria-hidden="true">i</span>
                 </span>
                 <div class="settings-info-popover" role="tooltip">${escapeHtml(t.runtimeInfo)}</div>
               </div>
               <div class="card-desc">${t.runtimeDesc}</div>
+              <div id="settings-active-provider" class="settings-active-provider"></div>
             </div>
             <button id="open-ai-wizard" class="btn btn-primary" type="button">${t.configureRuntime}</button>
           </div>
@@ -2328,6 +2385,42 @@ async function wireHome() {
 function wireSystemStatus() {
   const card = document.getElementById("system-card");
   if (!card) return;
+  const loc = settingsLocale();
+  const t = SETTINGS_TEXT[loc];
+
+  // AI Runtime banner
+  function refreshRuntimeBanner() {
+    const statusEl = document.getElementById("ai-runtime-status");
+    const labelEl = document.getElementById("ai-runtime-provider-label");
+    const ctaEl = document.getElementById("ai-runtime-cta");
+    if (!statusEl) return;
+    const provider = localStorage.getItem("ai-provider") || "claude";
+    const configured =
+      (provider === "claude" && !!localStorage.getItem("ai-claude-key")) ||
+      (provider === "mistral" && !!localStorage.getItem("ai-mistral-key")) ||
+      (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"));
+    const banner = document.getElementById("ai-runtime-banner");
+    if (configured) {
+      statusEl.className = "ai-runtime-status-badge ok";
+      statusEl.textContent = t.runtimeBannerConfigured;
+      const labels = {
+        claude: "Claude",
+        mistral: "Mistral",
+        openclaw: "OpenClaw",
+      };
+      if (labelEl) labelEl.textContent = labels[provider] || provider;
+      if (ctaEl) ctaEl.textContent = t.runtimeBannerChange;
+      if (banner) banner.classList.remove("runtime-unconfigured");
+    } else {
+      statusEl.className = "ai-runtime-status-badge warn";
+      statusEl.textContent = t.runtimeBannerNotConfigured;
+      if (labelEl) labelEl.textContent = "";
+      if (ctaEl) ctaEl.textContent = t.runtimeBannerCta;
+      if (banner) banner.classList.add("runtime-unconfigured");
+    }
+  }
+  refreshRuntimeBanner();
+  window.addEventListener("storage", refreshRuntimeBanner);
 
   async function loadStats() {
     try {
@@ -2371,8 +2464,49 @@ function wireSystemStatus() {
     } catch (e) {}
   }
 
+  async function loadBusinessKpis() {
+    try {
+      const [projRes, tasksRes, brainRes] = await Promise.allSettled([
+        fetch("/api/kanban/hub/projects", { cache: "no-store" }),
+        fetch("/api/kanban/tasks", { cache: "no-store" }),
+        fetch("/api/kanban/memory/projects", { cache: "no-store" }),
+      ]);
+
+      if (projRes.status === "fulfilled" && projRes.value.ok) {
+        const data = await projRes.value.json();
+        const count = (data.projects || []).length;
+        const el = document.getElementById("kpi-projects");
+        if (el) el.textContent = String(count);
+      }
+
+      if (tasksRes.status === "fulfilled" && tasksRes.value.ok) {
+        const data = await tasksRes.value.json();
+        const tasks = data.tasks || [];
+        const active = tasks.filter(
+          (t) => !["Done", "Archived"].includes(t.status),
+        ).length;
+        const done = tasks.filter((t) => t.status === "Done").length;
+        const elActive = document.getElementById("kpi-tasks-active");
+        const elDone = document.getElementById("kpi-tasks-done");
+        if (elActive) elActive.textContent = String(active);
+        if (elDone) elDone.textContent = String(done);
+      }
+
+      if (brainRes.status === "fulfilled" && brainRes.value.ok) {
+        const data = await brainRes.value.json();
+        const notes = (data.files || []).filter((f) =>
+          f.endsWith(".md"),
+        ).length;
+        const el = document.getElementById("kpi-brain-notes");
+        if (el) el.textContent = String(notes);
+      }
+    } catch (e) {}
+  }
+
   loadStats();
+  loadBusinessKpis();
   setInterval(loadStats, 30000);
+  setInterval(loadBusinessKpis, 60000);
 }
 
 async function wireSettings() {
@@ -2400,6 +2534,27 @@ async function wireSettings() {
     setHealth(runtimeHealth, ok, ok ? t.configured : t.notConfigured);
     const wbtn = document.getElementById("open-ai-wizard");
     if (wbtn) wbtn.textContent = ok ? t.modifyRuntime : t.configureRuntime;
+    const statusBadge = document.getElementById("settings-runtime-status");
+    if (statusBadge) {
+      statusBadge.className = `ai-runtime-status-badge ${ok ? "ok" : "warn"}`;
+      statusBadge.textContent = ok ? t.configured : t.notConfigured;
+    }
+    const providerLbl = document.getElementById("settings-active-provider");
+    if (providerLbl) {
+      if (ok) {
+        const p = localStorage.getItem("ai-provider") || "claude";
+        const labels = {
+          claude: "Claude (Anthropic)",
+          mistral: "Mistral AI",
+          openclaw: "OpenClaw",
+        };
+        providerLbl.textContent = labels[p] || p;
+        providerLbl.style.display = "";
+      } else {
+        providerLbl.textContent = "";
+        providerLbl.style.display = "none";
+      }
+    }
   };
   const refreshWorkspaceHealth = () => {
     const root = document.getElementById("projects-root")?.value?.trim() || "";
@@ -2485,8 +2640,8 @@ async function wireSettings() {
     if (provider === "claude") {
       title.textContent = "Claude (Anthropic)";
       desc.textContent = isFr
-        ? "Entrez votre clé API Anthropic. Elle sera stockée uniquement dans ce navigateur."
-        : "Enter your Anthropic API key. It is stored only in this browser.";
+        ? "Entrez votre clé API Anthropic. Pour une utilisation serveur, renseignez aussi CLAUDE_API_KEY dans .env."
+        : "Enter your Anthropic API key. For server-side usage, also set CLAUDE_API_KEY in .env.";
       fields.innerHTML = `<label>API key</label><input id="wizard-claude-key" type="password" placeholder="sk-ant-..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-claude-key") || "")}" /><p class="hint">${t.getClaudeKey}</p>`;
     } else if (provider === "mistral") {
       title.textContent = "Mistral AI";

@@ -13,18 +13,34 @@ if [ -z "${CLAWVIS_QUIET_START:-}" ]; then
   echo "Quartz build: preparing brain display..."
 fi
 
+QUARTZ_AVAILABLE=0
 # If a real Quartz workspace exists, build it.
 if [ -d "${QUARTZ_DIR}" ] && [ -f "${QUARTZ_DIR}/package.json" ] && [ -f "${QUARTZ_DIR}/quartz.config.ts" ]; then
+  QUARTZ_AVAILABLE=1
   (
     cd "${QUARTZ_DIR}"
     npm install --silent >/dev/null 2>&1
+    # npx quartz build: output lands in quartz/public/
     npx quartz build >/dev/null 2>&1
   )
+  if [ -z "${CLAWVIS_QUIET_START:-}" ]; then
+    echo "Quartz build: completed (output: ${QUARTZ_DIR}/public/)"
+  fi
 fi
 
-# Sync HTML from project markdown whenever .md is newer (or .html missing).
-# So the Brain shows readable pages even if other .html files already exist.
+# Python fallback: run ONLY when Quartz is not available.
+# When Quartz is present, it owns the display layer.
+# The Python renderer is kept for edit-preview in the Hub Brain editor.
+if [ "${QUARTZ_AVAILABLE}" -eq 0 ]; then
+  if [ -z "${CLAWVIS_QUIET_START:-}" ]; then
+    echo "Quartz not found — using Python HTML renderer (edit-only fallback)."
+    echo "  To install Quartz: clawvis setup quartz"
+  fi
+fi
+
 mkdir -p "${MEM_DIR}/projects"
+# Always run the Python renderer for edit-preview HTML alongside .md files.
+# When Quartz IS available, these files are used by the edit modal only (not display).
 python3 - "${MEM_DIR}/projects" <<'PY'
 import html
 import re
