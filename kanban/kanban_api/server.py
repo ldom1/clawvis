@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api import router
+from .chat_api import router as chat_router
 from .logs_api import router as logs_router
 from .sse import router as sse_router
 
@@ -14,3 +15,4 @@ app.add_middleware(
 app.include_router(router)
 app.include_router(logs_router)
 app.include_router(sse_router)
+app.include_router(chat_router)

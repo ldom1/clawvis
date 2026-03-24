@@ -234,6 +234,10 @@ const SUBPAGE_TEXT = {
       title: "Graphe mémoire",
       sub: "Liens entre les pages (wiki-links).",
     },
+    chat: {
+      title: "Chat",
+      sub: "Discutez avec votre runtime IA pour valider le setup, tester ou explorer.",
+    },
   },
   en: {
     logs: {
@@ -255,6 +259,10 @@ const SUBPAGE_TEXT = {
     brainGraph: {
       title: "Memory graph",
       sub: "Links between pages (wiki-links).",
+    },
+    chat: {
+      title: "Chat",
+      sub: "Talk to your AI runtime to validate setup, test, or explore.",
     },
   },
 };
@@ -488,6 +496,19 @@ function renderHome() {
               <div class="tool-name">Brain</div>
               <div class="tool-desc">Explore your knowledge space and edit your notes.</div>
               <div class="tool-chiprow"><span class="tool-chip">Quartz</span><span class="tool-chip">Projects</span><span class="tool-chip">Notes</span></div>
+            </div>
+          </a>
+          <a class="tool-tile" href="/chat/">
+            <span class="tool-open">&#x2197;</span>
+            <div class="tool-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <div class="tool-meta">
+              <div class="tool-name">Chat</div>
+              <div class="tool-desc">Talk to your AI runtime to validate setup or explore.</div>
+              <div class="tool-chiprow"><span class="tool-chip">Claude</span><span class="tool-chip">Mistral</span><span class="tool-chip">OpenClaw</span></div>
             </div>
           </a>
         </div>
@@ -3191,9 +3212,139 @@ async function wireMemoryGraph() {
   await loadGraph();
 }
 
+function renderChatPage() {
+  const fr = settingsLocale() === "fr";
+  app.innerHTML = `
+    <div class="container">
+      ${subpageHeader("chat")}
+      <div class="chat-shell">
+        <div id="chat-status-bar" class="chat-status-bar"></div>
+        <div id="chat-messages" class="chat-messages" aria-live="polite" aria-label="${fr ? "Conversation" : "Conversation"}"></div>
+        <div class="chat-input-area">
+          <textarea id="chat-input" class="chat-input" rows="3"
+            placeholder="${fr ? "Posez une question à votre runtime IA…" : "Ask your AI runtime a question…"}"
+            autocomplete="off"></textarea>
+          <button id="chat-send" class="btn btn-primary chat-send-btn" type="button">
+            ${fr ? "Envoyer" : "Send"}
+          </button>
+        </div>
+        <p class="chat-hint">${fr ? "Entrée pour envoyer · Maj+Entrée pour un saut de ligne" : "Enter to send · Shift+Enter for new line"}</p>
+      </div>
+    </div>
+  `;
+}
+
+async function wireChat() {
+  const fr = settingsLocale() === "fr";
+  const statusBar = document.getElementById("chat-status-bar");
+  const messagesEl = document.getElementById("chat-messages");
+  const input = document.getElementById("chat-input");
+  const sendBtn = document.getElementById("chat-send");
+
+  // Fetch provider status from backend
+  try {
+    const res = await fetch("/api/kanban/chat/status");
+    if (res.ok) {
+      const s = await res.json();
+      const configured =
+        (s.provider === "claude" && s.claude_configured) ||
+        (s.provider === "mistral" && s.mistral_configured) ||
+        (s.provider === "openclaw" && s.openclaw_configured);
+      const labels = {
+        claude: "Claude (Anthropic)",
+        mistral: "Mistral AI",
+        openclaw: "OpenClaw",
+      };
+      if (statusBar) {
+        statusBar.className = `chat-status-bar ${configured ? "ok" : "warn"}`;
+        statusBar.innerHTML = configured
+          ? `<span class="chat-status-dot ok"></span>${labels[s.provider] || s.provider} — ${fr ? "Connecté" : "Connected"}`
+          : `<span class="chat-status-dot warn"></span>${fr ? "Runtime IA non configuré — " : "AI Runtime not configured — "}<a href="/settings/">${fr ? "Configurer" : "Configure"}</a>`;
+      }
+    }
+  } catch {
+    if (statusBar)
+      statusBar.innerHTML = `<span class="chat-status-dot warn"></span>${fr ? "API indisponible" : "API unavailable"}`;
+  }
+
+  const history = [];
+
+  function addMessage(role, text, streaming = false) {
+    const bubble = document.createElement("div");
+    bubble.className = `chat-bubble chat-bubble-${role}`;
+    if (streaming) bubble.dataset.streaming = "1";
+    const inner = document.createElement("div");
+    inner.className = "chat-bubble-inner";
+    inner.textContent = text;
+    bubble.appendChild(inner);
+    messagesEl.appendChild(bubble);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return inner;
+  }
+
+  async function sendMessage() {
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = "";
+    input.style.height = "";
+    sendBtn.disabled = true;
+
+    addMessage("user", msg);
+    history.push({ role: "user", content: msg });
+
+    const assistantEl = addMessage("assistant", fr ? "…" : "…", true);
+    let full = "";
+
+    try {
+      const res = await fetch("/api/kanban/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg, history: history.slice(0, -1) }),
+      });
+      if (!res.ok || !res.body) {
+        assistantEl.textContent = fr
+          ? "Erreur de communication avec l'API."
+          : "Error communicating with API.";
+        sendBtn.disabled = false;
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      assistantEl.textContent = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        full += chunk;
+        assistantEl.textContent = full;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+      history.push({ role: "assistant", content: full });
+    } catch (e) {
+      assistantEl.textContent = fr ? "Erreur réseau." : "Network error.";
+    }
+    sendBtn.disabled = false;
+    input.focus();
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
+  });
+  input.focus();
+}
+
 async function boot() {
   if (path.startsWith("/settings")) renderSettings();
   else if (path.startsWith("/logs")) renderLogs();
+  else if (path.startsWith("/chat")) renderChatPage();
   else if (path.startsWith("/kanban")) renderKanbanPage();
   else if (path.startsWith("/memory/edit")) renderMemoryEditPage();
   else if (path.startsWith("/memory")) renderMemoryPage();
@@ -3214,6 +3365,7 @@ async function boot() {
   }
   if (path.startsWith("/settings")) await wireSettings();
   else if (path.startsWith("/logs")) await wireLogs();
+  else if (path.startsWith("/chat")) await wireChat();
   else if (path.startsWith("/kanban")) await wireKanbanPage();
   else if (path.startsWith("/memory/edit")) await wireMemoryEdit();
   else if (path.startsWith("/memory")) await wireMemoryEditor();
