@@ -48,7 +48,13 @@ The current chat endpoints are mounted under `/api/kanban/hub/chat`. As part of 
 | Live test ping (step 3) | `POST /api/hub/chat` | `/api/kanban/hub/chat` |
 | Mini-chat (step 4) | `POST /api/hub/chat` | `/api/kanban/hub/chat` |
 
-The backend mount change is part of this spec's scope. All existing callers of `/api/kanban/hub/chat` (the Chat page `wireChat()`) must be updated to `/api/hub/chat` at the same time.
+Both backend mount changes are part of this spec's scope:
+- All callers of `/api/kanban/hub/chat` → `/api/hub/chat`
+- All callers of `/api/kanban/hub/` → `/api/hub/kanban/` (e.g. `/api/kanban/hub/projects` → `/api/hub/kanban/projects`, `/api/kanban/tasks` → `/api/hub/kanban/tasks`, etc.)
+- All callers of `/api/kanban/memory/` → `/api/hub/kanban/memory/`
+- All callers of `/api/kanban/logs` → `/api/hub/kanban/logs`
+
+Every `fetch("/api/kanban/...)` call in `hub/src/main.js` must be migrated.
 
 ### Storage — write timing
 
@@ -193,7 +199,7 @@ When the user navigates to `/setup/runtime/` and `ai-provider` is already set in
 | `hub/src/style.css` | + stepper styles, provider-detail block, live test result, inline mini-chat |
 | `clawvis-cli/cli.mjs` | `doneSettings` URL → `/setup/runtime/` |
 | `docs/playwright-persona.md` | See detailed changes below. |
-| `kanban/kanban_api/` (or nginx config) | Remount chat routes from `/api/kanban/hub/chat` to `/api/hub/chat`. Update all existing callers in `hub/src/main.js` (`wireChat()` at line ~3247, ~3300). |
+| `kanban/kanban_api/` (or nginx config) | Remount chat routes: `/api/kanban/hub/chat` → `/api/hub/chat`. Remount kanban routes: `/api/kanban/hub/` → `/api/hub/kanban/`. Update all callers in `hub/src/main.js` accordingly. |
 
 ### `docs/playwright-persona.md` changes (detailed)
 
