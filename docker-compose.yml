@@ -1,5 +1,4 @@
 # Clawvis — Full stack
-# WIP: services will be added progressively
 # See ARCHITECTURE.md for full design
 
 version: '3.9'
@@ -14,6 +13,23 @@ services:
       - /tmp
     labels:
       - "app=clawvis"
+    depends_on:
+      - kanban-api
+
+  kanban-api:
+    build:
+      context: .
+      dockerfile: kanban/Dockerfile
+    ports:
+      - "${KANBAN_API_PORT:-8090}:8090"
+    env_file: .env
+    volumes:
+      - ./instances:/clawvis/instances
+    environment:
+      - MEMORY_ROOT=instances/${INSTANCE_NAME:-example}/memory
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    labels:
+      - "app=clawvis"
 
   memory:
     image: ghcr.io/logseq/logseq-webapp:latest
@@ -24,10 +40,10 @@ services:
       - TZ=${TZ:-UTC}
 
   hub-vite:
-    image: node:20-alpine
+    image: node:22-alpine
     profiles: ["dev"]
     working_dir: /app/hub
-    command: sh -c "corepack enable && yarn install --immutable && yarn build && yarn dev --host 0.0.0.0 --port ${HUB_VITE_PORT:-5173}"
+    command: sh -c "corepack enable && yarn install --immutable && yarn dev --host 0.0.0.0 --port ${HUB_VITE_PORT:-5173}"
     volumes:
       - ./:/app
     ports:

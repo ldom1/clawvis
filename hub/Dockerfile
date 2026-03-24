@@ -1,9 +1,10 @@
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+RUN corepack enable
+COPY .yarnrc.yml package.json yarn.lock ./
+RUN yarn install --immutable
 COPY . .
-RUN npm run build
+RUN yarn build
 
 FROM nginx:alpine
 RUN mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy /tmp/nginx-fastcgi /tmp/nginx-uwsgi /tmp/nginx-scgi \

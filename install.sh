@@ -313,7 +313,7 @@ if [ "${NON_INTERACTIVE}" -eq 1 ]; then
     *) echo "Invalid --mode value: ${MODE_FLAG}"; exit 1 ;;
   esac
 else
-  echo "  1) Docker (hub + brain)"
+  echo "  1) Docker (hub + kanban + brain)"
   echo "  2) Local dev (hub Vite + kanban API + brain)"
   MODE="$(ask "Select 1/2" "1")"
   if [ "${MODE}" = "1" ]; then RUN_MODE="docker"; else RUN_MODE="dev"; fi
@@ -321,7 +321,7 @@ fi
 upsert_env "MODE" "${RUN_MODE}"
 
 if [ "${MODE}" = "1" ]; then
-  docker compose up -d hub memory
+  docker compose up -d hub kanban-api memory
   info "Instance started"
   echo "- Hub:    http://localhost:${HUB_PORT}"
   echo "- Brain:  http://localhost:${MEMORY_PORT}"
