@@ -10,7 +10,7 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
-from .base import IAgentAdapter, TaskResult, AgentCapabilities, AdapterStatus
+from .base import AdapterStatus, AgentCapabilities, IAgentAdapter, TaskResult
 
 logger = logging.getLogger(__name__)
 

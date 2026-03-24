@@ -1,34 +1,47 @@
 """Kanban REST routes."""
 
+import mimetypes
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse, PlainTextResponse
 
 from .core import (
     DependencyBlockedError,
+    active_brain_memory_root,
     add_comment,
     add_dependencies,
     archive_project,
     archive_task,
     create_project,
     create_task,
+    delete_task,
     delete_comment,
     delete_dependency,
     delete_project,
+    delete_project_logo,
     get_hub_settings,
+    get_project_logo_path,
+    link_instance,
+    list_instances,
     get_meta,
     get_project,
     get_stats,
     list_active_tasks,
     list_archive_tasks,
     list_memory_project_files,
+    list_memory_quartz_pages,
     list_projects,
     read_memory_project_file,
+    read_memory_quartz_page,
+    rebuild_brain_static,
     restore_task,
     save_memory_project_file,
+    save_project_logo,
+    update_project_memory_major,
     split_task,
+    unlink_instance,
     update_hub_settings,
     update_meta,
     update_task,
@@ -37,9 +50,11 @@ from .models import (
     CommentCreate,
     DependenciesUpdate,
     HubSettingsUpdate,
+    InstanceLinkRequest,
     MemoryFileSave,
     MetaUpdate,
     ProjectCreate,
+    ProjectMemoryMajorUpdate,
     SplitTaskRequest,
     TaskCreate,
     TaskUpdate,
@@ -85,12 +100,35 @@ def create_task_endpoint(body: TaskCreate):
 
 @router.get("/hub/settings")
 def get_hub_settings_endpoint():
-    return get_hub_settings()
+    data = dict(get_hub_settings())
+    data["active_brain_memory"] = str(active_brain_memory_root(data))
+    return data
 
 
 @router.put("/hub/settings")
 def update_hub_settings_endpoint(body: HubSettingsUpdate):
     return update_hub_settings(body)
+
+
+@router.get("/hub/instances")
+def list_instances_endpoint():
+    return list_instances()
+
+
+@router.post("/hub/instances/link")
+def link_instance_endpoint(body: InstanceLinkRequest):
+    try:
+        return link_instance(body.path)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/hub/instances/unlink")
+def unlink_instance_endpoint(body: InstanceLinkRequest):
+    try:
+        return unlink_instance(body.path)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.get("/hub/projects")
@@ -114,6 +152,53 @@ def get_project_endpoint(project_slug: str):
         raise HTTPException(404, "Project not found")
 
 
+@router.put("/hub/projects/{project_slug}/memory-major")
+def update_project_memory_major_endpoint(
+    project_slug: str, body: ProjectMemoryMajorUpdate
+):
+    try:
+        payload = body.model_dump(exclude_unset=True)
+        return update_project_memory_major(project_slug, payload)
+    except KeyError:
+        raise HTTPException(404, "Project not found")
+
+
+@router.get("/hub/projects/{project_slug}/logo")
+def get_project_logo_endpoint(project_slug: str):
+    try:
+        path = get_project_logo_path(project_slug)
+    except KeyError:
+        raise HTTPException(404, "Logo not found")
+    media, _ = mimetypes.guess_type(str(path))
+    return FileResponse(
+        path, media_type=media or "application/octet-stream", filename=path.name
+    )
+
+
+@router.put("/hub/projects/{project_slug}/logo")
+async def put_project_logo_endpoint(project_slug: str, file: UploadFile = File(...)):
+    try:
+        data = await file.read()
+        return save_project_logo(project_slug, data, file.filename or "logo.png")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except KeyError:
+        raise HTTPException(404, "Project not found")
+
+
+@router.delete("/hub/projects/{project_slug}/logo")
+def delete_project_logo_endpoint(project_slug: str):
+    try:
+        return delete_project_logo(project_slug)
+    except KeyError:
+        raise HTTPException(404, "Project not found")
+
+
+@router.post("/hub/brain/rebuild-static")
+def rebuild_brain_static_endpoint():
+    return rebuild_brain_static()
+
+
 @router.post("/hub/projects/{project_slug}/archive")
 def archive_project_endpoint(project_slug: str):
     try:
@@ -133,6 +218,21 @@ def delete_project_endpoint(project_slug: str):
 @router.get("/memory/projects")
 def list_memory_projects_endpoint():
     return list_memory_project_files()
+
+
+@router.get("/memory/quartz")
+def list_memory_quartz_endpoint():
+    return list_memory_quartz_pages()
+
+
+@router.get("/memory/quartz/{filename}")
+def read_memory_quartz_endpoint(filename: str):
+    try:
+        return read_memory_quartz_page(filename)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except KeyError:
+        raise HTTPException(404, "Quartz page not found")
 
 
 @router.get("/memory/projects/{filename}")
@@ -168,6 +268,14 @@ def update_task_endpoint(task_id: str, body: TaskUpdate):
         return update_task(task_id, body)
     except DependencyBlockedError as e:
         raise HTTPException(409, str(e))
+    except KeyError:
+        raise HTTPException(404, "Task not found")
+
+
+@router.delete("/tasks/{task_id}")
+def delete_task_endpoint(task_id: str):
+    try:
+        return delete_task(task_id)
     except KeyError:
         raise HTTPException(404, "Task not found")
 

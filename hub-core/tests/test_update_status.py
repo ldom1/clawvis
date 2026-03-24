@@ -2,7 +2,6 @@
 
 import json
 
-
 from hub_core.models import StatusResponse
 
 

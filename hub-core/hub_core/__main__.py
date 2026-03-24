@@ -8,9 +8,10 @@ from pathlib import Path
 
 from loguru import logger
 
+from hub_core.git_sync import cli as git_sync_cli
 from hub_core.main import get_hub_state
 from hub_core.services import ServiceManager
-from hub_core.git_sync import cli as git_sync_cli
+from hub_core.setup_runtime import run_setup_runtime
 
 
 def cmd_status(args):
@@ -103,6 +104,24 @@ def cmd_git(args):
     return code
 
 
+def cmd_setup_runtime(args):
+    """Interactive setup for primary AI runtime (.env)."""
+    payload = run_setup_runtime(
+        provider=args.provider,
+        claude_api_key=args.claude_api_key,
+        mistral_api_key=args.mistral_api_key,
+        openclaw_base_url=args.openclaw_base_url,
+        openclaw_api_key=args.openclaw_api_key,
+        non_interactive=args.non_interactive,
+    )
+    print(json.dumps(payload, indent=2))
+    if payload.get("configured"):
+        print("Runtime configured. Redemarre les services pour appliquer.")
+        return 0
+    print("Runtime partially configured. Verifie les credentials.")
+    return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -154,6 +173,24 @@ def main():
         help="Only update status JSON, or run git-sync.sh then update status",
     )
     parser_git.set_defaults(func=cmd_git)
+
+    # setup-runtime command
+    parser_setup_runtime = subparsers.add_parser(
+        "setup-runtime", help="Setup primary AI runtime and write .env"
+    )
+    parser_setup_runtime.add_argument(
+        "--provider", choices=["claude", "mistral", "openclaw"]
+    )
+    parser_setup_runtime.add_argument("--claude-api-key")
+    parser_setup_runtime.add_argument("--mistral-api-key")
+    parser_setup_runtime.add_argument("--openclaw-base-url")
+    parser_setup_runtime.add_argument("--openclaw-api-key")
+    parser_setup_runtime.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Do not prompt; requires explicit args",
+    )
+    parser_setup_runtime.set_defaults(func=cmd_setup_runtime)
 
     args = parser.parse_args()
 

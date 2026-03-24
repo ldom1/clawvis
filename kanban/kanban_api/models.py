@@ -100,7 +100,12 @@ ProjectStage = Literal["PoC", "MVP", "Production"]
 
 
 class HubSettingsUpdate(BaseModel):
-    projects_root: str
+    projects_root: str | None = None
+    instances_external_root: str | None = None
+
+
+class InstanceLinkRequest(BaseModel):
+    path: str
 
 
 class ProjectCreate(BaseModel):
@@ -115,3 +120,15 @@ class ProjectCreate(BaseModel):
 class MemoryFileSave(BaseModel):
     filename: str
     content: str
+
+
+class ProjectMemoryMajorUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    macro_objectives: str | None = None
+    strategy: str | None = None
+    objective: str | None = None
+    context: str | None = None
+    kanban: str | None = None
+    links: str | None = None
+    notes: str | None = None

@@ -1,27 +1,24 @@
-# Vault (Obsidian)
+# Memory (Logseq + PARA)
 
-This folder contains the default Clawvis Obsidian vault using the PARA approach:
+This folder contains the default Clawvis memory tree using PARA:
 
 - Projects — active outcomes you are working on.
-- Areas — ongoing responsibilities you need to maintain.
 - Resources — reference material you might reuse.
-- Archives — inactive items from the three other categories.
+- Daily — daily notes and execution traces.
+- Archive — inactive items.
+- Todo — planning and backlog notes.
 
-The vault root is mounted into the `obsidian` service in `docker-compose.yml`:
-
-```yaml
-obsidian:
-  volumes:
-    - ./memory/vault:/config/vault
-```
-
-Start it with:
+Start the Brain runtime (Logseq web app):
 
 ```bash
-docker compose up -d obsidian
+docker compose up -d memory
 ```
 
-Then open Obsidian in your browser at:
+Then open:
 
-- http://localhost:3099 (remote / reverse-proxy port)
-- http://localhost:3100 (local browser port)
+- http://localhost:3099
+
+Notes:
+
+- The canonical runtime data is instance-scoped (`instances/<instance_name>/memory`).
+- Clawvis APIs and Hub pages read/write markdown in that memory root.

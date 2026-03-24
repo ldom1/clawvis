@@ -3,18 +3,18 @@
 from .identity import (
     AgentIdentity,
     AgentRole,
-    get_agent_identity,
     current_identity,
+    get_agent_identity,
     reset_identity,
 )
+from .network import NetworkMode, NetworkPolicy, get_network_policy
 from .rbac import (
-    UnauthorizedError,
-    require_capability,
-    require_any_capability,
-    fastapi_require_capability,
     RBACContext,
+    UnauthorizedError,
+    fastapi_require_capability,
+    require_any_capability,
+    require_capability,
 )
-from .network import NetworkPolicy, NetworkMode, get_network_policy
 
 __all__ = [
     "AgentIdentity",

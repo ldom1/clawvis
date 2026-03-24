@@ -8,12 +8,13 @@
     :root { --bg:#09090b; --surface:#18181b; --border:#27272a; --text:#fafafa; --muted:#a1a1aa; --accent:#6366f1; --green:#22c55e; --yellow:#eab308; }
     body.theme-light { --bg:#fafafa; --surface:#ffffff; --border:#d4d4d8; --text:#18181b; --muted:#52525b; --accent:#4f46e5; }
     body { font-family: Inter, system-ui, sans-serif; background:var(--bg); color:var(--text); margin:0; padding:2rem; }
-    .wrap { max-width: 760px; margin: 0 auto; }
+    .wrap { max-width: 840px; margin: 0 auto; }
     .topbar { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:.9rem; }
     .topbar-left { display:flex; gap:.5rem; align-items:center; }
     .topbar-link { color:var(--text); text-decoration:none; font-size:.8rem; border:1px solid var(--border); border-radius:8px; padding:.35rem .55rem; background:var(--surface); }
     .topbar-link:hover { border-color:var(--accent); color:var(--accent); }
     .card { border:1px solid var(--border); border-radius:14px; padding:1.2rem; background:var(--surface); margin-bottom:.9rem; }
+    .intro { border-style:dashed; }
     .card-title { margin:0 0 .2rem; font-size:1rem; font-weight:600; }
     .card-desc { margin:0 0 .8rem; color:var(--muted); font-size:.82rem; }
     label { display:block; font-size:.78rem; color:var(--muted); margin:.7rem 0 .3rem; }
@@ -40,11 +41,21 @@
     .hint { font-size:.75rem; color:var(--muted); margin-top:.5rem; line-height:1.5; }
     .hint code { background:rgba(255,255,255,.06); border:1px solid var(--border); padding:.1rem .35rem; border-radius:4px; font-size:.72rem; }
     .btn-row { display:flex; gap:.6rem; margin-top:.9rem; align-items:center; }
+    .steps { display:flex; gap:.45rem; flex-wrap:wrap; margin-top:.3rem; }
+    .step { border:1px solid var(--border); border-radius:999px; padding:.25rem .55rem; font-size:.72rem; color:var(--muted); }
     .btn-secondary { background:transparent; color:var(--text); border:1px solid var(--border); }
     .btn-secondary:hover { border-color:var(--accent); color:var(--accent); opacity:1; }
     .test-result { font-size:.78rem; padding:.3rem .6rem; border-radius:6px; display:none; }
     .test-result.ok { background:rgba(34,197,94,.12); color:var(--green); }
     .test-result.fail { background:rgba(239,68,68,.1); color:#f87171; }
+    .health-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; }
+    .health-item { border:1px solid var(--border); border-radius:10px; padding:.55rem .65rem; display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .health-label { font-size:.76rem; color:var(--muted); }
+    .health-pill { border:1px solid var(--border); border-radius:999px; padding:.18rem .55rem; font-size:.74rem; }
+    .health-pill.ok { background:rgba(34,197,94,.12); color:var(--green); border-color:rgba(34,197,94,.25); }
+    .health-pill.warn { background:rgba(234,179,8,.1); color:var(--yellow); border-color:rgba(234,179,8,.25); }
+    .field-help { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border:1px solid var(--border); border-radius:50%; font-size:.68rem; color:var(--muted); margin-left:.35rem; cursor:help; vertical-align:middle; }
+    @media (max-width: 760px) { .health-grid { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -56,13 +67,32 @@
       </div>
     </div>
 
+    <div class="card intro">
+      <h2 class="card-title" id="settings-title">Settings Clawvis</h2>
+      <p class="card-desc" id="settings-intro">Tout est configure ici: runtime IA, workspace et apparence.</p>
+      <div class="steps">
+        <span class="step" id="step-runtime">1. Runtime IA</span>
+        <span class="step" id="step-workspace">2. Workspace</span>
+        <span class="step" id="step-appearance">3. Apparence</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title" id="health-title">Health resume</h2>
+      <div class="health-grid">
+        <div class="health-item"><span class="health-label" id="health-runtime-label">Runtime config</span><span class="health-pill warn" id="health-runtime">A configurer</span></div>
+        <div class="health-item"><span class="health-label" id="health-workspace-label">Workspace config</span><span class="health-pill warn" id="health-workspace">A configurer</span></div>
+        <div class="health-item"><span class="health-label" id="health-linked-label">Instances liees</span><span class="health-pill warn" id="health-linked">0 liee(s)</span></div>
+      </div>
+    </div>
+
     <!-- AI RUNTIME -->
     <div class="card">
       <h2 class="card-title">
-        AI Runtime
+        <span id="runtime-title">1) Runtime IA</span>
         <span id="provider-status-badge" class="provider-status warn"><span class="dot"></span> Not configured</span>
       </h2>
-      <p class="card-desc">Connect your AI provider. Keys are stored locally in your browser and used for Hub-initiated calls.</p>
+      <p class="card-desc" id="runtime-desc">Selectionne un provider, ajoute tes credentials, puis teste la connexion.</p>
 
       <div class="provider-tabs">
         <button class="ptab active" data-provider="claude">Claude (Anthropic)</button>
@@ -71,23 +101,23 @@
       </div>
 
       <div id="panel-claude" class="provider-panel active">
-        <label>API Key <span style="color:var(--muted);font-size:.72rem;">(sk-ant-...)</span></label>
+        <label>API Key <span style="color:var(--muted);font-size:.72rem;">(sk-ant-...)</span><span class="field-help" title="Stockee en localStorage dans ce navigateur.">?</span></label>
         <input id="claude-key" type="password" placeholder="sk-ant-api03-..." autocomplete="off" />
         <p class="hint">Get your key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
           For server-side use, also set <code>CLAUDE_API_KEY</code> in <code>.env</code> and restart.</p>
       </div>
 
       <div id="panel-mistral" class="provider-panel">
-        <label>API Key</label>
+        <label>API Key <span class="field-help" title="Stockee en localStorage dans ce navigateur.">?</span></label>
         <input id="mistral-key" type="password" placeholder="..." autocomplete="off" />
         <p class="hint">Get your key at <a href="https://console.mistral.ai" target="_blank">console.mistral.ai</a>.
           For server-side use, also set <code>MISTRAL_API_KEY</code> in <code>.env</code> and restart.</p>
       </div>
 
       <div id="panel-openclaw" class="provider-panel">
-        <label>Base URL</label>
+        <label>Base URL <span class="field-help" title="Adresse de ton endpoint OpenClaw self-hosted.">?</span></label>
         <input id="openclaw-url" type="text" placeholder="http://localhost:3333" />
-        <label>API Key <span style="color:var(--muted);font-size:.72rem;">(optional)</span></label>
+        <label>API Key <span style="color:var(--muted);font-size:.72rem;">(optional)</span><span class="field-help" title="Optionnel selon ta config OpenClaw.">?</span></label>
         <input id="openclaw-key" type="password" placeholder="..." autocomplete="off" />
         <p class="hint">Set <code>OPENCLAW_BASE_URL</code> (and optionally <code>OPENCLAW_API_KEY</code>) in <code>.env</code> for server-side use.</p>
       </div>
@@ -96,22 +126,23 @@
         <button id="save-provider">Save</button>
         <button class="btn-secondary" id="test-provider">Test connection</button>
         <span id="test-result" class="test-result"></span>
+        <span id="provider-result" class="test-result"></span>
       </div>
     </div>
 
     <!-- WORKSPACE -->
     <div class="card">
-      <h2 class="card-title">Workspace</h2>
-      <p class="card-desc">Root path for your projects on the server.</p>
-      <label>Projects path</label>
+      <h2 class="card-title" id="workspace-title">2) Workspace</h2>
+      <p class="card-desc" id="workspace-desc">Chemin racine de tes projets cote serveur.</p>
+      <label>Projects path <span class="field-help" title="Chemin absolu cote serveur.">?</span></label>
       <input id="projects-root" placeholder="~/Lab/projects" />
-      <div class="btn-row"><button id="save-settings">Save</button></div>
+      <div class="btn-row"><button id="save-settings">Save</button><span id="settings-result" class="test-result"></span></div>
     </div>
 
     <!-- APPEARANCE -->
     <div class="card">
-      <h2 class="card-title">Appearance</h2>
-      <p class="card-desc">Hub theme.</p>
+      <h2 class="card-title" id="appearance-title">3) Apparence</h2>
+      <p class="card-desc" id="appearance-desc">Theme du Hub.</p>
       <div class="inline">
         <button id="theme-dark" type="button">🌙 Dark</button>
         <button id="theme-light" type="button">☀️ Light</button>
@@ -119,6 +150,90 @@
     </div>
   </div>
   <script>
+    const I18N = {
+      fr: {
+        settingsTitle: 'Parametres Clawvis',
+        settingsIntro: 'Tout est configure ici: runtime IA, workspace et apparence.',
+        stepRuntime: '1. Runtime IA',
+        stepWorkspace: '2. Workspace',
+        stepAppearance: '3. Apparence',
+        healthTitle: 'Health resume',
+        runtimeConfig: 'Runtime config',
+        workspaceConfig: 'Workspace config',
+        linkedInstances: 'Instances liees',
+        configured: 'Configure',
+        notConfigured: 'A configurer',
+        linked: 'liee(s)',
+        runtimeTitle: '1) Runtime IA',
+        runtimeDesc: 'Selectionne un provider, ajoute tes credentials, puis teste la connexion.',
+        workspaceTitle: '2) Workspace',
+        workspaceDesc: 'Chemin racine de tes projets cote serveur.',
+        appearanceTitle: '3) Apparence',
+        appearanceDesc: 'Theme du Hub.',
+        saved: 'Saved',
+        saveFailed: 'Save failed',
+      },
+      en: {
+        settingsTitle: 'Clawvis Settings',
+        settingsIntro: 'Configure AI runtime, workspace, and appearance here.',
+        stepRuntime: '1. AI runtime',
+        stepWorkspace: '2. Workspace',
+        stepAppearance: '3. Appearance',
+        healthTitle: 'Health summary',
+        runtimeConfig: 'Runtime config',
+        workspaceConfig: 'Workspace config',
+        linkedInstances: 'Linked instances',
+        configured: 'Configured',
+        notConfigured: 'Needs setup',
+        linked: 'linked',
+        runtimeTitle: '1) AI runtime',
+        runtimeDesc: 'Pick a provider, add credentials, then test connection.',
+        workspaceTitle: '2) Workspace',
+        workspaceDesc: 'Server-side root path for your projects.',
+        appearanceTitle: '3) Appearance',
+        appearanceDesc: 'Hub theme.',
+        saved: 'Saved',
+        saveFailed: 'Save failed',
+      }
+    };
+    const lang = (navigator.language || 'en').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+    const t = I18N[lang];
+    function txt(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
+    txt('settings-title', t.settingsTitle);
+    txt('settings-intro', t.settingsIntro);
+    txt('step-runtime', t.stepRuntime);
+    txt('step-workspace', t.stepWorkspace);
+    txt('step-appearance', t.stepAppearance);
+    txt('health-title', t.healthTitle);
+    txt('health-runtime-label', t.runtimeConfig);
+    txt('health-workspace-label', t.workspaceConfig);
+    txt('health-linked-label', t.linkedInstances);
+    txt('runtime-title', t.runtimeTitle);
+    txt('runtime-desc', t.runtimeDesc);
+    txt('workspace-title', t.workspaceTitle);
+    txt('workspace-desc', t.workspaceDesc);
+    txt('appearance-title', t.appearanceTitle);
+    txt('appearance-desc', t.appearanceDesc);
+
+    function setHealth(id, ok, text) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = 'health-pill ' + (ok ? 'ok' : 'warn');
+      el.textContent = text;
+    }
+
+    function refreshRuntimeHealth(activeProvider) {
+      const claude = localStorage.getItem('ai-claude-key') || '';
+      const mistral = localStorage.getItem('ai-mistral-key') || '';
+      const openclaw = localStorage.getItem('ai-openclaw-url') || '';
+      const ok = (activeProvider === 'claude' && !!claude) || (activeProvider === 'mistral' && !!mistral) || (activeProvider === 'openclaw' && !!openclaw);
+      setHealth('health-runtime', ok, ok ? t.configured : t.notConfigured);
+    }
+    function refreshWorkspaceHealth() {
+      const v = (document.getElementById('projects-root').value || '').trim();
+      setHealth('health-workspace', !!v, !!v ? t.configured : t.notConfigured);
+    }
+
     // --- Theme ---
     function applyTheme(t) {
       localStorage.setItem('hub-theme', t);
@@ -136,6 +251,7 @@
       if (!res?.ok) return;
       const data = await res.json();
       document.getElementById('projects-root').value = data.projects_root || '';
+      refreshWorkspaceHealth();
     }
     async function saveSettings() {
       const projects_root = document.getElementById('projects-root').value.trim();
@@ -144,10 +260,20 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projects_root }),
       });
-      if (!res.ok) return alert('Save failed');
-      alert('Saved');
+      const result = document.getElementById('settings-result');
+      if (!res.ok) {
+        result.className = 'test-result fail';
+        result.textContent = t.saveFailed;
+        result.style.display = 'inline-block';
+        return;
+      }
+      result.className = 'test-result ok';
+      result.textContent = t.saved;
+      result.style.display = 'inline-block';
+      refreshWorkspaceHealth();
     }
     document.getElementById('save-settings').addEventListener('click', saveSettings);
+    document.getElementById('projects-root').addEventListener('input', refreshWorkspaceHealth);
 
     // --- Provider tabs ---
     let activeProvider = localStorage.getItem('ai-provider') || 'claude';
@@ -175,6 +301,7 @@
                      (activeProvider === 'openclaw' && openclawUrl);
       badge.className = 'provider-status ' + (hasKey ? 'ok' : 'warn');
       badge.innerHTML = `<span class="dot"></span> ${hasKey ? activeProvider + ' connected' : 'Not configured'}`;
+      refreshRuntimeHealth(activeProvider);
     }
 
     // --- Save provider ---
@@ -189,6 +316,10 @@
         localStorage.setItem('ai-openclaw-key', document.getElementById('openclaw-key').value.trim());
       }
       loadProvider();
+      const result = document.getElementById('provider-result');
+      result.className = 'test-result ok';
+      result.textContent = t.saved;
+      result.style.display = 'inline-block';
     });
 
     // --- Test connection ---
@@ -227,6 +358,12 @@
 
     loadSettings();
     loadProvider();
+    refreshRuntimeHealth(activeProvider);
+    setHealth('health-linked', false, `0 ${t.linked}`);
+    fetch('/api/kanban/hub/instances').then(r => r.ok ? r.json() : null).then(data => {
+      const n = ((data && data.instances) || []).filter(i => i.linked).length;
+      setHealth('health-linked', n > 0, `${n} ${t.linked}`);
+    }).catch(() => {});
   </script>
 </body>
 </html>

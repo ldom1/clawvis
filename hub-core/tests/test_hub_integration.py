@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Integration tests for complete Hub ecosystem."""
 
-import pytest
-import requests
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
+import requests
 
 
 class TestHubServices:
@@ -53,7 +54,7 @@ class TestHubCore:
             pytest.skip("faster_whisper not installed")
 
     def test_hub_core_config_loads(self):
-        from hub_core.config import LAB_DIR, HUB_API_DIR
+        from hub_core.config import HUB_API_DIR, LAB_DIR
 
         assert LAB_DIR.exists() or True
         assert isinstance(HUB_API_DIR, Path)
@@ -84,7 +85,7 @@ class TestDataPersistence:
     """Tests for data persistence (JSON files)."""
 
     def test_api_json_files_exist_or_creatable(self):
-        from hub_core.config import HUB_API_DIR, DATA_DIR
+        from hub_core.config import DATA_DIR, HUB_API_DIR
 
         assert HUB_API_DIR or True
         assert DATA_DIR or True

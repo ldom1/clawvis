@@ -12,6 +12,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from hub_core.brain_memory import active_brain_memory_root as resolve_active_brain_memory_root
+
 from .models import (
     STATUSES,
     CommentCreate,
@@ -313,6 +315,37 @@ def update_task(task_id: str, body: TaskUpdate) -> dict:
     return _fill(task)
 
 
+def delete_task(task_id: str) -> dict:
+    data = _load_raw()
+    tasks = data.get("tasks", [])
+    task = next((t for t in tasks if t.get("id") == task_id), None)
+    if not task:
+        raise KeyError("Task not found")
+    title = task.get("title", task_id)
+    if _MD_SYNC and task.get("source_file"):
+        try:
+            write_task_to_md(
+                task["source_file"],
+                task["title"],
+                {"status": "Deleted", "deleted": True},
+            )
+        except Exception:
+            try:
+                write_task_to_md(
+                    task["source_file"], task["title"], {"status": "Archived"}
+                )
+            except Exception:
+                pass
+    kept = [t for t in tasks if t.get("id") != task_id]
+    for t in kept:
+        deps = t.get("dependencies") or []
+        t["dependencies"] = [d for d in deps if d != task_id]
+    data["tasks"] = kept
+    save(data)
+    _log("INFO", "task:delete", f"Deleted '{title}'", {"id": task_id})
+    return {"ok": True, "id": task_id}
+
+
 def archive_task(task_id: str) -> dict:
     data = _load_raw()
     task = _find_task(data, task_id)
@@ -405,15 +438,31 @@ def split_task(task_id: str, body: SplitTaskRequest) -> dict:
     data = _load_raw()
     parent = _find_task(data, task_id)
     ts = now_iso()
+    proj = (parent.get("project") or "").strip()
     children: list[dict] = []
     base = body.base_title or parent.get("title") or "Subtask"
     for idx in range(1, body.count + 1):
         cid = (
             "task-" + hashlib.md5(f"{parent['id']}:{idx}:{ts}".encode()).hexdigest()[:8]
         )
+        title = f"{base} #{idx}" if body.count > 1 else base
+        source_file = ""
+        if _MD_SYNC and proj:
+            task_md = {
+                "title": title,
+                "priority": parent.get("priority", "Medium"),
+                "effort_hours": parent.get("effort_hours"),
+                "status": "To Start",
+                "start_date": parent.get("start_date"),
+                "end_date": parent.get("end_date"),
+            }
+            try:
+                source_file = create_task_in_md(proj, task_md) or ""
+            except Exception:
+                source_file = ""
         child = {
             "id": cid,
-            "title": f"{base} #{idx}" if body.count > 1 else base,
+            "title": title,
             "description": parent.get("description", ""),
             "project": parent.get("project", ""),
             "status": "To Start",
@@ -427,8 +476,9 @@ def split_task(task_id: str, body: SplitTaskRequest) -> dict:
             "tags": list(parent.get("tags") or []),
             "comments": [],
             "progress": 0.0,
-            "source_file": "",
+            "source_file": source_file,
             "notes": "",
+            "confidence": parent.get("confidence"),
             "created_by": "user",
             "created": ts,
             "updated": ts,
@@ -473,6 +523,8 @@ def update_meta(body: MetaUpdate) -> dict:
 def _default_hub_settings() -> dict:
     return {
         "projects_root": str(Path.home() / "Lab/projects"),
+        "instances_external_root": "",
+        "linked_instances": [],
     }
 
 
@@ -485,8 +537,17 @@ def get_hub_settings() -> dict:
             current = {}
     else:
         current = {}
+    linked = current.get("linked_instances") or []
+    if not isinstance(linked, list):
+        linked = []
+    linked = [str(p) for p in linked if str(p).strip()]
     out = {
         "projects_root": str(current.get("projects_root") or defaults["projects_root"]),
+        "instances_external_root": str(
+            current.get("instances_external_root")
+            or defaults["instances_external_root"]
+        ),
+        "linked_instances": linked,
     }
     HUB_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
     HUB_SETTINGS_FILE.write_text(
@@ -496,14 +557,130 @@ def get_hub_settings() -> dict:
 
 
 def update_hub_settings(body: HubSettingsUpdate) -> dict:
+    current = get_hub_settings()
     settings = {
-        "projects_root": body.projects_root,
+        "projects_root": body.projects_root or current["projects_root"],
+        "instances_external_root": (
+            body.instances_external_root
+            if body.instances_external_root is not None
+            else current.get("instances_external_root", "")
+        ),
+        "linked_instances": current.get("linked_instances", []),
     }
     HUB_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
     HUB_SETTINGS_FILE.write_text(
         json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8"
     )
     return settings
+
+
+def _is_instance_dir(path: Path) -> bool:
+    if not path.is_dir():
+        return False
+    return any(
+        candidate.exists()
+        for candidate in (
+            path / "docker-compose.override.yml",
+            path / "memory",
+            path / ".env.local",
+        )
+    )
+
+
+def _scan_instances(root: Path, source: str) -> list[dict]:
+    if not root.exists() or not root.is_dir():
+        return []
+    out = []
+    for entry in sorted(root.iterdir()):
+        if not entry.is_dir():
+            continue
+        if entry.name.startswith("."):
+            continue
+        if not _is_instance_dir(entry):
+            continue
+        out.append(
+            {
+                "name": entry.name,
+                "path": str(entry.resolve()),
+                "source": source,
+                "has_memory": (entry / "memory").exists(),
+                "has_compose_override": (entry / "docker-compose.override.yml").exists(),
+            }
+        )
+    return out
+
+
+def list_instances() -> dict:
+    settings = get_hub_settings()
+    local_root = (_CLAWVIS_ROOT / "instances").resolve()
+    external_raw = (settings.get("instances_external_root") or "").strip()
+    external_root = Path(external_raw).expanduser().resolve() if external_raw else None
+
+    discovered = _scan_instances(local_root, "local")
+    if external_root and external_root != local_root:
+        discovered.extend(_scan_instances(external_root, "external"))
+
+    linked = {str(Path(p).expanduser().resolve()) for p in settings["linked_instances"]}
+    for item in discovered:
+        item["linked"] = item["path"] in linked
+
+    linked_only = [
+        {
+            "name": Path(path).name,
+            "path": path,
+            "source": "linked",
+            "has_memory": (Path(path) / "memory").exists(),
+            "has_compose_override": (Path(path) / "docker-compose.override.yml").exists(),
+            "linked": True,
+            "missing": not Path(path).exists(),
+        }
+        for path in sorted(linked)
+        if path not in {d["path"] for d in discovered}
+    ]
+    return {
+        "instances": discovered + linked_only,
+        "local_root": str(local_root),
+        "external_root": str(external_root) if external_root else "",
+    }
+
+
+def link_instance(path: str) -> dict:
+    target = str(Path(path).expanduser().resolve())
+    if not Path(target).exists():
+        raise ValueError("Instance path not found")
+    settings = get_hub_settings()
+    linked = {str(Path(p).expanduser().resolve()) for p in settings["linked_instances"]}
+    linked.add(target)
+    settings["linked_instances"] = sorted(linked)
+    HUB_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    HUB_SETTINGS_FILE.write_text(
+        json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    return {"ok": True, "linked_instances": settings["linked_instances"]}
+
+
+def unlink_instance(path: str) -> dict:
+    target = str(Path(path).expanduser().resolve())
+    settings = get_hub_settings()
+    linked = {str(Path(p).expanduser().resolve()) for p in settings["linked_instances"]}
+    if target in linked:
+        linked.remove(target)
+    settings["linked_instances"] = sorted(linked)
+    HUB_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    HUB_SETTINGS_FILE.write_text(
+        json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    return {"ok": True, "linked_instances": settings["linked_instances"]}
+
+
+def active_brain_memory_root(settings: dict | None = None) -> Path:
+    """Delegates to :func:`hub_core.brain_memory.active_brain_memory_root`."""
+    if settings is None:
+        settings = get_hub_settings()
+    return resolve_active_brain_memory_root(
+        memory_root=_memory_root_path,
+        linked_instances=settings.get("linked_instances"),
+    )
 
 
 def _slugify(text: str) -> str:
@@ -534,42 +711,193 @@ def _normalize_tags(tags: list[str]) -> list[str]:
 
 
 def _memory_file_for(slug: str) -> Path:
-    return _memory_root_path / "projects" / f"{slug}.md"
+    return active_brain_memory_root() / "projects" / f"{slug}.md"
 
 
 def _ensure_memory_structure() -> None:
-    root = _memory_root_path
+    root = active_brain_memory_root()
     for name in ("projects", "resources", "daily", "archive", "todo"):
         (root / name).mkdir(parents=True, exist_ok=True)
 
 
-def _parse_markdown_major_info(content: str) -> dict:
+_MAJOR_SECTION_LABELS: dict[str, str] = {
+    "description": "Description",
+    "macro_objectives": "Objectifs macro",
+    "strategy": "Stratégie",
+    "objective": "Objectif",
+    "context": "Contexte",
+    "kanban": "Kanban",
+    "links": "Liens",
+    "notes": "Notes",
+}
+
+
+def _memory_major_field_order() -> list[str]:
+    return list(_MAJOR_SECTION_LABELS.keys())
+
+
+def _section_key_from_heading(heading: str) -> str | None:
+    n = heading.strip().lower()
+    aliases = {
+        "description": "description",
+        "objectifs macro": "macro_objectives",
+        "macro objectives": "macro_objectives",
+        "macro objectifs": "macro_objectives",
+        "stratégie": "strategy",
+        "strategy": "strategy",
+        "objective": "objective",
+        "objectif": "objective",
+        "objectif principal": "objective",
+        "context": "context",
+        "contexte": "context",
+        "kanban": "kanban",
+        "links": "links",
+        "liens": "links",
+        "notes": "notes",
+        "hub": "hub",
+    }
+    return aliases.get(n)
+
+
+def _parse_memory_md_structure(content: str) -> tuple[str, str, list[tuple[str, str]]]:
     lines = content.splitlines()
+    idx = 0
     title = ""
+    if idx < len(lines) and lines[idx].startswith("# ") and not lines[idx].startswith(
+        "##"
+    ):
+        title = lines[idx][2:].strip()
+        idx += 1
+    preamble_lines: list[str] = []
+    while idx < len(lines):
+        line = lines[idx]
+        if line.startswith("## ") and not line.startswith("###"):
+            break
+        preamble_lines.append(line)
+        idx += 1
+    preamble = "\n".join(preamble_lines).rstrip("\n")
+    blocks: list[tuple[str, str]] = []
+    cur_h: str | None = None
+    cur_b: list[str] = []
+    while idx < len(lines):
+        line = lines[idx]
+        if line.startswith("## ") and not line.startswith("###"):
+            if cur_h is not None:
+                blocks.append((cur_h, "\n".join(cur_b).rstrip("\n")))
+            cur_h = line[3:].strip()
+            cur_b = []
+        else:
+            cur_b.append(line)
+        idx += 1
+    if cur_h is not None:
+        blocks.append((cur_h, "\n".join(cur_b).rstrip("\n")))
+    return title, preamble, blocks
+
+
+def _serialize_memory_md(
+    title: str, preamble: str, blocks: list[tuple[str, str]]
+) -> str:
+    parts: list[str] = [f"# {title}"]
+    if preamble:
+        parts.append("")
+        parts.append(preamble)
+    for heading, body in blocks:
+        parts.append("")
+        parts.append(f"## {heading}")
+        parts.append(body)
+    return "\n".join(parts).rstrip() + "\n"
+
+
+def _parse_markdown_major_info(content: str) -> dict:
+    title, _preamble, blocks = _parse_memory_md_structure(content)
     sections: dict[str, str] = {}
-    current = None
-    for raw in lines:
-        line = raw.rstrip()
-        if not title and line.startswith("# "):
-            title = line[2:].strip()
-            continue
-        if line.startswith("## "):
-            current = line[3:].strip().lower()
-            sections[current] = ""
-            continue
-        if current:
-            sections[current] += f"{line}\n"
-
-    def clean(name: str) -> str:
-        return (sections.get(name, "") or "").strip()
-
+    for heading, body in blocks:
+        key = _section_key_from_heading(heading)
+        if key and key != "hub":
+            sections[key] = body.strip()
     return {
         "title": title,
-        "objective": clean("objective"),
-        "context": clean("context"),
-        "kanban": clean("kanban"),
-        "links": clean("links"),
-        "notes": clean("notes"),
+        "description": sections.get("description", ""),
+        "macro_objectives": sections.get("macro_objectives", ""),
+        "strategy": sections.get("strategy", ""),
+        "objective": sections.get("objective", ""),
+        "context": sections.get("context", ""),
+        "kanban": sections.get("kanban", ""),
+        "links": sections.get("links", ""),
+        "notes": sections.get("notes", ""),
+    }
+
+
+def update_project_memory_major(project_slug: str, updates: dict) -> dict:
+    _find_project_or_raise(project_slug)
+    path = _memory_file_for(project_slug)
+    content = path.read_text(encoding="utf-8") if path.exists() else ""
+    title, preamble, blocks = _parse_memory_md_structure(content)
+    by_canon: dict[str, dict[str, str]] = {}
+    custom_blocks: list[tuple[str, str]] = []
+    for h, body in blocks:
+        ck = _section_key_from_heading(h)
+        if ck:
+            by_canon[ck] = {"heading": h, "body": body}
+        else:
+            custom_blocks.append((h, body))
+    if "title" in updates:
+        t = updates["title"]
+        if t is not None:
+            title = str(t).strip()
+    for k in _memory_major_field_order():
+        if k not in updates:
+            continue
+        v = updates[k]
+        if v is None:
+            continue
+        body = str(v).strip("\n")
+        prev = by_canon.get(k)
+        heading = prev["heading"] if prev else _MAJOR_SECTION_LABELS[k]
+        by_canon[k] = {"heading": heading, "body": body}
+    order = _memory_major_field_order() + ["hub"]
+    out_blocks: list[tuple[str, str]] = []
+    for k in order:
+        if k not in by_canon:
+            continue
+        d = by_canon[k]
+        out_blocks.append((d["heading"], d["body"]))
+    out_blocks.extend(custom_blocks)
+    new_content = _serialize_memory_md(title, preamble, out_blocks)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(new_content, encoding="utf-8")
+    _log(
+        "INFO",
+        "project:memory-major",
+        f"Updated memory major sections for '{project_slug}'",
+        {"slug": project_slug},
+    )
+    return get_project(project_slug)
+
+
+def rebuild_brain_static() -> dict:
+    script = _CLAWVIS_ROOT / "scripts" / "build-quartz.sh"
+    if not script.is_file():
+        return {"ok": False, "error": "build-quartz.sh not found"}
+    try:
+        proc = subprocess.run(
+            ["bash", str(script)],
+            cwd=str(_CLAWVIS_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=os.environ.copy(),
+        )
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "timeout"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    ok = proc.returncode == 0
+    return {
+        "ok": ok,
+        "returncode": proc.returncode,
+        "stderr": (proc.stderr or "")[-4000:],
+        "stdout": (proc.stdout or "")[-4000:],
     }
 
 
@@ -812,11 +1140,30 @@ def create_project(body: ProjectCreate) -> dict:
         "description": body.description.strip(),
         "repo_path": str(repo_dir),
         "memory_path": str(memory_file),
+        "has_logo": False,
     }
     (repo_dir / HUB_METADATA_FILE).write_text(
         json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8"
     )
     return metadata
+
+
+_LOGO_ALLOWED_EXT = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"})
+_MAX_PROJECT_LOGO_BYTES = 2 * 1024 * 1024
+
+
+def _project_clawvis_dir(repo_dir: Path) -> Path:
+    return repo_dir / ".clawvis"
+
+
+def project_logo_file(repo_dir: Path) -> Path | None:
+    d = _project_clawvis_dir(repo_dir)
+    if not d.is_dir():
+        return None
+    for p in sorted(d.glob("logo.*")):
+        if p.suffix.lower() in _LOGO_ALLOWED_EXT and p.is_file():
+            return p
+    return None
 
 
 def _load_project_metadata(project_dir: Path) -> dict:
@@ -838,6 +1185,7 @@ def _load_project_metadata(project_dir: Path) -> dict:
         "description": meta.get("description") or "",
         "repo_path": str(project_dir),
         "memory_path": str(meta.get("memory_path") or memory_file),
+        "has_logo": project_logo_file(project_dir) is not None,
     }
 
 
@@ -874,6 +1222,58 @@ def _find_project_or_raise(project_slug: str) -> dict:
     if not project:
         raise KeyError("Project not found")
     return project
+
+
+def get_project_logo_path(project_slug: str) -> Path:
+    project = _find_project_or_raise(project_slug)
+    repo = Path(project["repo_path"]).expanduser()
+    path = project_logo_file(repo)
+    if not path:
+        raise KeyError("Logo not found")
+    return path
+
+
+def save_project_logo(project_slug: str, data: bytes, upload_name: str) -> dict:
+    if len(data) > _MAX_PROJECT_LOGO_BYTES:
+        raise ValueError("Logo too large (max 2MB)")
+    ext = Path(upload_name).suffix.lower()
+    if ext not in _LOGO_ALLOWED_EXT:
+        raise ValueError("Use PNG, JPEG, GIF, WebP, or SVG")
+    project = _find_project_or_raise(project_slug)
+    repo = Path(project["repo_path"]).expanduser()
+    if not repo.is_dir():
+        raise KeyError("Project not found")
+    d = _project_clawvis_dir(repo)
+    d.mkdir(parents=True, exist_ok=True)
+    for old in d.glob("logo.*"):
+        try:
+            old.unlink()
+        except OSError:
+            pass
+    dest = d / f"logo{ext}"
+    dest.write_bytes(data)
+    _log(
+        "INFO",
+        "project:logo",
+        f"Saved logo for '{project_slug}'",
+        {"slug": project_slug, "file": dest.name},
+    )
+    return {"ok": True, "filename": dest.name}
+
+
+def delete_project_logo(project_slug: str) -> dict:
+    project = _find_project_or_raise(project_slug)
+    repo = Path(project["repo_path"]).expanduser()
+    d = _project_clawvis_dir(repo)
+    removed = False
+    if d.is_dir():
+        for old in list(d.glob("logo.*")):
+            try:
+                old.unlink()
+                removed = True
+            except OSError:
+                pass
+    return {"ok": True, "removed": removed}
 
 
 def _archive_project_tasks(project_slug: str) -> int:
@@ -923,7 +1323,7 @@ def archive_project(project_slug: str) -> dict:
     shutil.move(str(repo_dir), str(target))
 
     memory_file = _memory_file_for(project_slug)
-    archived_memory_dir = _memory_root_path / "archive" / "projects"
+    archived_memory_dir = active_brain_memory_root() / "archive" / "projects"
     archived_memory_dir.mkdir(parents=True, exist_ok=True)
     archived_memory_file = archived_memory_dir / f"{project_slug}-{suffix}.md"
     if memory_file.exists():
@@ -966,15 +1366,32 @@ def delete_project(project_slug: str) -> dict:
 
 
 def list_memory_project_files() -> dict:
-    projects_dir = _memory_root_path / "projects"
+    projects_dir = active_brain_memory_root() / "projects"
     projects_dir.mkdir(parents=True, exist_ok=True)
     files = sorted(p.name for p in projects_dir.glob("*.md"))
     return {"files": files}
 
 
+def list_memory_quartz_pages() -> dict:
+    projects_dir = active_brain_memory_root() / "projects"
+    projects_dir.mkdir(parents=True, exist_ok=True)
+    files = sorted(p.name for p in projects_dir.glob("*.html"))
+    return {"files": files}
+
+
+def read_memory_quartz_page(filename: str) -> dict:
+    safe = Path(filename).name
+    path = active_brain_memory_root() / "projects" / safe
+    if path.suffix.lower() != ".html":
+        raise ValueError("Only .html files are allowed")
+    if not path.exists():
+        raise KeyError("Quartz page not found")
+    return {"filename": safe, "content": path.read_text(encoding="utf-8")}
+
+
 def read_memory_project_file(filename: str) -> dict:
     safe = Path(filename).name
-    path = _memory_root_path / "projects" / safe
+    path = active_brain_memory_root() / "projects" / safe
     if path.suffix.lower() != ".md":
         raise ValueError("Only .md files are allowed")
     if not path.exists():
@@ -989,7 +1406,7 @@ def read_memory_project_file(filename: str) -> dict:
 
 def save_memory_project_file(filename: str, content: str) -> dict:
     safe = Path(filename).name
-    path = _memory_root_path / "projects" / safe
+    path = active_brain_memory_root() / "projects" / safe
     if path.suffix.lower() != ".md":
         raise ValueError("Only .md files are allowed")
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -14,14 +14,10 @@ services:
       - "app=clawpilot"
 
   memory:
-    image: ghcr.io/sytone/obsidian-remote:latest
+    image: ghcr.io/logseq/logseq-webapp:latest
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     ports:
       - "${MEMORY_PORT:-3099}:8080"
-    volumes:
-      # obsidian-remote attend un dossier de vaults + un dossier de config.
-      - ./${MEMORY_ROOT:-instances/example/memory}:/vaults
-      - ./${MEMORY_CONFIG_ROOT:-instances/${INSTANCE_NAME:-example}/obsidian-config}:/config
     environment:
       - TZ=${TZ:-UTC}
 
@@ -36,5 +32,4 @@ services:
       - "${HUB_VITE_PORT:-5173}:${HUB_VITE_PORT:-5173}"
     env_file: .env
 
-  # kanban:  # coming in Phase Setup.1
   # openclaw: # coming in Phase Setup.1

@@ -2,11 +2,12 @@
 """Service lifecycle management - start/stop Lab services."""
 
 import subprocess
-import psutil
-from typing import Dict, Optional
 from dataclasses import dataclass
+from typing import Dict, Optional
 
+import psutil
 from loguru import logger
+
 from hub_core.config import LAB_DIR
 
 

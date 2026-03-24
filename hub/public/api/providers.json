@@ -1,0 +1,14 @@
+{
+  "mammouth_ai": {
+    "provider": "MammouthAI",
+    "credits": {
+      "available": "N/A",
+      "limit": "N/A",
+      "currency": "USD"
+    },
+    "subscription": "N/A",
+    "additional": "N/A",
+    "last_updated": "N/A"
+  },
+  "timestamp": "2026-03-24T16:02:39.645921"
+}

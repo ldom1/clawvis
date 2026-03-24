@@ -8,7 +8,7 @@ Usage:
 
 import os
 
-from hub_core.agents.mammouth import DynamicMammouthAdapter, MAMMOUTH_MODELS
+from hub_core.agents.mammouth import MAMMOUTH_MODELS, DynamicMammouthAdapter
 
 os.environ.setdefault("MAMMOUTH_API_KEY", "sk-test-key")
 

@@ -1,7 +1,5 @@
 """Tests for hub_core.models."""
 
-
-
 from hub_core.models import (
     CpuRam,
     HubState,

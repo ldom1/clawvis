@@ -3,7 +3,7 @@ MammouthAI API Client — Mistral-based models with rate limit fallback
 Supports: mistral-small-3.1, mistral-medium, mistral-large
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 import requests
 from loguru import logger

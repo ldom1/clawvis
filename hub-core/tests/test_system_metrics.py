@@ -6,7 +6,6 @@ from unittest.mock import patch
 from hub_core.track.system import get_system_stats
 from hub_core.track.tokens import get_token_stats
 
-
 MOCK_SESSION_DATA = {
     "updated_at": "2026-03-17T10:00:00",
     "claude": {

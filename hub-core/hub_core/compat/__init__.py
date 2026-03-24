@@ -21,7 +21,6 @@ import shutil
 import subprocess
 from typing import Any
 
-
 RUNTIME_OPENCLAW = "openclaw"
 RUNTIME_CLAUDE = "claude"
 RUNTIME_MISTRAL = "mistral"

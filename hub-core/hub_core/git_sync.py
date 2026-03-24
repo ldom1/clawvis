@@ -12,7 +12,6 @@ from loguru import logger
 
 from hub_core.config import HUB_API_DIR, LAB_DIR
 
-
 DEFAULT_REPOS: tuple[str, ...] = (
     "debate-arena",
     "hub",

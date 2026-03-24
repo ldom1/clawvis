@@ -13,8 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from hub_core.orchestration import (
     AgentRouter,
-    load_or_create_style_guide,
     get_router,
+    load_or_create_style_guide,
 )
 
 
@@ -48,7 +48,7 @@ def test_2_basic_routing():
     print(f"   Agent: {task.agent_id}")
     print(f"   Priority: {task.priority}")
     print(f"   Instruction with style: {len(task.instruction)} chars")
-    print(f"\n   First 150 chars of routed instruction:")
+    print("\n   First 150 chars of routed instruction:")
     print(f"   {task.instruction[:150]}...")
 
 
@@ -75,7 +75,7 @@ def test_3_multiple_agents():
     for task in tasks:
         print(f"   • {task.agent_id:25s} (task: {task.task_id})")
 
-    print(f"\n   All use same style guide:")
+    print("\n   All use same style guide:")
     print(f"   Confidence: {router.style_guide.confidence:.0%}")
 
 
@@ -88,7 +88,7 @@ def test_4_global_router():
     router1 = get_router()
     router2 = get_router()
 
-    print(f"✅ Retrieved global router instances")
+    print("✅ Retrieved global router instances")
     print(f"   Same instance: {router1 is router2}")
     print(f"   Style name: {router1.style_guide.name}")
     print(f"   Confidence: {router1.style_guide.confidence:.0%}")
@@ -102,7 +102,7 @@ def test_5_style_info():
     router = AgentRouter()
     info = router.get_style_info()
 
-    print(f"✅ Style guide info:")
+    print("✅ Style guide info:")
     print(f"   Name: {info['name']}")
     print(f"   Use case: {info['use_case']}")
     print(f"   Target audience: {info['target_audience']}")

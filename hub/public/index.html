@@ -45,7 +45,9 @@
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 1.1rem; padding: 1.5rem; margin-bottom: 2.5rem;
     }
-    .system-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--text); }
+    .system-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--text); display:flex; align-items:center; gap:8px; }
+    .system-title-icon { color:#60a5fa; width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 0 10px rgba(96,165,250,.45); }
+    .system-title-icon svg { width:16px; height:16px; }
 
     .system-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
     .system-stat { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -243,7 +245,7 @@
   <header>
     <img src="/clawvis-mascot.svg" alt="Clawvis logo" class="header-logo" />
     <h1><span>Clawvis</span></h1>
-    <p><span class="status-dot"></span>7 active services</p>
+    <p><span class="status-dot"></span><span id="active-services-count">...</span> active services</p>
     <div class="header-icons">
       <a href="/openclaw/" class="header-icon" title="OpenClaw">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/><path d="M14 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/><path d="M8 15c0 2.2 1.8 4 4 4s4-1.8 4-4"/></svg>
@@ -287,7 +289,7 @@
 
   <!-- SYSTEM CARD -->
   <div class="system-card">
-    <div class="system-title">System Status</div>
+    <div class="system-title"><span class="system-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path><path d="M7 10h2l1-2 2 4 1-2h4"></path></svg></span>System Status</div>
 
     <div class="system-row">
       <div class="system-stat">
@@ -340,23 +342,6 @@
           </div>
         </a>
 
-        <a class="tool-tile" href="/openclaw/">
-          <span class="tool-open">&#x2197;</span>
-          <div class="tool-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"></path>
-              <path d="M8 9c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z"></path>
-              <path d="M14 9c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z"></path>
-              <path d="M8 15c0 2.2 1.8 4 4 4s4-1.8 4-4"></path>
-            </svg>
-          </div>
-          <div class="tool-meta">
-            <div class="tool-name">OpenClaw</div>
-            <div class="tool-desc">Agent runtime dashboard - sessions, skills, models.</div>
-            <div class="tool-chiprow"><span class="tool-chip">Agent</span><span class="tool-chip">Runtime</span><span class="tool-chip">Skills</span></div>
-          </div>
-        </a>
-
         <a class="tool-tile" href="/memory/">
           <span class="tool-open">&#x2197;</span>
           <div class="tool-icon">
@@ -373,7 +358,7 @@
           <div class="tool-meta">
             <div class="tool-name">Brain</div>
             <div class="tool-desc">Knowledge vault (PARA) - projects, dailies, resources.</div>
-            <div class="tool-chiprow"><span class="tool-chip">Quartz</span><span class="tool-chip">Obsidian</span><span class="tool-chip">PARA</span></div>
+            <div class="tool-chiprow"><span class="tool-chip">Quartz</span><span class="tool-chip">Logseq</span><span class="tool-chip">PARA</span></div>
           </div>
         </a>
       </div>
@@ -468,23 +453,31 @@ document.querySelectorAll('input[name="hub-theme"]').forEach(r => {
 
 async function loadStats() {
   try {
-    const response = await fetch('/api/system.json');
+    const response = await fetch('/api/system.json', { cache: 'no-store' });
     if (response.ok) {
-      const stats = await response.json();
-      if (stats.success) {
-        document.getElementById('cpu-percent').textContent = stats.cpu_percent + '%';
-        document.getElementById('cpu-fill').style.width = Math.min(stats.cpu_percent, 100) + '%';
-        document.getElementById('ram-percent').textContent = stats.ram_percent + '%';
-        document.getElementById('ram-fill').style.width = stats.ram_percent + '%';
-        document.getElementById('ram-detail').textContent = stats.ram_used_gb + ' / ' + stats.ram_total_gb + ' GB';
+      const raw = await response.json();
+      const stats = raw && raw.system_info ? raw.system_info : raw;
+      const cpu = Number(stats && stats.cpu_percent);
+      const ram = Number(stats && stats.ram_percent);
+      const ramUsed = Number(stats && stats.ram_used_gb);
+      const ramTotal = Number(stats && stats.ram_total_gb);
+      const disk = Number(stats && stats.disk_percent);
+      const diskUsed = Number(stats && stats.disk_used_gb);
+      const diskTotal = Number(stats && stats.disk_total_gb);
+      if (Number.isFinite(cpu) && Number.isFinite(ram)) {
+        document.getElementById('cpu-percent').textContent = cpu + '%';
+        document.getElementById('cpu-fill').style.width = Math.min(cpu, 100) + '%';
+        document.getElementById('ram-percent').textContent = ram + '%';
+        document.getElementById('ram-fill').style.width = ram + '%';
+        document.getElementById('ram-detail').textContent = Number.isFinite(ramUsed) && Number.isFinite(ramTotal) ? (ramUsed + ' / ' + ramTotal + ' GB') : 'N/A';
 
-        if (stats.disk_percent !== undefined) {
-          document.getElementById('disk-percent').textContent = stats.disk_percent + '%';
-          document.getElementById('disk-fill').style.width = stats.disk_percent + '%';
-          document.getElementById('disk-detail').textContent = stats.disk_used_gb + ' / ' + stats.disk_total_gb + ' GB';
+        if (Number.isFinite(disk)) {
+          document.getElementById('disk-percent').textContent = disk + '%';
+          document.getElementById('disk-fill').style.width = disk + '%';
+          document.getElementById('disk-detail').textContent = Number.isFinite(diskUsed) && Number.isFinite(diskTotal) ? (diskUsed + ' / ' + diskTotal + ' GB') : 'N/A';
           const fill = document.getElementById('disk-fill');
-          if (stats.disk_percent > 90) fill.style.background = '#ef4444';
-          else if (stats.disk_percent > 75) fill.style.background = '#f59e0b';
+          if (disk > 90) fill.style.background = '#ef4444';
+          else if (disk > 75) fill.style.background = '#f59e0b';
         }
       }
     }
@@ -513,8 +506,43 @@ async function loadStats() {
   } catch (e) { console.log('Provider stats unavailable', e); }
 }
 
+async function loadActiveServicesCount() {
+  const el = document.getElementById('active-services-count');
+  if (!el) return;
+  const services = [
+    { name: 'Hub', url: '/' },
+    { name: 'Kanban', url: '/kanban/' },
+    { name: 'Logs', url: '/logs/' },
+    { name: 'Settings', url: '/settings/' },
+    { name: 'Memory', url: '/memory/' },
+    { name: 'OpenClaw', url: '/openclaw/' }
+  ];
+  try {
+    const checks = await Promise.all(services.map(async (svc) => {
+      try {
+        const res = await fetch(svc.url, { cache: 'no-store' });
+        return { ...svc, up: !!res.ok };
+      } catch {
+        return { ...svc, up: false };
+      }
+    }));
+    const upCount = checks.filter((s) => s.up).length;
+    const total = checks.length;
+    const down = checks.filter((s) => !s.up).map((s) => s.name);
+    el.textContent = String(upCount);
+    el.title = down.length
+      ? `${upCount}/${total} up\nDown: ${down.join(', ')}`
+      : `${upCount}/${total} up\nAll services operational`;
+  } catch {
+    el.textContent = '0';
+    el.title = '0/0 up';
+  }
+}
+
 loadStats();
+loadActiveServicesCount();
 setInterval(loadStats, 30000);
+setInterval(loadActiveServicesCount, 30000);
 
 // AI Runtime banner
 (function() {

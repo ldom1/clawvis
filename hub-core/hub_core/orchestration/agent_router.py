@@ -1,7 +1,8 @@
 """Clawvis Agent Router — Route tasks through agents with unified style guide."""
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
+
 from loguru import logger
 
 from .style_guide import StyleGuide, load_or_create_style_guide

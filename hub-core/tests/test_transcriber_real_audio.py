@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-from pathlib import Path
-
 import re
 import unicodedata
+from pathlib import Path
 
 from hub_core.transcribe import transcribe
 

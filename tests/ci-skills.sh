@@ -35,3 +35,15 @@ for pyproject in skills/*/core/pyproject.toml; do
     uv run --directory "${core_dir}" --with pytest pytest -q tests
   fi
 done
+
+echo "==> skill tester"
+skill_tester="${ROOT_DIR}/skills/skill-tester/scripts/test-all.sh"
+if [ -f "${skill_tester}" ]; then
+  chmod +x "${skill_tester}" || true
+  tester_home="${ROOT_DIR}/.tmp/skill-tester-home"
+  mkdir -p "${tester_home}/.openclaw"
+  ln -sfn "${ROOT_DIR}/skills" "${tester_home}/.openclaw/skills"
+  HOME="${tester_home}" bash "${skill_tester}"
+else
+  echo "[warn] skill-tester not found at ${skill_tester}"
+fi

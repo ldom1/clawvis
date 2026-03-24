@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for audio transcription module."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 
 class TestTranscriber:

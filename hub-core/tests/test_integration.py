@@ -18,14 +18,14 @@ os.environ["AGENT_ROLE"] = "ORCHESTRATOR"
 os.environ["NETWORK_MODE"] = "allowlist"
 os.environ["NETWORK_ALLOWLIST"] = "api.anthropic.com,api.openai.com"
 
+from hub_core.agents.openclaw import OpenClawAdapter
+from hub_core.agents.registry import AgentRegistry
 from hub_core.security.identity import (
     get_agent_identity,
     reset_identity,
 )
-from hub_core.security.rbac import require_capability, UnauthorizedError
 from hub_core.security.network import get_network_policy
-from hub_core.agents.registry import AgentRegistry
-from hub_core.agents.openclaw import OpenClawAdapter
+from hub_core.security.rbac import UnauthorizedError, require_capability
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,8 @@ def test_rbac_decorator_passes():
 
 
 def test_rbac_decorator_denied():
-    from hub_core.security.identity import AgentIdentity, AgentRole
     import hub_core.security.identity as ai
+    from hub_core.security.identity import AgentIdentity, AgentRole
 
     viewer = AgentIdentity(
         agent_id="viewer",
