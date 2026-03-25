@@ -18,9 +18,13 @@ export default defineConfig(({ mode }) => {
       port,
       strictPort: false,
       proxy: {
-        "/api/kanban": {
+        "/api/hub/chat": {
           target: `http://127.0.0.1:${kanbanPort}`,
-          rewrite: (p) => p.replace(/^\/api\/kanban/, ""),
+          rewrite: (p) => p.replace(/^\/api\/hub\/chat/, "/hub/chat"),
+        },
+        "/api/hub/kanban": {
+          target: `http://127.0.0.1:${kanbanPort}`,
+          rewrite: (p) => p.replace(/^\/api\/hub\/kanban/, ""),
         },
       },
     },

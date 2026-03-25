@@ -1256,7 +1256,7 @@ function createKanbanBoard(
         const taskId = btn.dataset.taskId;
         const nextStatus = btn.dataset.nextStatus;
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(taskId)}`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(taskId)}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -1285,7 +1285,7 @@ function createKanbanBoard(
         if (timeline) body.timeline = timeline;
         if (assignee) body.assignee = assignee;
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(task.id)}`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -1305,7 +1305,7 @@ function createKanbanBoard(
         if (!Number.isFinite(count) || count < 1) return;
         const base_title = prompt("Base title (optional)", "") || null;
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(task.id)}/split`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}/split`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1320,7 +1320,7 @@ function createKanbanBoard(
       .getElementById("kanban-detail-archive")
       ?.addEventListener("click", async () => {
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(task.id)}/archive`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}/archive`,
           {
             method: "PUT",
           },
@@ -1339,7 +1339,7 @@ function createKanbanBoard(
         )
           return;
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(task.id)}`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}`,
           { method: "DELETE" },
         );
         if (!res.ok) return alert("Suppression impossible");
@@ -1377,7 +1377,7 @@ function createKanbanBoard(
       if (!draggedId) return;
       const nextStatus = col.dataset.status;
       const res = await fetch(
-        `/api/kanban/tasks/${encodeURIComponent(draggedId)}`,
+        `/api/hub/kanban/tasks/${encodeURIComponent(draggedId)}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -1397,13 +1397,13 @@ function createKanbanBoard(
     }
     if (projectSlug) {
       const refresh = await fetch(
-        `/api/kanban/tasks?project=${encodeURIComponent(projectSlug)}`,
+        `/api/hub/kanban/tasks?project=${encodeURIComponent(projectSlug)}`,
       );
       const payload = refresh.ok ? await refresh.json() : { tasks: [] };
       createKanbanBoard(payload.tasks || [], target, projectSlug);
       return;
     }
-    const refresh = await fetch("/api/kanban/tasks");
+    const refresh = await fetch("/api/hub/kanban/tasks");
     const payload = refresh.ok ? await refresh.json() : { tasks: [] };
     const refreshedTasks = payload.tasks || [];
     updateKanbanOverview(refreshedTasks);
@@ -1413,7 +1413,7 @@ function createKanbanBoard(
 
 async function loadProjects() {
   const grid = document.getElementById("projects-grid");
-  const res = await fetch("/api/kanban/hub/projects");
+  const res = await fetch("/api/hub/kanban/hub/projects");
   if (!res.ok) {
     const fr = settingsLocale() === "fr";
     grid.insertAdjacentHTML(
@@ -1439,7 +1439,7 @@ async function loadProjects() {
       .map((t) => `<span class="chip">${t}</span>`)
       .join("");
     const logoBlock = project.has_logo
-      ? `<div class="card-project-logo"><img src="/api/kanban/hub/projects/${encodeURIComponent(project.slug)}/logo?v=${v}" alt="" loading="lazy" /></div>`
+      ? `<div class="card-project-logo"><img src="/api/hub/kanban/hub/projects/${encodeURIComponent(project.slug)}/logo?v=${v}" alt="" loading="lazy" /></div>`
       : "";
     const main = `<div class="card-project-main"><div class="title">${escapeHtml(project.name)} · ${escapeHtml(project.stage || "PoC")}</div><div class="desc">${escapeHtml(project.description || "")}</div>${tags ? `<div class="chips">${tags}</div>` : ""}</div>`;
     card.innerHTML = `<div class="card-project-row">${logoBlock}${main}</div>`;
@@ -1454,8 +1454,8 @@ async function wireProjectPage() {
   if (!slug) return;
   const fr = settingsLocale() === "fr";
   const [projectRes, taskRes] = await Promise.all([
-    fetch(`/api/kanban/hub/projects/${encodeURIComponent(slug)}`),
-    fetch(`/api/kanban/tasks?project=${encodeURIComponent(slug)}`),
+    fetch(`/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}`),
+    fetch(`/api/hub/kanban/tasks?project=${encodeURIComponent(slug)}`),
   ]);
   if (!projectRes.ok) {
     document.getElementById("project-details").innerHTML =
@@ -1580,7 +1580,7 @@ async function wireProjectPage() {
     const hero = document.getElementById("project-logo-hero");
     const mascot = document.querySelector(".project-hero-mascot");
     const show = !!project.has_logo;
-    const url = `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo?t=${Date.now()}`;
+    const url = `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo?t=${Date.now()}`;
     if (prev) {
       prev.hidden = !show;
       if (show) prev.src = url;
@@ -1613,7 +1613,7 @@ async function wireProjectPage() {
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
         { method: "PUT", body: fd },
       );
       if (!res.ok) {
@@ -1641,7 +1641,7 @@ async function wireProjectPage() {
       )
         return;
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
         { method: "DELETE" },
       );
       if (!res.ok) return;
@@ -1654,7 +1654,7 @@ async function wireProjectPage() {
     if (!frame) return;
     const fn = `${slug}.html`;
     const res = await fetch(
-      `/api/kanban/memory/quartz/${encodeURIComponent(fn)}`,
+      `/api/hub/kanban/memory/quartz/${encodeURIComponent(fn)}`,
     );
     const emptyMsg = fr
       ? `Aucune page ${fn}. Enregistrez la fiche, puis régénérez l'aperçu ou ouvrez le Brain.`
@@ -1671,7 +1671,7 @@ async function wireProjectPage() {
       }
     }
     const mdRes = await fetch(
-      `/api/kanban/memory/projects/${encodeURIComponent(`${slug}.md`)}`,
+      `/api/hub/kanban/memory/projects/${encodeURIComponent(`${slug}.md`)}`,
     );
     if (mdRes.ok) {
       const mdData = await mdRes.json();
@@ -1692,7 +1692,7 @@ async function wireProjectPage() {
   document
     .getElementById("project-rebuild-btn")
     .addEventListener("click", async () => {
-      const res = await fetch("/api/kanban/hub/brain/rebuild-static", {
+      const res = await fetch("/api/hub/kanban/hub/brain/rebuild-static", {
         method: "POST",
       });
       let data = {};
@@ -1742,7 +1742,7 @@ async function wireProjectPage() {
         notes: document.getElementById("pm-notes").value,
       };
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/memory-major`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/memory-major`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -1779,7 +1779,7 @@ async function wireProjectPage() {
       )
         return;
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/archive`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/archive`,
         {
           method: "POST",
         },
@@ -1799,7 +1799,7 @@ async function wireProjectPage() {
       )
         return;
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}`,
         {
           method: "DELETE",
         },
@@ -1984,7 +1984,7 @@ async function wireLogs() {
   }
 
   async function refreshLogs() {
-    const url = "/api/kanban/logs?limit=400";
+    const url = "/api/hub/kanban/logs?limit=400";
     const res = await fetch(url);
     const data = res.ok ? await res.json() : { logs: [] };
     allLogs = data.logs || [];
@@ -2163,10 +2163,10 @@ async function wireKanbanPage() {
   }
 
   async function refreshAll() {
-    const res = await fetch("/api/kanban/tasks");
+    const res = await fetch("/api/hub/kanban/tasks");
     const data = res.ok ? await res.json() : { tasks: [] };
     allTasks = data.tasks || [];
-    const metaRes = await fetch("/api/kanban/meta");
+    const metaRes = await fetch("/api/hub/kanban/meta");
     meta = metaRes.ok ? await metaRes.json() : {};
     if (filterSel) {
       const current = filterSel.value;
@@ -2228,7 +2228,7 @@ async function wireKanbanPage() {
         document.getElementById("kanban-create-description")?.value?.trim() ||
         "";
       const effort_hours = effortRaw ? Number(effortRaw) : null;
-      const res = await fetch("/api/kanban/tasks", {
+      const res = await fetch("/api/hub/kanban/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2251,7 +2251,7 @@ async function wireKanbanPage() {
       archiveOverlay?.classList.add("open");
       if (!archiveContent) return;
       archiveContent.innerHTML = '<div class="task">Loading archive...</div>';
-      const res = await fetch("/api/kanban/tasks/archive");
+      const res = await fetch("/api/hub/kanban/tasks/archive");
       const data = res.ok ? await res.json() : { tasks: [] };
       const archived = data.tasks || [];
       archiveContent.innerHTML =
@@ -2270,7 +2270,7 @@ async function wireKanbanPage() {
         btn.addEventListener("click", async () => {
           const taskId = btn.dataset.restoreTask;
           const resp = await fetch(
-            `/api/kanban/tasks/${encodeURIComponent(taskId)}/restore`,
+            `/api/hub/kanban/tasks/${encodeURIComponent(taskId)}/restore`,
             {
               method: "PUT",
             },
@@ -2385,7 +2385,7 @@ async function wireHome() {
       const tags = tagValues;
       const template = document.getElementById("project-template").value;
       const stage = document.getElementById("project-stage").value;
-      const res = await fetch("/api/kanban/hub/projects", {
+      const res = await fetch("/api/hub/kanban/hub/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2489,9 +2489,9 @@ function wireSystemStatus() {
   async function loadBusinessKpis() {
     try {
       const [projRes, tasksRes, brainRes] = await Promise.allSettled([
-        fetch("/api/kanban/hub/projects", { cache: "no-store" }),
-        fetch("/api/kanban/tasks", { cache: "no-store" }),
-        fetch("/api/kanban/memory/projects", { cache: "no-store" }),
+        fetch("/api/hub/kanban/hub/projects", { cache: "no-store" }),
+        fetch("/api/hub/kanban/tasks", { cache: "no-store" }),
+        fetch("/api/hub/kanban/memory/projects", { cache: "no-store" }),
       ]);
 
       if (projRes.status === "fulfilled" && projRes.value.ok) {
@@ -2583,7 +2583,7 @@ async function wireSettings() {
     setHealth(workspaceHealth, !!root, !!root ? t.configured : t.notConfigured);
   };
 
-  const res = await fetch("/api/kanban/hub/settings");
+  const res = await fetch("/api/hub/kanban/hub/settings");
   if (res.ok) {
     const data = await res.json();
     document.getElementById("projects-root").value = data.projects_root || "";
@@ -2600,7 +2600,7 @@ async function wireSettings() {
       const instances_external_root = document
         .getElementById("instances-external-root")
         .value.trim();
-      const save = await fetch("/api/kanban/hub/settings", {
+      const save = await fetch("/api/hub/kanban/hub/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projects_root, instances_external_root }),
@@ -2809,7 +2809,7 @@ async function wireSettings() {
     const sel = document.getElementById("instances-multi");
     if (!sel) return;
     sel.innerHTML = `<option disabled>${escapeHtml(t.loadingInstances)}</option>`;
-    const r = await fetch("/api/kanban/hub/instances");
+    const r = await fetch("/api/hub/kanban/hub/instances");
     if (!r.ok) {
       sel.innerHTML = `<option disabled>${escapeHtml(t.loadInstancesFailed)}</option>`;
       setHealth(instancesHealth, false, `0 ${t.linked}`);
@@ -2846,8 +2846,8 @@ async function wireSettings() {
       .map((o) => o.value);
     if (!paths.length) return;
     const url = link
-      ? "/api/kanban/hub/instances/link"
-      : "/api/kanban/hub/instances/unlink";
+      ? "/api/hub/kanban/hub/instances/link"
+      : "/api/hub/kanban/hub/instances/unlink";
     const results = await Promise.all(
       paths.map((pathValue) =>
         fetch(url, {
@@ -2888,7 +2888,7 @@ async function refreshBrainSourceHint() {
   if (!el) return;
   const fr = settingsLocale() === "fr";
   try {
-    const r = await fetch("/api/kanban/hub/settings");
+    const r = await fetch("/api/hub/kanban/hub/settings");
     const d = r.ok ? await r.json() : {};
     const p = (d.active_brain_memory || "").trim();
     el.textContent = p
@@ -2915,12 +2915,12 @@ async function wireMemoryEditor() {
   await refreshBrainSourceHint();
 
   async function loadQuartzList() {
-    const res = await fetch("/api/kanban/memory/quartz");
+    const res = await fetch("/api/hub/kanban/memory/quartz");
     const payload = res.ok ? await res.json() : { files: [] };
     let files = payload.files || [];
     brainPreviewKind = "html";
     if (!files.length) {
-      const mres = await fetch("/api/kanban/memory/projects");
+      const mres = await fetch("/api/hub/kanban/memory/projects");
       const mp = mres.ok ? await mres.json() : { files: [] };
       files = (mp.files || []).filter((f) =>
         String(f).toLowerCase().endsWith(".md"),
@@ -2951,7 +2951,7 @@ async function wireMemoryEditor() {
   async function loadQuartzPage(filename) {
     if (brainPreviewKind === "md") {
       const res = await fetch(
-        `/api/kanban/memory/projects/${encodeURIComponent(filename)}`,
+        `/api/hub/kanban/memory/projects/${encodeURIComponent(filename)}`,
       );
       const payload = res.ok ? await res.json() : { content: "" };
       const text = (payload.content || "").trim();
@@ -2959,7 +2959,7 @@ async function wireMemoryEditor() {
       return;
     }
     const res = await fetch(
-      `/api/kanban/memory/quartz/${encodeURIComponent(filename)}`,
+      `/api/hub/kanban/memory/quartz/${encodeURIComponent(filename)}`,
     );
     const payload = res.ok ? await res.json() : { content: "" };
     let html = (payload.content || "").trim();
@@ -2977,7 +2977,7 @@ async function wireMemoryEditor() {
   });
   quartzRefresh.addEventListener("click", loadQuartzList);
   quartzRebuild?.addEventListener("click", async () => {
-    const res = await fetch("/api/kanban/hub/brain/rebuild-static", {
+    const res = await fetch("/api/hub/kanban/hub/brain/rebuild-static", {
       method: "POST",
     });
     let data = {};
@@ -3009,7 +3009,7 @@ async function wireMemoryEdit() {
   await refreshBrainSourceHint();
 
   async function loadList() {
-    const res = await fetch("/api/kanban/memory/projects");
+    const res = await fetch("/api/hub/kanban/memory/projects");
     const payload = res.ok ? await res.json() : { files: [] };
     select.innerHTML = (payload.files || [])
       .map((f) => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`)
@@ -3022,7 +3022,7 @@ async function wireMemoryEdit() {
   }
   async function loadFile(filename) {
     const res = await fetch(
-      `/api/kanban/memory/projects/${encodeURIComponent(filename)}`,
+      `/api/hub/kanban/memory/projects/${encodeURIComponent(filename)}`,
     );
     if (!res.ok) return;
     const payload = await res.json();
@@ -3037,7 +3037,7 @@ async function wireMemoryEdit() {
   document.getElementById("memory-save").addEventListener("click", async () => {
     const filename = name.value.trim();
     if (!filename) return;
-    const res = await fetch("/api/kanban/memory/projects", {
+    const res = await fetch("/api/hub/kanban/memory/projects", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ filename, content: content.value }),
@@ -3174,7 +3174,7 @@ async function wireMemoryGraph() {
   }
 
   async function loadGraph() {
-    const res = await fetch("/api/kanban/memory/graph");
+    const res = await fetch("/api/hub/kanban/memory/graph");
     const data = res.ok ? await res.json() : { nodes: [], edges: [] };
     const nodes = data.nodes || [];
     const edges = data.edges || [];
@@ -3244,7 +3244,7 @@ async function wireChat() {
 
   // Fetch provider status from backend
   try {
-    const res = await fetch("/api/kanban/hub/chat/status");
+    const res = await fetch("/api/hub/chat/status");
     if (res.ok) {
       const s = await res.json();
       const configured =
@@ -3297,7 +3297,7 @@ async function wireChat() {
     let full = "";
 
     try {
-      const res = await fetch("/api/kanban/hub/chat", {
+      const res = await fetch("/api/hub/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg, history: history.slice(0, -1) }),
