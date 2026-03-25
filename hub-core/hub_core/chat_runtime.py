@@ -12,6 +12,21 @@ from typing import AsyncIterator
 import httpx
 
 
+def _stream_error_chunk(status_code: int, body: bytes) -> str:
+    """Stable token for chat UI i18n (see hub formatClawvisChatAssistantText)."""
+    raw = body.decode("utf-8", errors="replace")
+    if status_code == 401:
+        return "[CLAWVIS:AUTH]"
+    try:
+        data = json.loads(raw)
+        err = data.get("error")
+        if isinstance(err, dict) and err.get("type") == "authentication_error":
+            return "[CLAWVIS:AUTH]"
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return f"[CLAWVIS:HTTP:{status_code}]"
+
+
 def provider_config() -> dict:
     """Return active provider settings from environment."""
     provider = os.environ.get("PRIMARY_AI_PROVIDER", "claude").lower()
@@ -84,8 +99,7 @@ async def stream_claude(
         ) as resp:
             if not resp.is_success:
                 body = await resp.aread()
-                status = resp.status_code
-                yield f"[API error {status}: {body.decode()[:200]}]"
+                yield _stream_error_chunk(resp.status_code, body)
                 return
             async for chunk in _sse_chunks(
                 resp,
@@ -118,7 +132,7 @@ async def stream_mistral(
         ) as resp:
             if not resp.is_success:
                 body = await resp.aread()
-                yield f"[API error {resp.status_code}: {body.decode()[:200]}]"
+                yield _stream_error_chunk(resp.status_code, body)
                 return
             async for chunk in _sse_chunks(
                 resp,
@@ -152,7 +166,7 @@ async def stream_openclaw(
         ) as resp:
             if not resp.is_success:
                 body = await resp.aread()
-                yield f"[API error {resp.status_code}: {body.decode()[:200]}]"
+                yield _stream_error_chunk(resp.status_code, body)
                 return
             async for chunk in _sse_chunks(
                 resp,

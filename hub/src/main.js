@@ -1,6 +1,6 @@
 import "./style.css";
 import { marked } from "marked";
-import { escapeHtml } from "./utils.js";
+import { escapeHtml, projectInitials, projectAvatarHue } from "./utils.js";
 
 const BRAIN_MD_PAGE_CSS = `
 :root{color-scheme:dark}
@@ -50,6 +50,65 @@ function settingsLocale() {
   return (navigator.language || "en").toLowerCase().startsWith("fr")
     ? "fr"
     : "en";
+}
+
+function ensureGlobalConfirmModal() {
+  if (document.getElementById("global-confirm-overlay")) return;
+  const wrap = document.createElement("div");
+  wrap.id = "global-confirm-overlay";
+  wrap.className = "modal-overlay confirm-modal-overlay";
+  wrap.innerHTML = `
+    <div class="panel confirm-modal-panel" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <h2 id="confirm-modal-title" class="confirm-modal-title"></h2>
+      <p id="confirm-modal-message" class="confirm-modal-message"></p>
+      <div class="confirm-modal-actions">
+        <button type="button" class="btn" id="confirm-modal-cancel"></button>
+        <button type="button" class="btn btn-primary" id="confirm-modal-ok"></button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+}
+
+/** @param {{ title: string; message: string; confirmLabel: string; cancelLabel: string }} opts */
+function showConfirm(opts) {
+  ensureGlobalConfirmModal();
+  const overlay = document.getElementById("global-confirm-overlay");
+  const titleEl = document.getElementById("confirm-modal-title");
+  const msgEl = document.getElementById("confirm-modal-message");
+  const okBtn = document.getElementById("confirm-modal-ok");
+  const cancelBtn = document.getElementById("confirm-modal-cancel");
+  titleEl.textContent = opts.title;
+  msgEl.textContent = opts.message;
+  okBtn.textContent = opts.confirmLabel;
+  cancelBtn.textContent = opts.cancelLabel;
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (v) => {
+      if (settled) return;
+      settled = true;
+      overlay.classList.remove("open");
+      document.removeEventListener("keydown", onKey);
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      overlay.removeEventListener("click", onOverlay);
+      resolve(v);
+    };
+    const onOk = () => finish(true);
+    const onCancel = () => finish(false);
+    const onOverlay = (e) => {
+      if (e.target === overlay) onCancel();
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") onCancel();
+    };
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+    overlay.addEventListener("click", onOverlay);
+    document.addEventListener("keydown", onKey);
+    overlay.classList.add("open");
+    okBtn.focus();
+  });
 }
 
 const SETTINGS_TEXT = {
@@ -277,6 +336,29 @@ function subpageHeader(pageKey) {
       <div class="title">
         <h1>${escapeHtml(pack.title)} · <span>Clawvis</span></h1>
         <p>${escapeHtml(pack.sub)}</p>
+      </div>
+      <div class="sub-page-header-actions">
+        <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
+        <button class="header-icon icon-button" type="button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+          <span id="theme-toggle-icon">🌙</span>
+        </button>
+      </div>
+    </header>
+  `;
+}
+
+/** Kanban/Logs-style header for a single project; subtitle = display name (synced from API). */
+function projectPageHeader(displayName) {
+  const loc = settingsLocale();
+  const fr = loc === "fr";
+  const t = SETTINGS_TEXT[loc];
+  const titleWord = fr ? "Projet" : "Project";
+  const sub = (displayName || "").trim();
+  return `
+    <header class="settings-page-header project-page-top">
+      <div class="title">
+        <h1>${escapeHtml(titleWord)} · <span>Clawvis</span></h1>
+        <p id="project-subtitle" class="project-page-name-line">${escapeHtml(sub)}</p>
       </div>
       <div class="sub-page-header-actions">
         <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
@@ -915,30 +997,99 @@ function renderSettings() {
 function renderProjectPage(projectSlug) {
   const fr = settingsLocale() === "fr";
   app.innerHTML = `
-    <div class="wrap">
-      ${topbar()}
-      <div class="hero project-hero">
-        <div class="project-hero-brand">
-          <img id="project-logo-hero" class="project-logo-hero" alt="" hidden src="" />
-          <img src="/clawvis-mascot.svg" alt="Clawvis" class="project-hero-mascot" />
-        </div>
-        <div><h1>${fr ? "Projet" : "Project"}</h1><p id="project-subtitle">${escapeHtml(projectSlug || "")}</p></div>
-      </div>
-      <div class="project-toolbar">
-        <a class="btn" href="/">${fr ? "← Retour au Hub" : "← Back to Hub"}</a>
+    <div class="wrap project-page-wrap" data-project-slug="${escapeHtml(projectSlug || "")}">
+      ${projectPageHeader(projectSlug || "")}
+      <div class="project-toolbar project-toolbar-minimal">
+        <button class="btn project-header-toggle" id="project-header-toggle" type="button" aria-expanded="true" aria-controls="project-header-collapsible">${fr ? "Masquer la fiche" : "Hide sheet"}</button>
+        <button class="btn btn-primary" id="project-new-task" type="button">${fr ? "+ Tâche" : "+ New task"}</button>
+        <span class="project-toolbar-spacer"></span>
         <button class="btn" id="project-preview-btn" type="button">${fr ? "Aperçu Brain" : "Brain preview"}</button>
-        <button class="btn" id="project-rebuild-btn" type="button">${fr ? "Rafraîchir l'aperçu HTML" : "Rebuild HTML preview"}</button>
         <button class="btn" id="project-dev-btn" type="button">${fr ? "Copier : lancer en local" : "Copy: run locally"}</button>
         <button class="btn" id="archive-project-btn" type="button">${fr ? "Archiver le projet" : "Archive project"}</button>
         <button class="btn" id="delete-project-btn" type="button" style="border-color:#ef4444;color:#ef4444;">${fr ? "Supprimer le projet" : "Delete project"}</button>
       </div>
-      <p class="muted project-meta-hint" id="project-meta-hint"></p>
+      <div class="project-header-block" id="project-header-block">
+        <div class="project-header-collapsible" id="project-header-collapsible">
+          <div class="project-sheet-card tile project-sheet-top">
+            <div class="hero project-hero project-hero-simple project-hero-in-sheet">
+              <div class="project-hero-avatar-wrap">
+                <img id="project-logo-hero" class="project-logo-hero" alt="" hidden />
+                <div id="project-avatar-fallback" class="project-avatar-fallback" hidden></div>
+                <input type="file" id="project-logo-file" class="visually-hidden" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" />
+                <button type="button" class="project-logo-edit-btn" id="project-logo-edit-btn" title="${fr ? "Changer le logo" : "Change logo"}" aria-label="${fr ? "Changer le logo" : "Change logo"}">✎</button>
+                <button type="button" class="project-logo-remove-btn" id="project-logo-remove-btn" hidden title="${fr ? "Retirer le logo" : "Remove logo"}" aria-label="${fr ? "Retirer le logo" : "Remove logo"}">×</button>
+              </div>
+              <p class="muted project-sheet-hint" style="margin:0;flex:1;font-size:12px;line-height:1.45;">${fr ? "Logo tout de suite ; textes du formulaire via « Enregistrer dans la mémoire » → fichier .md du projet." : "Logo saves immediately; form text via « Save to memory » → the project .md file."}</p>
+            </div>
+            <div class="project-memory-form">
+              <div class="field">
+                <label for="pm-description">${fr ? "Description" : "Description"}</label>
+                <textarea id="pm-description" rows="2" placeholder="${fr ? "Résumé du projet" : "Project summary"}"></textarea>
+              </div>
+              <div class="field">
+                <label for="pm-strategy">${fr ? "Vision stratégique" : "Strategic vision"}</label>
+                <textarea id="pm-strategy" rows="2" placeholder="${fr ? "Direction, ambition" : "Direction, ambition"}"></textarea>
+              </div>
+              <div class="field">
+                <label for="pm-objectives">${fr ? "Objectifs" : "Objectives"}</label>
+                <textarea id="pm-objectives" rows="2" placeholder="${fr ? "Objectifs macro, jalons" : "Macro goals, milestones"}"></textarea>
+              </div>
+              <div class="project-memory-form-actions">
+                <button class="btn btn-primary" id="project-memory-save" type="button">${fr ? "Enregistrer dans la mémoire" : "Save to memory"}</button>
+                <span class="muted" id="project-memory-save-status" style="font-size:12px;"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="project-brain-preview" class="tile project-brain-preview" hidden>
         <div class="title" style="font-size:14px;margin-bottom:8px;">${fr ? "Aperçu live (HTML)" : "Live preview (HTML)"}</div>
         <iframe id="project-brain-frame" class="quartz-frame" title="Brain preview"></iframe>
       </div>
-      <div id="project-details" class="tile project-editor"></div>
+      <div id="project-details" class="project-details-shell" hidden></div>
       <div id="project-kanban" class="kanban-board"></div>
+      <div id="kanban-detail-overlay" class="modal-overlay">
+        <div id="kanban-detail-modal" class="panel"></div>
+      </div>
+      <div id="kanban-create-overlay" class="modal-overlay">
+        <div class="panel">
+          <button class="modal-close" id="kanban-create-close" type="button">&times;</button>
+          <h2>${fr ? "Nouvelle tâche" : "New Task"}</h2>
+          <div class="field">
+            <label>${fr ? "Titre" : "Title"}</label>
+            <input id="kanban-create-title" />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>${fr ? "Projet" : "Project"}</label>
+              <input id="kanban-create-project" />
+            </div>
+            <div class="field">
+              <label>${fr ? "Priorité" : "Priority"}</label>
+              <select id="kanban-create-priority">
+                <option>Critical</option><option>High</option><option selected>Medium</option><option>Low</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>${fr ? "Effort (h)" : "Effort hours"}</label>
+              <input id="kanban-create-effort" type="number" min="0" step="0.5" />
+            </div>
+            <div class="field">
+              <label>${fr ? "Assigné" : "Assignee"}</label>
+              <input id="kanban-create-assignee" value="DomBot" />
+            </div>
+          </div>
+          <div class="field">
+            <label>${fr ? "Description" : "Description"}</label>
+            <textarea id="kanban-create-description"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button class="btn" id="kanban-create-submit" type="button">${fr ? "Créer" : "Create"}</button>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -1278,12 +1429,16 @@ function createKanbanBoard(
     document
       .getElementById("kanban-detail-delete")
       ?.addEventListener("click", async () => {
-        if (
-          !confirm(
-            "Supprimer cette tâche définitivement ? Elle disparaîtra du Kanban et des dépendances.",
-          )
-        )
-          return;
+        const locFr = settingsLocale() === "fr";
+        const ok = await showConfirm({
+          title: locFr ? "Êtes-vous sûr ?" : "Are you sure?",
+          message: locFr
+            ? "Supprimer cette tâche définitivement ? Elle disparaîtra du Kanban et des dépendances."
+            : "Delete this task permanently? It will be removed from the board and dependencies.",
+          confirmLabel: locFr ? "Supprimer" : "Delete",
+          cancelLabel: locFr ? "Annuler" : "Cancel",
+        });
+        if (!ok) return;
         const res = await fetch(
           `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}`,
           { method: "DELETE" },
@@ -1393,153 +1548,85 @@ async function loadProjects() {
   });
 }
 
+function wireProjectHeaderCollapse(slug) {
+  const fr = settingsLocale() === "fr";
+  const block = document.getElementById("project-header-block");
+  const btn = document.getElementById("project-header-toggle");
+  if (!block || !btn) return;
+  const key = `clawvis-project-header-collapsed:${encodeURIComponent(slug)}`;
+  const collapsed = localStorage.getItem(key) === "1";
+  function apply(c) {
+    block.classList.toggle("is-collapsed", c);
+    btn.setAttribute("aria-expanded", c ? "false" : "true");
+    btn.textContent = c
+      ? fr
+        ? "Afficher la fiche"
+        : "Show sheet"
+      : fr
+        ? "Masquer la fiche"
+        : "Hide sheet";
+    localStorage.setItem(key, c ? "1" : "0");
+  }
+  apply(collapsed);
+  btn.addEventListener("click", () =>
+    apply(!block.classList.contains("is-collapsed")),
+  );
+}
+
 async function wireProjectPage() {
   const slug = decodeURIComponent(
     path.replace("/project/", "").split("/")[0] || "",
   );
   if (!slug) return;
+  wireProjectHeaderCollapse(slug);
   const fr = settingsLocale() === "fr";
   const [projectRes, taskRes] = await Promise.all([
     fetch(`/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}`),
     fetch(`/api/hub/kanban/tasks?project=${encodeURIComponent(slug)}`),
   ]);
+  const details = document.getElementById("project-details");
   if (!projectRes.ok) {
-    document.getElementById("project-details").innerHTML =
-      `<div class="title">${fr ? "Projet introuvable" : "Project not found"}</div>`;
+    if (details) {
+      details.hidden = false;
+      details.innerHTML = `<div class="title">${fr ? "Projet introuvable" : "Project not found"}</div>`;
+    }
     return;
   }
   let payload = await projectRes.json();
   const tasks = taskRes.ok ? await taskRes.json() : { tasks: [] };
   let project = payload.project || {};
-  const major = payload.major || {};
+  if (details) {
+    details.innerHTML = "";
+    details.hidden = true;
+  }
   document.getElementById("project-subtitle").textContent =
     project.name || slug;
-  const hintEl = document.getElementById("project-meta-hint");
-  if (hintEl && project.repo_path) {
-    hintEl.textContent = `${fr ? "Dépôt" : "Repo"}: ${project.repo_path}`;
-  }
-  const details = document.getElementById("project-details");
-  const L = {
-    sheet: fr ? "Fiche mémoire" : "Memory sheet",
-    hint: fr
-      ? "Enregistré dans memory/projects/ (source de vérité)."
-      : "Stored under memory/projects/ (source of truth).",
-    secPres: fr ? "Présentation" : "Overview",
-    secPresHint: fr
-      ? "Identité visible : titre, résumé, image optionnelle."
-      : "Visible identity: title, summary, optional image.",
-    secVision: fr ? "Vision & direction" : "Vision & direction",
-    secVisionHint: fr
-      ? "Pourquoi ce projet existe, comment on le mène, le résultat visé."
-      : "Why it exists, how you steer it, the outcome you want.",
-    secOps: fr ? "Pilotage & liens" : "Execution & links",
-    secOpsHint: fr
-      ? "Où ça vit, ce que le Kanban doit refléter, liens utiles."
-      : "Where it lives, Kanban focus, useful links.",
-    secNotes: fr ? "Notes libres" : "Notes",
-    secNotesHint: fr
-      ? "Tout ce qui ne tient pas dans les blocs ci-dessus."
-      : "Anything that does not fit the blocks above.",
-    title: fr ? "Titre affiché (H1)" : "Display title (H1)",
-    description: fr ? "Résumé" : "Summary",
-    macro: fr ? "Objectifs macro" : "Macro objectives",
-    strategy: fr ? "Stratégie" : "Strategy",
-    objective: fr ? "Objectif mesurable" : "Measurable objective",
-    context: fr ? "Contexte / périmètre" : "Context / scope",
-    kanban: fr ? "Focus Kanban" : "Kanban focus",
-    links: fr ? "Liens (URLs, outils)" : "Links (URLs, tools)",
-    notes: fr ? "Notes" : "Notes",
-    save: fr ? "Enregistrer la fiche" : "Save sheet",
-    logo: fr ? "Logo / image" : "Logo / image",
-    logoHelp: fr
-      ? "PNG, JPEG, GIF, WebP ou SVG (max 2 Mo). Affiché sur la tuile du Hub et en tête de page."
-      : "PNG, JPEG, GIF, WebP or SVG (max 2MB). Shown on Hub tile and page header.",
-    logoUpload: fr ? "Enregistrer l’image" : "Save image",
-    logoRemove: fr ? "Retirer" : "Remove",
-    logoPick: fr ? "Choisir un fichier…" : "Choose file…",
-  };
-  details.innerHTML = `
-    <div class="title">${escapeHtml(L.sheet)}</div>
-    <p class="muted project-sheet-hint">${escapeHtml(L.hint)}</p>
-
-    <section class="project-memory-section" aria-labelledby="pm-sec-pres">
-      <h3 class="project-memory-section-title" id="pm-sec-pres">${escapeHtml(L.secPres)}</h3>
-      <p class="project-memory-section-hint">${escapeHtml(L.secPresHint)}</p>
-      <div class="field">
-        <label for="project-logo-file">${escapeHtml(L.logo)}</label>
-        <p class="field-hint">${escapeHtml(L.logoHelp)}</p>
-        <div class="project-logo-editor">
-          <img id="project-logo-preview" class="project-logo-preview" alt="" width="72" height="72" hidden src="" />
-          <div class="project-logo-editor-actions">
-            <input type="file" id="project-logo-file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" />
-            <button class="btn" id="project-logo-save" type="button">${escapeHtml(L.logoUpload)}</button>
-            <button class="btn" id="project-logo-clear" type="button">${escapeHtml(L.logoRemove)}</button>
-          </div>
-        </div>
-      </div>
-      <div class="field"><label for="pm-title">${escapeHtml(L.title)}</label><input id="pm-title" type="text" autocomplete="off" /></div>
-      <div class="field"><label for="pm-description">${escapeHtml(L.description)}</label><textarea id="pm-description" rows="3"></textarea></div>
-    </section>
-
-    <section class="project-memory-section" aria-labelledby="pm-sec-vision">
-      <h3 class="project-memory-section-title" id="pm-sec-vision">${escapeHtml(L.secVision)}</h3>
-      <p class="project-memory-section-hint">${escapeHtml(L.secVisionHint)}</p>
-      <div class="field"><label for="pm-macro">${escapeHtml(L.macro)}</label><textarea id="pm-macro" rows="3"></textarea></div>
-      <div class="field"><label for="pm-strategy">${escapeHtml(L.strategy)}</label><textarea id="pm-strategy" rows="3"></textarea></div>
-      <div class="field"><label for="pm-objective">${escapeHtml(L.objective)}</label><textarea id="pm-objective" rows="2"></textarea></div>
-    </section>
-
-    <section class="project-memory-section" aria-labelledby="pm-sec-ops">
-      <h3 class="project-memory-section-title" id="pm-sec-ops">${escapeHtml(L.secOps)}</h3>
-      <p class="project-memory-section-hint">${escapeHtml(L.secOpsHint)}</p>
-      <div class="field"><label for="pm-context">${escapeHtml(L.context)}</label><textarea id="pm-context" rows="2"></textarea></div>
-      <div class="field"><label for="pm-kanban">${escapeHtml(L.kanban)}</label><textarea id="pm-kanban" rows="2"></textarea></div>
-      <div class="field"><label for="pm-links">${escapeHtml(L.links)}</label><textarea id="pm-links" rows="2"></textarea></div>
-    </section>
-
-    <section class="project-memory-section" aria-labelledby="pm-sec-notes">
-      <h3 class="project-memory-section-title" id="pm-sec-notes">${escapeHtml(L.secNotes)}</h3>
-      <p class="project-memory-section-hint">${escapeHtml(L.secNotesHint)}</p>
-      <div class="field"><label for="pm-notes">${escapeHtml(L.notes)}</label><textarea id="pm-notes" rows="4"></textarea></div>
-    </section>
-
-    <div class="editor-actions">
-      <button class="btn btn-primary" id="project-save-memory" type="button">${escapeHtml(L.save)}</button>
-      <span class="muted" id="project-save-status" style="font-size:13px;"></span>
-    </div>
-  `;
-  function fillMajorForm() {
-    const m = payload.major || {};
-    document.getElementById("pm-title").value =
-      m.title || project.name || slug || "";
-    document.getElementById("pm-description").value = m.description || "";
-    document.getElementById("pm-macro").value = m.macro_objectives || "";
-    document.getElementById("pm-strategy").value = m.strategy || "";
-    document.getElementById("pm-objective").value = m.objective || "";
-    document.getElementById("pm-context").value = m.context || "";
-    document.getElementById("pm-kanban").value = m.kanban || "";
-    document.getElementById("pm-links").value = m.links || "";
-    document.getElementById("pm-notes").value = m.notes || "";
-  }
+  const major = payload.major || {};
+  const descEl = document.getElementById("pm-description");
+  const stratEl = document.getElementById("pm-strategy");
+  const objEl = document.getElementById("pm-objectives");
+  if (descEl) descEl.value = major.description || "";
+  if (stratEl) stratEl.value = major.strategy || "";
+  if (objEl) objEl.value = major.macro_objectives || "";
   function syncProjectLogo() {
-    const prev = document.getElementById("project-logo-preview");
     const hero = document.getElementById("project-logo-hero");
-    const mascot = document.querySelector(".project-hero-mascot");
-    const show = !!project.has_logo;
+    const fallback = document.getElementById("project-avatar-fallback");
+    const removeBtn = document.getElementById("project-logo-remove-btn");
+    const showImg = !!project.has_logo;
     const url = `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo?t=${Date.now()}`;
-    if (prev) {
-      prev.hidden = !show;
-      if (show) prev.src = url;
-      else prev.removeAttribute("src");
-    }
+    const displayName = project.name || slug;
     if (hero) {
-      hero.hidden = !show;
-      if (show) hero.src = url;
+      hero.hidden = !showImg;
+      if (showImg) hero.src = url;
       else hero.removeAttribute("src");
     }
-    if (mascot) mascot.hidden = show;
+    if (fallback) {
+      fallback.hidden = showImg;
+      fallback.textContent = projectInitials(displayName);
+      fallback.style.setProperty("--avatar-h", String(projectAvatarHue(slug)));
+    }
+    if (removeBtn) removeBtn.hidden = !showImg;
   }
-  fillMajorForm();
   syncProjectLogo();
   createKanbanBoard(
     tasks.tasks || [],
@@ -1547,38 +1634,104 @@ async function wireProjectPage() {
     slug,
   );
 
+  const createOverlay = document.getElementById("kanban-create-overlay");
+  document.getElementById("project-new-task")?.addEventListener("click", () => {
+    const projIn = document.getElementById("kanban-create-project");
+    if (projIn) projIn.value = slug;
+    const tIn = document.getElementById("kanban-create-title");
+    if (tIn) tIn.value = "";
+    createOverlay?.classList.add("open");
+  });
   document
-    .getElementById("project-logo-save")
-    ?.addEventListener("click", async () => {
-      const input = document.getElementById("project-logo-file");
-      const file = input?.files?.[0];
-      if (!file) {
-        alert(fr ? "Choisis d’abord une image." : "Pick an image first.");
-        return;
-      }
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch(
-        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
-        { method: "PUT", body: fd },
-      );
-      if (!res.ok) {
-        let msg = fr ? "Échec envoi du logo." : "Logo upload failed.";
-        try {
-          const j = await res.json();
-          if (j.detail) msg = typeof j.detail === "string" ? j.detail : msg;
-        } catch {
-          /* ignore */
-        }
-        alert(msg);
-        return;
-      }
-      project = { ...project, has_logo: true };
-      syncProjectLogo();
-      if (input) input.value = "";
+    .getElementById("kanban-create-close")
+    ?.addEventListener("click", () => {
+      createOverlay?.classList.remove("open");
     });
+  createOverlay?.addEventListener("click", (e) => {
+    if (e.target === createOverlay) createOverlay.classList.remove("open");
+  });
   document
-    .getElementById("project-logo-clear")
+    .getElementById("kanban-create-submit")
+    ?.addEventListener("click", async () => {
+      const title = document
+        .getElementById("kanban-create-title")
+        ?.value?.trim();
+      if (!title) return;
+      const project =
+        document.getElementById("kanban-create-project")?.value?.trim() || slug;
+      const priority =
+        document.getElementById("kanban-create-priority")?.value || "Medium";
+      const effortRaw =
+        document.getElementById("kanban-create-effort")?.value?.trim() || "";
+      const assignee =
+        document.getElementById("kanban-create-assignee")?.value?.trim() ||
+        "DomBot";
+      const description =
+        document.getElementById("kanban-create-description")?.value?.trim() ||
+        "";
+      const effort_hours = effortRaw ? Number(effortRaw) : null;
+      const res = await fetch("/api/hub/kanban/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          project,
+          priority,
+          effort_hours,
+          assignee,
+          description,
+        }),
+      });
+      if (!res.ok) return alert(fr ? "Échec création" : "Create failed");
+      createOverlay?.classList.remove("open");
+      const refresh = await fetch(
+        `/api/hub/kanban/tasks?project=${encodeURIComponent(slug)}`,
+      );
+      const payload = refresh.ok ? await refresh.json() : { tasks: [] };
+      createKanbanBoard(
+        payload.tasks || [],
+        document.getElementById("project-kanban"),
+        slug,
+      );
+    });
+
+  const logoInput = document.getElementById("project-logo-file");
+  document
+    .getElementById("project-logo-edit-btn")
+    ?.addEventListener("click", () => logoInput?.click());
+
+  async function uploadProjectLogo(file) {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(
+      `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
+      { method: "PUT", body: fd },
+    );
+    if (!res.ok) {
+      let msg = fr ? "Échec envoi du logo." : "Logo upload failed.";
+      try {
+        const j = await res.json();
+        if (j.detail) msg = typeof j.detail === "string" ? j.detail : msg;
+      } catch {
+        /* ignore */
+      }
+      alert(msg);
+      return;
+    }
+    project = { ...project, has_logo: true };
+    syncProjectLogo();
+  }
+
+  logoInput?.addEventListener("change", async () => {
+    const file = logoInput.files?.[0];
+    if (file) {
+      await uploadProjectLogo(file);
+      logoInput.value = "";
+    }
+  });
+
+  document
+    .getElementById("project-logo-remove-btn")
     ?.addEventListener("click", async () => {
       if (
         !confirm(
@@ -1590,7 +1743,7 @@ async function wireProjectPage() {
         `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
         { method: "DELETE" },
       );
-      if (!res.ok) return;
+      if (!res.ok) return alert(fr ? "Échec." : "Failed.");
       project = { ...project, has_logo: false };
       syncProjectLogo();
     });
@@ -1599,12 +1752,10 @@ async function wireProjectPage() {
     const frame = document.getElementById("project-brain-frame");
     if (!frame) return;
     const fn = `${slug}.html`;
-    const res = await fetch(
-      `/api/hub/kanban/memory/quartz/${encodeURIComponent(fn)}`,
-    );
+    const res = await fetch(`/api/hub/memory/quartz/${encodeURIComponent(fn)}`);
     const emptyMsg = fr
-      ? `Aucune page ${fn}. Enregistrez la fiche, puis régénérez l'aperçu ou ouvrez le Brain.`
-      : `No ${fn} yet. Save the sheet, then rebuild preview or open Brain.`;
+      ? `Aucune page ${fn}. Ouvrez le Brain pour éditer memory/projects/${slug}.md.`
+      : `No ${fn} yet. Open Brain to edit memory/projects/${slug}.md.`;
     if (res.ok) {
       const data = await res.json();
       let html = (data.content || "").trim();
@@ -1617,7 +1768,7 @@ async function wireProjectPage() {
       }
     }
     const mdRes = await fetch(
-      `/api/hub/kanban/memory/projects/${encodeURIComponent(`${slug}.md`)}`,
+      `/api/hub/memory/projects/${encodeURIComponent(`${slug}.md`)}`,
     );
     if (mdRes.ok) {
       const mdData = await mdRes.json();
@@ -1628,64 +1779,13 @@ async function wireProjectPage() {
   }
 
   document
-    .getElementById("project-preview-btn")
-    .addEventListener("click", async () => {
-      const wrap = document.getElementById("project-brain-preview");
-      const hidden = !wrap.hidden;
-      wrap.hidden = hidden;
-      if (!hidden) await loadBrainPreviewHtml();
-    });
-  document
-    .getElementById("project-rebuild-btn")
-    .addEventListener("click", async () => {
-      const res = await fetch("/api/hub/kanban/hub/brain/rebuild-static", {
-        method: "POST",
-      });
-      let data = {};
-      try {
-        data = await res.json();
-      } catch {
-        /* ignore */
-      }
-      if (!res.ok || !data.ok) {
-        const tail = (data.stderr || data.stdout || "").toString().slice(-600);
-        const msg = data.error || data.detail || "Rebuild failed";
-        alert(tail ? `${msg}\n${tail}` : msg);
-        return;
-      }
-      const preview = document.getElementById("project-brain-preview");
-      if (preview && !preview.hidden) await loadBrainPreviewHtml();
-    });
-  document
-    .getElementById("project-dev-btn")
-    .addEventListener("click", async () => {
-      const cmd = projectDevRunCommand(project.template, project.repo_path);
-      const okHint = fr
-        ? "Commande copiée (collez dans un terminal sur votre machine)."
-        : "Command copied (paste in a terminal on your machine).";
-      try {
-        await navigator.clipboard.writeText(cmd);
-        if (hintEl) {
-          hintEl.textContent = `${fr ? "Dépôt" : "Repo"}: ${project.repo_path || "—"} · ${okHint}`;
-        }
-      } catch {
-        window.prompt(fr ? "Copier la commande :" : "Copy command:", cmd);
-      }
-    });
-  document
-    .getElementById("project-save-memory")
-    .addEventListener("click", async () => {
-      const status = document.getElementById("project-save-status");
+    .getElementById("project-memory-save")
+    ?.addEventListener("click", async () => {
+      const status = document.getElementById("project-memory-save-status");
       const body = {
-        title: document.getElementById("pm-title").value,
-        description: document.getElementById("pm-description").value,
-        macro_objectives: document.getElementById("pm-macro").value,
-        strategy: document.getElementById("pm-strategy").value,
-        objective: document.getElementById("pm-objective").value,
-        context: document.getElementById("pm-context").value,
-        kanban: document.getElementById("pm-kanban").value,
-        links: document.getElementById("pm-links").value,
-        notes: document.getElementById("pm-notes").value,
+        description: document.getElementById("pm-description")?.value ?? "",
+        strategy: document.getElementById("pm-strategy")?.value ?? "",
+        macro_objectives: document.getElementById("pm-objectives")?.value ?? "",
       };
       const res = await fetch(
         `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/memory-major`,
@@ -1696,22 +1796,50 @@ async function wireProjectPage() {
         },
       );
       if (!res.ok) {
-        if (status) {
-          status.textContent = fr
-            ? "Échec de l'enregistrement."
-            : "Save failed.";
-        }
+        if (status)
+          status.textContent = fr ? "Échec enregistrement." : "Save failed.";
         return;
       }
       payload = await res.json();
-      project = payload.project || {};
-      fillMajorForm();
-      syncProjectLogo();
-      if (status) {
-        status.textContent = fr ? "Fiche enregistrée." : "Saved.";
-      }
+      project = payload.project || project;
+      const m = payload.major || {};
+      if (descEl) descEl.value = m.description || "";
+      if (stratEl) stratEl.value = m.strategy || "";
+      if (objEl) objEl.value = m.macro_objectives || "";
       const subt = document.getElementById("project-subtitle");
-      if (subt) subt.textContent = (payload.project || {}).name || slug;
+      if (subt) subt.textContent = project.name || slug;
+      syncProjectLogo();
+      if (status)
+        status.textContent = fr ? "Mémoire à jour." : "Memory updated.";
+    });
+
+  document
+    .getElementById("project-preview-btn")
+    .addEventListener("click", async () => {
+      const wrap = document.getElementById("project-brain-preview");
+      const hidden = !wrap.hidden;
+      wrap.hidden = hidden;
+      if (!hidden) await loadBrainPreviewHtml();
+    });
+  document
+    .getElementById("project-dev-btn")
+    .addEventListener("click", async () => {
+      const devBtn = document.getElementById("project-dev-btn");
+      const cmd = projectDevRunCommand(project.template, project.repo_path);
+      const label =
+        devBtn?.textContent ||
+        (fr ? "Copier : lancer en local" : "Copy: run locally");
+      try {
+        await navigator.clipboard.writeText(cmd);
+        if (devBtn) {
+          devBtn.textContent = fr ? "Copié" : "Copied";
+          setTimeout(() => {
+            devBtn.textContent = label;
+          }, 1600);
+        }
+      } catch {
+        window.prompt(fr ? "Copier la commande :" : "Copy command:", cmd);
+      }
     });
   document
     .getElementById("archive-project-btn")
@@ -1736,14 +1864,15 @@ async function wireProjectPage() {
   document
     .getElementById("delete-project-btn")
     .addEventListener("click", async () => {
-      if (
-        !confirm(
-          fr
-            ? "Supprimer définitivement ce projet ? Dépôt, mémoire et tâches seront effacés."
-            : "Delete this project permanently? Repo, memory file and tasks will be removed.",
-        )
-      )
-        return;
+      const ok = await showConfirm({
+        title: fr ? "Êtes-vous sûr ?" : "Are you sure?",
+        message: fr
+          ? "Supprimer définitivement ce projet ? Dépôt, mémoire et tâches seront effacés."
+          : "Delete this project permanently? Repo, memory file and tasks will be removed.",
+        confirmLabel: fr ? "Supprimer le projet" : "Delete project",
+        cancelLabel: fr ? "Annuler" : "Cancel",
+      });
+      if (!ok) return;
       const res = await fetch(
         `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}`,
         {
@@ -2437,7 +2566,7 @@ function wireSystemStatus() {
       const [projRes, tasksRes, brainRes] = await Promise.allSettled([
         fetch("/api/hub/kanban/hub/projects", { cache: "no-store" }),
         fetch("/api/hub/kanban/tasks", { cache: "no-store" }),
-        fetch("/api/hub/kanban/memory/projects", { cache: "no-store" }),
+        fetch("/api/hub/memory/projects", { cache: "no-store" }),
       ]);
 
       if (projRes.status === "fulfilled" && projRes.value.ok) {
@@ -2527,7 +2656,7 @@ async function wireSettings() {
     setHealth(workspaceHealth, !!root, !!root ? t.configured : t.notConfigured);
   };
 
-  const res = await fetch("/api/hub/kanban/hub/settings");
+  const res = await fetch("/api/hub/memory/settings");
   if (res.ok) {
     const data = await res.json();
     document.getElementById("projects-root").value = data.projects_root || "";
@@ -2544,7 +2673,7 @@ async function wireSettings() {
       const instances_external_root = document
         .getElementById("instances-external-root")
         .value.trim();
-      const save = await fetch("/api/hub/kanban/hub/settings", {
+      const save = await fetch("/api/hub/memory/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projects_root, instances_external_root }),
@@ -2591,7 +2720,7 @@ async function wireSettings() {
     const sel = document.getElementById("instances-multi");
     if (!sel) return;
     sel.innerHTML = `<option disabled>${escapeHtml(t.loadingInstances)}</option>`;
-    const r = await fetch("/api/hub/kanban/hub/instances");
+    const r = await fetch("/api/hub/memory/instances");
     if (!r.ok) {
       sel.innerHTML = `<option disabled>${escapeHtml(t.loadInstancesFailed)}</option>`;
       setHealth(instancesHealth, false, `0 ${t.linked}`);
@@ -2628,8 +2757,8 @@ async function wireSettings() {
       .map((o) => o.value);
     if (!paths.length) return;
     const url = link
-      ? "/api/hub/kanban/hub/instances/link"
-      : "/api/hub/kanban/hub/instances/unlink";
+      ? "/api/hub/memory/instances/link"
+      : "/api/hub/memory/instances/unlink";
     const results = await Promise.all(
       paths.map((pathValue) =>
         fetch(url, {
@@ -2673,8 +2802,8 @@ async function refreshBrainSourceHint() {
   const fr = settingsLocale() === "fr";
   try {
     const [sr, ir] = await Promise.all([
-      fetch("/api/hub/kanban/hub/settings"),
-      fetch("/api/hub/kanban/hub/instances"),
+      fetch("/api/hub/memory/settings"),
+      fetch("/api/hub/memory/instances"),
     ]);
     const s = sr.ok ? await sr.json() : {};
     const i = ir.ok ? await ir.json() : {};
@@ -2699,7 +2828,11 @@ async function refreshBrainSourceHint() {
         title: `${it.path}/memory`,
       }));
     if (!options.length && active) {
-      options.push({ label: labelForMemoryPath(active), value: active, title: active });
+      options.push({
+        label: labelForMemoryPath(active),
+        value: active,
+        title: active,
+      });
     }
     select.innerHTML = options
       .map(
@@ -2708,7 +2841,9 @@ async function refreshBrainSourceHint() {
       )
       .join("");
     if (active) select.value = active;
-    if (pathEl) pathEl.textContent = (select.value || active) ? `(${select.value || active})` : "";
+    if (pathEl)
+      pathEl.textContent =
+        select.value || active ? `(${select.value || active})` : "";
     const locked = options.length <= 1;
     select.disabled = locked;
     if (lock) {
@@ -2742,12 +2877,12 @@ async function wireMemoryEditor() {
   await refreshBrainSourceHint();
 
   async function loadQuartzList() {
-    const res = await fetch("/api/hub/kanban/memory/quartz");
+    const res = await fetch("/api/hub/memory/quartz");
     const payload = res.ok ? await res.json() : { files: [] };
     let files = payload.files || [];
     brainPreviewKind = "html";
     if (!files.length) {
-      const mres = await fetch("/api/hub/kanban/memory/projects");
+      const mres = await fetch("/api/hub/memory/projects");
       const mp = mres.ok ? await mres.json() : { files: [] };
       files = (mp.files || []).filter((f) =>
         String(f).toLowerCase().endsWith(".md"),
@@ -2781,7 +2916,7 @@ async function wireMemoryEditor() {
     }
     if (brainPreviewKind === "md") {
       const res = await fetch(
-        `/api/hub/kanban/memory/projects/${encodeURIComponent(filename)}`,
+        `/api/hub/memory/projects/${encodeURIComponent(filename)}`,
       );
       const payload = res.ok ? await res.json() : { content: "" };
       const text = (payload.content || "").trim();
@@ -2790,12 +2925,12 @@ async function wireMemoryEditor() {
     }
     // Render real Quartz output via URL so CSS/JS/assets load correctly.
     quartzFrame.removeAttribute("srcdoc");
-    quartzFrame.src = `/api/hub/kanban/memory/quartz-static/${encodeURIComponent(filename)}`;
+    quartzFrame.src = `/api/hub/memory/quartz-static/${encodeURIComponent(filename)}`;
   }
 
   quartzRefresh.addEventListener("click", async () => {
     // Refresh = rebuild Quartz, then reload list + currently selected page.
-    const res = await fetch("/api/hub/kanban/hub/brain/rebuild-static", {
+    const res = await fetch("/api/hub/memory/brain/rebuild-static", {
       method: "POST",
     });
     let data = {};
@@ -2827,7 +2962,7 @@ async function wireMemoryEdit() {
   await refreshBrainSourceHint();
 
   async function loadList() {
-    const res = await fetch("/api/hub/kanban/memory/projects");
+    const res = await fetch("/api/hub/memory/projects");
     const payload = res.ok ? await res.json() : { files: [] };
     select.innerHTML = (payload.files || [])
       .map((f) => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`)
@@ -2840,7 +2975,7 @@ async function wireMemoryEdit() {
   }
   async function loadFile(filename) {
     const res = await fetch(
-      `/api/hub/kanban/memory/projects/${encodeURIComponent(filename)}`,
+      `/api/hub/memory/projects/${encodeURIComponent(filename)}`,
     );
     if (!res.ok) return;
     const payload = await res.json();
@@ -2855,7 +2990,7 @@ async function wireMemoryEdit() {
   document.getElementById("memory-save").addEventListener("click", async () => {
     const filename = name.value.trim();
     if (!filename) return;
-    const res = await fetch("/api/hub/kanban/memory/projects", {
+    const res = await fetch("/api/hub/memory/projects", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ filename, content: content.value }),
@@ -3031,6 +3166,31 @@ async function wireMemoryGraph() {
   await loadGraph();
 }
 
+/** Parse streamed chat error tokens from hub_core.chat_runtime (i18n). */
+function formatClawvisChatAssistantText(full, fr) {
+  const t = full.trim();
+  const authFr =
+    "Clé API refusée ou invalide. Vérifie la variable dans .env, redémarre l’API Kanban ou Docker, puis réessaie.";
+  const authEn =
+    "API key rejected or invalid. Fix the key in .env, restart the Kanban API or Docker stack, then try again.";
+  if (t === "[CLAWVIS:AUTH]" || t.startsWith("[CLAWVIS:AUTH]")) {
+    return { text: fr ? authFr : authEn, authError: true };
+  }
+  const http = /^\[CLAWVIS:HTTP:(\d+)\]$/.exec(t);
+  if (http) {
+    return {
+      text: fr
+        ? `Le fournisseur a renvoyé une erreur HTTP ${http[1]}.`
+        : `The provider returned HTTP ${http[1]}.`,
+      authError: false,
+    };
+  }
+  if (/^\[API error 401:/.test(t)) {
+    return { text: fr ? authFr : authEn, authError: true };
+  }
+  return { text: full, authError: false };
+}
+
 function renderChatPage() {
   const fr = settingsLocale() === "fr";
   app.innerHTML = `
@@ -3075,9 +3235,9 @@ async function wireChat() {
         openclaw: "OpenClaw",
       };
       if (statusBar) {
-        statusBar.className = `chat-status-bar ${configured ? "ok" : "warn"}`;
+        statusBar.className = "chat-status-bar warn";
         statusBar.innerHTML = configured
-          ? `<span class="chat-status-dot ok"></span>${labels[s.provider] || s.provider} — ${fr ? "Connecté" : "Connected"}`
+          ? `<span class="chat-status-dot warn"></span><strong>${labels[s.provider] || s.provider}</strong> — ${fr ? "Variable serveur détectée (non vérifiée). Un envoi réel teste la clé." : "Server credential present (not verified). Sending a message tests the key."}`
           : `<span class="chat-status-dot warn"></span>${fr ? "Runtime IA non configuré. " : "AI Runtime not configured. "}<a href="/setup/runtime/" class="chat-setup-link">${fr ? "Configurer le runtime →" : "Setup runtime →"}</a>`;
       }
     }
@@ -3138,7 +3298,13 @@ async function wireChat() {
         assistantEl.textContent = full;
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
-      history.push({ role: "assistant", content: full });
+      const formatted = formatClawvisChatAssistantText(full, fr);
+      assistantEl.textContent = formatted.text;
+      history.push({ role: "assistant", content: formatted.text });
+      if (formatted.authError && statusBar) {
+        statusBar.className = "chat-status-bar err";
+        statusBar.innerHTML = `<span class="chat-status-dot err"></span>${fr ? "Clé API refusée — vérifie .env et redémarre les services." : "API key rejected — check .env and restart services."}`;
+      }
     } catch (e) {
       assistantEl.textContent = fr ? "Erreur réseau." : "Network error.";
     }
@@ -3566,6 +3732,11 @@ async function wireSetupRuntime() {
         });
         if (res.ok) {
           const text = await res.text();
+          const fmt = formatClawvisChatAssistantText(text, isFr);
+          const trimmed = text.trim();
+          if (fmt.authError || /^\[CLAWVIS:HTTP:\d+\]$/.test(trimmed)) {
+            throw new Error(fmt.text);
+          }
           result.className = "setup-test-result ok";
           result.innerHTML = `${escapeHtml(t.testOk)}
           <details class="setup-test-raw"><summary>${isFr ? "Réponse" : "Response"}</summary>${escapeHtml(text.slice(0, 200))}</details>`;
@@ -3634,7 +3805,9 @@ async function wireSetupRuntime() {
           el.textContent = full;
           chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-        chatHistory.push({ role: "assistant", content: full });
+        const sf = formatClawvisChatAssistantText(full, isFr);
+        el.textContent = sf.text;
+        chatHistory.push({ role: "assistant", content: sf.text });
       } else {
         el.textContent = isFr ? "Erreur." : "Error.";
       }
