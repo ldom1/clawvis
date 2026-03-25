@@ -247,7 +247,7 @@
 
     // --- Workspace settings ---
     async function loadSettings() {
-      const res = await fetch('/api/kanban/hub/settings').catch(() => null);
+      const res = await fetch('/api/hub/memory/settings').catch(() => null);
       if (!res?.ok) return;
       const data = await res.json();
       document.getElementById('projects-root').value = data.projects_root || '';
@@ -255,7 +255,7 @@
     }
     async function saveSettings() {
       const projects_root = document.getElementById('projects-root').value.trim();
-      const res = await fetch('/api/kanban/hub/settings', {
+      const res = await fetch('/api/hub/memory/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projects_root }),
@@ -360,7 +360,7 @@
     loadProvider();
     refreshRuntimeHealth(activeProvider);
     setHealth('health-linked', false, `0 ${t.linked}`);
-    fetch('/api/kanban/hub/instances').then(r => r.ok ? r.json() : null).then(data => {
+    fetch('/api/hub/memory/instances').then(r => r.ok ? r.json() : null).then(data => {
       const n = ((data && data.instances) || []).filter(i => i.linked).length;
       setHealth('health-linked', n > 0, `${n} ${t.linked}`);
     }).catch(() => {});
