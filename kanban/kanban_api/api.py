@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 
 from .core import (
     DependencyBlockedError,
@@ -233,6 +233,42 @@ def read_memory_quartz_endpoint(filename: str):
         raise HTTPException(400, str(e))
     except KeyError:
         raise HTTPException(404, "Quartz page not found")
+
+
+@router.get("/memory/quartz-static/{path:path}")
+def quartz_static_endpoint(path: str):
+    # Serve Quartz build output as real files (CSS/JS/assets) so the Hub iframe can render properly.
+    if not path or path.endswith("/"):
+        path = "index.html"
+    if not Path(path).suffix:
+        path = f"{path}.html"
+    safe = Path(path)
+    if safe.is_absolute() or ".." in safe.parts:
+        raise HTTPException(400, "Invalid path")
+    root = Path(__file__).resolve().parents[2]  # .../kanban/kanban_api/ -> repo root
+    quartz_public = root / "quartz" / "public"
+    target = (quartz_public / safe).resolve()
+    if not str(target).startswith(str(quartz_public.resolve())):
+        raise HTTPException(400, "Invalid path")
+    if not target.exists() or not target.is_file():
+        raise HTTPException(404, "Not found")
+    media, _ = mimetypes.guess_type(str(target))
+    # For HTML, inject a base href so internal links (Home, Explorer) work under our mount path.
+    if target.suffix.lower() == ".html":
+        html = target.read_text(encoding="utf-8", errors="ignore")
+        prefix = "/api/hub/kanban/memory/quartz-static/"
+        base = f'<base href="{prefix}" />'
+        if "<base" not in html.lower():
+            html = html.replace("<head>", f"<head>{base}", 1)
+        # Quartz emits some absolute links (href="/...", src="/...") which bypass <base>.
+        # Rewrite them to stay under our mount prefix so clicks don't hit unknown API routes.
+        html = html.replace(' href="/', f' href="{prefix}')
+        html = html.replace(" href='/", f" href='{prefix}")
+        html = html.replace(' src="/', f' src="{prefix}')
+        html = html.replace(" src='/", f" src='{prefix}")
+        return HTMLResponse(content=html, media_type="text/html")
+    # Don't set "filename": would force download instead of inline render in iframe.
+    return FileResponse(target, media_type=media or "application/octet-stream")
 
 
 @router.get("/memory/projects/{filename}")

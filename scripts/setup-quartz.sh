@@ -32,34 +32,25 @@ if [ -d "${QUARTZ_DIR}" ] && [ -f "${QUARTZ_DIR}/package.json" ]; then
   git -C "${QUARTZ_DIR}" pull --ff-only 2>/dev/null || warn "Pull failed — working tree may have local changes."
   log "Installing dependencies..."
   npm install --prefix "${QUARTZ_DIR}" --silent
-  log "Quartz updated."
-  exit 0
+  log "Quartz dependencies ensured."
+else
+  # ---- clone ---------------------------------------------------------------
+  log "Cloning Quartz into quartz/..."
+  git clone --depth 1 https://github.com/jackyzha0/quartz.git "${QUARTZ_DIR}"
+  log "Installing Quartz dependencies..."
+  npm install --prefix "${QUARTZ_DIR}" --silent
 fi
 
-# ---- clone -----------------------------------------------------------------
-log "Cloning Quartz into quartz/..."
-git clone --depth 1 https://github.com/jackyzha0/quartz.git "${QUARTZ_DIR}"
-log "Installing Quartz dependencies..."
-npm install --prefix "${QUARTZ_DIR}" --silent
-
-# ---- configure Quartz content path to point to memory/projects -------------
-QUARTZ_CFG="${QUARTZ_DIR}/quartz.config.ts"
-if [ -f "${QUARTZ_CFG}" ]; then
-  # Set content folder to our memory/projects directory (relative path from quartz/)
-  PROJECTS_REL="$(python3 -c "
-import os, sys
-q = '${QUARTZ_DIR}'
-m = '${MEM_DIR}/projects'
-print(os.path.relpath(m, q))
-" 2>/dev/null || echo "../${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}/projects")"
-  # Patch contentFolder in quartz.config.ts if it differs
-  if grep -q 'contentFolder:' "${QUARTZ_CFG}"; then
-    sed -i "s|contentFolder: \"[^\"]*\"|contentFolder: \"${PROJECTS_REL}\"|g" "${QUARTZ_CFG}"
-    log "Quartz contentFolder set to: ${PROJECTS_REL}"
-  else
-    warn "Could not auto-patch quartz.config.ts — set contentFolder manually to: ${PROJECTS_REL}"
-  fi
+# ---- configure Quartz content dir to instance memory ------------------------
+# Quartz v4 uses a content directory (default: quartz/content). We symlink it to
+# the instance memory so the explorer can see projects/, todo/, resources/, etc.
+mkdir -p "${MEM_DIR}"
+CONTENT_DIR="${QUARTZ_DIR}/content"
+if [ -L "${CONTENT_DIR}" ] || [ -d "${CONTENT_DIR}" ]; then
+  rm -rf "${CONTENT_DIR}"
 fi
+ln -s "${MEM_DIR}" "${CONTENT_DIR}"
+log "Quartz content symlinked: quartz/content -> ${MEM_DIR}"
 
 # ---- first build -----------------------------------------------------------
 log "Running first Quartz build..."
@@ -70,7 +61,7 @@ log "Running first Quartz build..."
 
 log ""
 log "Quartz is ready."
-log "  - Content source : ${MEM_DIR}/projects/*.md"
+log "  - Content source : ${MEM_DIR}"
 log "  - Output         : ${QUARTZ_DIR}/public/"
 log "  - Rebuild        : clawvis restart  (or: bash scripts/build-quartz.sh)"
 log ""

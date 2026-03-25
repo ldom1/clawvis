@@ -1384,7 +1384,11 @@ def list_memory_quartz_pages() -> dict:
     quartz_dir = _quartz_public_dir()
     if quartz_dir is not None:
         # Serve real Quartz output — list top-level HTML pages
-        files = sorted(p.name for p in quartz_dir.glob("*.html"))
+        files = sorted(
+            p.name
+            for p in quartz_dir.glob("*.html")
+            if p.name != "404.html" and not p.name.startswith("_")
+        )
         return {"files": files, "source": "quartz"}
     # Fallback: Python-generated HTML alongside .md files
     projects_dir = active_brain_memory_root() / "projects"

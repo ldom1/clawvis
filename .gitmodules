@@ -5,3 +5,7 @@
 [submodule "skills/self-improvement"]
 	path = skills/self-improvement
 	url = https://github.com/peterskoett/self-improving-agent.git
+
+[submodule "quartz"]
+	path = quartz
+	url = https://github.com/jackyzha0/quartz.git

@@ -730,14 +730,15 @@ function renderMemoryPage() {
   app.innerHTML = `
     <div class="container">
       ${subpageHeader("brain")}
-      <p class="brain-source-hint" id="brain-source-hint"></p>
-      <div class="graph-toolbar" style="margin-top:10px;">
-        <select id="quartz-page-select"></select>
-        <button id="quartz-refresh" class="btn" type="button">${fr ? "Actualiser" : "Refresh"}</button>
-        <button id="quartz-rebuild" class="btn" type="button">${fr ? "Générer l'aperçu HTML" : "Generate HTML preview"}</button>
+      <div class="graph-toolbar" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button id="quartz-refresh" class="btn btn-primary" type="button">${fr ? "Actualiser" : "Refresh"}</button>
         <a class="btn" href="/memory/edit">${fr ? "Modifier le Brain" : "Edit Brain"}</a>
+        <div style="flex:1;"></div>
+        <span class="muted" style="font-size:13px;white-space:nowrap;">${fr ? "Mémoire" : "Memory"}</span>
+        <span id="brain-memory-lock" style="display:inline-flex;align-items:center;gap:6px;"></span>
+        <select id="brain-memory-select" style="min-width:140px;max-width:200px;"></select>
+        <span id="brain-memory-path" class="muted" style="font-size:11px;opacity:.75;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       </div>
-      <p class="muted" id="brain-preview-hint" style="font-size:13px;margin:8px 0 0 0;"></p>
       <iframe id="quartz-frame" class="quartz-frame" title="Quartz preview"></iframe>
     </div>
   `;
@@ -2665,31 +2666,76 @@ async function wireSettings() {
 }
 
 async function refreshBrainSourceHint() {
-  const el = document.getElementById("brain-source-hint");
-  if (!el) return;
+  const select = document.getElementById("brain-memory-select");
+  const lock = document.getElementById("brain-memory-lock");
+  const pathEl = document.getElementById("brain-memory-path");
+  if (!select) return;
   const fr = settingsLocale() === "fr";
   try {
-    const r = await fetch("/api/hub/kanban/hub/settings");
-    const d = r.ok ? await r.json() : {};
-    const p = (d.active_brain_memory || "").trim();
-    el.textContent = p
-      ? fr
-        ? `Mémoire affichée : ${p}`
-        : `Memory in use: ${p}`
-      : "";
+    const [sr, ir] = await Promise.all([
+      fetch("/api/hub/kanban/hub/settings"),
+      fetch("/api/hub/kanban/hub/instances"),
+    ]);
+    const s = sr.ok ? await sr.json() : {};
+    const i = ir.ok ? await ir.json() : {};
+    const active = String(s.active_brain_memory || "").trim();
+    const instances = Array.isArray(i.instances) ? i.instances : [];
+
+    function labelForMemoryPath(p) {
+      const parts = String(p || "")
+        .replace(/\\/g, "/")
+        .split("/")
+        .filter(Boolean);
+      const idx = parts.lastIndexOf("memory");
+      if (idx > 0) return parts[idx - 1];
+      return parts[parts.length - 1] || (fr ? "Mémoire" : "Memory");
+    }
+
+    const options = instances
+      .filter((it) => it && it.linked && it.has_memory && !it.missing)
+      .map((it) => ({
+        label: `${it.name}`,
+        value: `${it.path}/memory`,
+        title: `${it.path}/memory`,
+      }));
+    if (!options.length && active) {
+      options.push({ label: labelForMemoryPath(active), value: active, title: active });
+    }
+    select.innerHTML = options
+      .map(
+        (o) =>
+          `<option value="${escapeHtml(o.value)}" title="${escapeHtml(o.title || o.value)}">${escapeHtml(o.label)}</option>`,
+      )
+      .join("");
+    if (active) select.value = active;
+    if (pathEl) pathEl.textContent = (select.value || active) ? `(${select.value || active})` : "";
+    const locked = options.length <= 1;
+    select.disabled = locked;
+    if (lock) {
+      lock.innerHTML = locked
+        ? `<span title="${fr ? "Verrouillé" : "Locked"}" style="display:inline-flex;align-items:center;gap:6px;color:var(--muted,#9aa6cf);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="opacity:.9">
+              <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M6 11h12v10H6V11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </span>`
+        : "";
+    }
+
+    select.onchange = () => {
+      if (pathEl) pathEl.textContent = select.value ? `(${select.value})` : "";
+    };
   } catch {
-    el.textContent = "";
+    if (lock) lock.textContent = "";
+    if (pathEl) pathEl.textContent = "";
   }
 }
 
 async function wireMemoryEditor() {
   const fr = settingsLocale() === "fr";
-  const quartzSelect = document.getElementById("quartz-page-select");
   const quartzFrame = document.getElementById("quartz-frame");
   const quartzRefresh = document.getElementById("quartz-refresh");
-  const quartzRebuild = document.getElementById("quartz-rebuild");
-  const previewHint = document.getElementById("brain-preview-hint");
-  if (!quartzSelect || !quartzFrame || !quartzRefresh) return;
+  if (!quartzFrame || !quartzRefresh) return;
 
   let brainPreviewKind = "html";
 
@@ -2708,28 +2754,31 @@ async function wireMemoryEditor() {
       );
       brainPreviewKind = "md";
     }
-    if (previewHint) {
-      previewHint.textContent =
-        brainPreviewKind === "md"
-          ? fr
-            ? "Aperçu mis en forme (style lecture). Pour exporter des pages .html sur disque : « Générer l'aperçu HTML » ou redémarrer Clawvis."
-            : "Typeset reading preview. To write .html to disk: « Generate HTML preview » or restart Clawvis."
-          : "";
-    }
-    quartzSelect.innerHTML = files
-      .map((f) => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`)
-      .join("");
     if (!files.length) {
       quartzFrame.srcdoc = fr
         ? '<div style="font-family:Inter,system-ui,sans-serif;padding:20px;color:#9aa6cf">Aucune page à afficher : pas de .html ni de .md dans <code>memory/projects/</code>.</div>'
         : '<div style="font-family:Inter,system-ui,sans-serif;padding:20px;color:#9aa6cf">Nothing to show: no .html or .md in <code>memory/projects/</code>.</div>';
       return;
     }
-    if (!quartzSelect.value) quartzSelect.value = files[0];
-    await loadQuartzPage(quartzSelect.value);
+    // No page dropdown: show "home" if present, else first item.
+    const names = files.map((f) => String(f));
+    const lower = names.map((f) => f.toLowerCase());
+    const preferred =
+      names[lower.indexOf("home.html")] ||
+      names[lower.indexOf("index.html")] ||
+      names[lower.indexOf("clawvis.html")] ||
+      names.find((f) => !f.toLowerCase().includes("project")) ||
+      names[0];
+    await loadQuartzPage(preferred);
   }
 
   async function loadQuartzPage(filename) {
+    if (!filename) {
+      quartzFrame.srcdoc = fr
+        ? '<div style="font-family:system-ui,sans-serif;padding:20px;color:#9aa6cf">Aucune page à afficher.</div>'
+        : '<div style="font-family:system-ui,sans-serif;padding:20px;color:#9aa6cf">No page to display.</div>';
+      return;
+    }
     if (brainPreviewKind === "md") {
       const res = await fetch(
         `/api/hub/kanban/memory/projects/${encodeURIComponent(filename)}`,
@@ -2739,25 +2788,13 @@ async function wireMemoryEditor() {
       quartzFrame.srcdoc = markdownToBrainSrcdoc(text);
       return;
     }
-    const res = await fetch(
-      `/api/hub/kanban/memory/quartz/${encodeURIComponent(filename)}`,
-    );
-    const payload = res.ok ? await res.json() : { content: "" };
-    let html = (payload.content || "").trim();
-    if (html && !/<!DOCTYPE/i.test(html) && !/<html[\s>]/i.test(html)) {
-      html = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"></head><body>${html}</body></html>`;
-    }
-    quartzFrame.srcdoc =
-      html ||
-      '<div style="font-family:system-ui,sans-serif;padding:20px;color:#9aa6cf">Contenu vide ou introuvable.</div>';
+    // Render real Quartz output via URL so CSS/JS/assets load correctly.
+    quartzFrame.removeAttribute("srcdoc");
+    quartzFrame.src = `/api/hub/kanban/memory/quartz-static/${encodeURIComponent(filename)}`;
   }
 
-  quartzSelect.addEventListener("change", async () => {
-    if (!quartzSelect.value) return;
-    await loadQuartzPage(quartzSelect.value);
-  });
-  quartzRefresh.addEventListener("click", loadQuartzList);
-  quartzRebuild?.addEventListener("click", async () => {
+  quartzRefresh.addEventListener("click", async () => {
+    // Refresh = rebuild Quartz, then reload list + currently selected page.
     const res = await fetch("/api/hub/kanban/hub/brain/rebuild-static", {
       method: "POST",
     });

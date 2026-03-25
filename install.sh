@@ -305,6 +305,19 @@ if [ -f "${ROOT_DIR}/${MEMORY_ROOT}/projects/example-project.md" ]; then
   info "Validation log: example project seeded at ${MEMORY_ROOT}/projects/example-project.md"
 fi
 
+info "Quartz (Brain display)"
+if [ "${CLAWVIS_SKIP_QUARTZ:-0}" = "1" ]; then
+  warn "Quartz setup skipped (CLAWVIS_SKIP_QUARTZ=1)."
+else
+  if command -v git >/dev/null 2>&1 && command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    chmod +x "${ROOT_DIR}/scripts/setup-quartz.sh"
+    export INSTANCE_NAME MEMORY_ROOT
+    bash "${ROOT_DIR}/scripts/setup-quartz.sh" || warn "Quartz setup failed — continuing without Quartz."
+  else
+    warn "Quartz setup skipped (requires: git + node>=18 + npm)."
+  fi
+fi
+
 info "Choose run mode"
 if [ "${NON_INTERACTIVE}" -eq 1 ]; then
   case "${MODE_FLAG:-docker}" in
