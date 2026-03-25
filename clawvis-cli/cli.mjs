@@ -297,7 +297,7 @@ async function runInstallInteractive() {
     const I18N = {
       fr: {
         installHeading: "Installer Clawvis — le roi des francs et des agents IA",
-        providerNote: chalk.dim("→ Connecter votre runtime IA se fait depuis le Hub (/settings/) ou via le CLI clawvis après le démarrage."),
+        providerNote: chalk.dim("→ Connecter votre runtime IA se fait depuis le Hub (/setup/runtime/) ou via le CLI clawvis après le démarrage."),
         languageTitle: "Language / Langue:",
         languageFr: "1) Français (par défaut)",
         languageEn: "2) English",
@@ -331,7 +331,7 @@ async function runInstallInteractive() {
       },
       en: {
         installHeading: "Install Clawvis — the king of the Franks and AI agents",
-        providerNote: chalk.dim("→ Connect your AI runtime from the Hub (/settings/) or via the clawvis CLI after launch."),
+        providerNote: chalk.dim("→ Connect your AI runtime from the Hub (/setup/runtime/) or via the clawvis CLI after launch."),
         languageTitle: "Language / Langue:",
         languageFr: "1) Français (default)",
         languageEn: "2) English",
@@ -463,7 +463,7 @@ async function runInstallInteractive() {
               `${t("doneLogs")}:    ${chalk.cyan(`http://localhost:${hubPort}/logs/`)}`,
               `${t("doneKanban")}: ${chalk.cyan(`http://localhost:${hubPort}/kanban/`)}`,
               "",
-              chalk.yellow(`${t("doneSettings")}: http://localhost:${hubPort}/settings/`),
+              chalk.yellow(`${t("doneSettings")}: http://localhost:${hubPort}/setup/runtime/`),
             ].join("\n"),
             { padding: 1, borderStyle: "round", borderColor: "green" },
           ),
@@ -703,7 +703,7 @@ function runSetupProvider(args) {
         chalk.bold("Pour configurer :"),
         "",
         `${chalk.cyan("A)")} Hub Settings (recommandé) :`,
-        `   ${chalk.green(`http://localhost:${hubPort}/settings/`)} → section "AI Runtime"`,
+        `   ${chalk.green(`http://localhost:${hubPort}/setup/runtime/`)} → section "AI Runtime"`,
         "",
         `${chalk.cyan("B)")} Ligne de commande :`,
         `   ${chalk.dim("clawvis setup provider --provider claude --key sk-ant-...")}`,

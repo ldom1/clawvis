@@ -412,7 +412,7 @@ function renderHome() {
           </div>
         </div>
         <div class="ai-runtime-banner-right">
-          <a href="/settings/" id="ai-runtime-cta" class="btn btn-primary ai-runtime-cta">${escapeHtml(t.runtimeBannerCta)}</a>
+          <a href="/setup/runtime/" id="ai-runtime-cta" class="btn btn-primary ai-runtime-cta">${escapeHtml(t.runtimeBannerCta)}</a>
         </div>
       </div>
 
@@ -840,7 +840,7 @@ function renderSettings() {
               <div class="card-desc">${t.runtimeDesc}</div>
               <div id="settings-active-provider" class="settings-active-provider"></div>
             </div>
-            <button id="open-ai-wizard" class="btn btn-primary" type="button">${t.configureRuntime}</button>
+            <a href="/setup/runtime/" class="btn btn-primary">${t.configureRuntime}</a>
           </div>
           <span id="provider-save-feedback" class="test-result"></span>
         </section>
@@ -906,61 +906,6 @@ function renderSettings() {
             </label>
           </div>
         </section>
-      </div>
-    </div>
-
-    <!-- Wizard IA Modal -->
-    <div id="ai-wizard-overlay" class="modal-overlay">
-      <div class="panel ai-wizard-panel">
-        <button class="modal-close" id="ai-wizard-close" type="button">&times;</button>
-        <div id="ai-wizard-steps">
-          <!-- Step 1: Choix provider -->
-          <div id="wizard-step-1" class="wizard-step">
-            <div class="wizard-step-badge">1 / 3</div>
-            <h2>${isFr ? "Choisissez votre fournisseur d'IA" : "Choose your AI provider"}</h2>
-            <p class="wizard-desc">${isFr ? "Clawvis supporte plusieurs fournisseurs. Sélectionnez celui que vous voulez configurer." : "Clawvis supports multiple providers. Select the one you want to set up."}</p>
-            <div class="wizard-provider-cards">
-              <button class="wizard-provider-card" data-wizard-provider="claude" type="button">
-                <span class="wizard-provider-icon">&#x1F9E0;</span>
-                <strong>Claude</strong>
-                <span>Anthropic</span>
-              </button>
-              <button class="wizard-provider-card" data-wizard-provider="mistral" type="button">
-                <span class="wizard-provider-icon">&#x2728;</span>
-                <strong>Mistral</strong>
-                <span>Mistral AI</span>
-              </button>
-              <button class="wizard-provider-card" data-wizard-provider="openclaw" type="button">
-                <span class="wizard-provider-icon">&#x1F43E;</span>
-                <strong>OpenClaw</strong>
-                <span>${isFr ? "Auto-hébergé" : "Self-hosted"}</span>
-              </button>
-            </div>
-          </div>
-          <!-- Step 2: Clé API -->
-          <div id="wizard-step-2" class="wizard-step" style="display:none;">
-            <div class="wizard-step-badge">2 / 3</div>
-            <h2 id="wizard-step2-title">${isFr ? "Entrez vos credentials" : "Enter your credentials"}</h2>
-            <p class="wizard-desc" id="wizard-step2-desc"></p>
-            <div id="wizard-step2-fields"></div>
-            <div class="wizard-actions">
-              <button class="btn" id="wizard-back-1" type="button">← ${isFr ? "Retour" : "Back"}</button>
-              <button class="btn btn-primary" id="wizard-next-2" type="button">${isFr ? "Suivant" : "Next"} →</button>
-            </div>
-          </div>
-          <!-- Step 3: Test + Sauvegarde -->
-          <div id="wizard-step-3" class="wizard-step" style="display:none;">
-            <div class="wizard-step-badge">3 / 3</div>
-            <h2>${isFr ? "Testez et sauvegardez" : "Test and save"}</h2>
-            <p class="wizard-desc">${isFr ? "Vérifiez que la connexion fonctionne, puis sauvegardez." : "Verify the connection works, then save."}</p>
-            <div id="wizard-test-result" class="wizard-test-result"></div>
-            <div class="wizard-actions">
-              <button class="btn" id="wizard-back-2" type="button">← ${isFr ? "Retour" : "Back"}</button>
-              <button class="btn" id="wizard-test-btn" type="button">${t.testConnection}</button>
-              <button class="btn btn-primary" id="wizard-save-btn" type="button">${isFr ? "Sauvegarder" : "Save"}</button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   `;
@@ -2554,8 +2499,6 @@ async function wireSettings() {
   const refreshRuntimeHealth = () => {
     const ok = isRuntimeConfigured();
     setHealth(runtimeHealth, ok, ok ? t.configured : t.notConfigured);
-    const wbtn = document.getElementById("open-ai-wizard");
-    if (wbtn) wbtn.textContent = ok ? t.modifyRuntime : t.configureRuntime;
     const statusBadge = document.getElementById("settings-runtime-status");
     if (statusBadge) {
       statusBadge.className = `ai-runtime-status-badge ${ok ? "ok" : "warn"}`;
@@ -2642,168 +2585,6 @@ async function wireSettings() {
   }
 
   let activeProvider = localStorage.getItem("ai-provider") || "claude";
-
-  // Wizard IA
-  const wizardOverlay = document.getElementById("ai-wizard-overlay");
-  const isFr = settingsLocale() === "fr";
-  let wizardProvider = activeProvider;
-
-  function wizardShowStep(n) {
-    [1, 2, 3].forEach((i) => {
-      const el = document.getElementById(`wizard-step-${i}`);
-      if (el) el.style.display = i === n ? "" : "none";
-    });
-  }
-  function wizardBuildStep2Fields(provider) {
-    const title = document.getElementById("wizard-step2-title");
-    const desc = document.getElementById("wizard-step2-desc");
-    const fields = document.getElementById("wizard-step2-fields");
-    if (!title || !desc || !fields) return;
-    if (provider === "claude") {
-      title.textContent = "Claude (Anthropic)";
-      desc.textContent = isFr
-        ? "Entrez votre clé API Anthropic. Pour une utilisation serveur, renseignez aussi CLAUDE_API_KEY dans .env."
-        : "Enter your Anthropic API key. For server-side usage, also set CLAUDE_API_KEY in .env.";
-      fields.innerHTML = `<label>API key</label><input id="wizard-claude-key" type="password" placeholder="sk-ant-..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-claude-key") || "")}" /><p class="hint">${t.getClaudeKey}</p>`;
-    } else if (provider === "mistral") {
-      title.textContent = "Mistral AI";
-      desc.textContent = isFr
-        ? "Entrez votre clé API Mistral."
-        : "Enter your Mistral API key.";
-      fields.innerHTML = `<label>API key</label><input id="wizard-mistral-key" type="password" placeholder="..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-mistral-key") || "")}" /><p class="hint">${t.getMistralKey}</p>`;
-    } else {
-      title.textContent = "OpenClaw";
-      desc.textContent = isFr
-        ? "Entrez l'URL de votre instance OpenClaw self-hosted."
-        : "Enter the URL of your self-hosted OpenClaw instance.";
-      fields.innerHTML = `<label>URL</label><input id="wizard-openclaw-url" type="text" placeholder="http://localhost:3333" value="${escapeHtml(localStorage.getItem("ai-openclaw-url") || "")}" /><label style="margin-top:8px;">API key (${isFr ? "optionnel" : "optional"})</label><input id="wizard-openclaw-key" type="password" placeholder="..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-openclaw-key") || "")}" /><p class="hint">${t.openclawHint}</p>`;
-    }
-  }
-  function wizardSaveFromStep2() {
-    if (wizardProvider === "claude") {
-      const v =
-        document.getElementById("wizard-claude-key")?.value.trim() || "";
-      localStorage.setItem("ai-claude-key", v);
-    } else if (wizardProvider === "mistral") {
-      const v =
-        document.getElementById("wizard-mistral-key")?.value.trim() || "";
-      localStorage.setItem("ai-mistral-key", v);
-    } else {
-      localStorage.setItem(
-        "ai-openclaw-url",
-        document.getElementById("wizard-openclaw-url")?.value.trim() || "",
-      );
-      localStorage.setItem(
-        "ai-openclaw-key",
-        document.getElementById("wizard-openclaw-key")?.value.trim() || "",
-      );
-    }
-    localStorage.setItem("ai-provider", wizardProvider);
-    activeProvider = wizardProvider;
-    refreshRuntimeHealth();
-  }
-  async function wizardRunTest() {
-    const resultEl = document.getElementById("wizard-test-result");
-    if (!resultEl) return false;
-    resultEl.textContent = isFr ? "Test en cours..." : "Testing...";
-    resultEl.className = "wizard-test-result";
-    try {
-      let ok = false;
-      if (wizardProvider === "claude") {
-        const key = localStorage.getItem("ai-claude-key") || "";
-        if (!key) throw new Error("No key");
-        const r = await fetch("https://api.anthropic.com/v1/models", {
-          headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
-        });
-        ok = r.ok;
-      } else if (wizardProvider === "mistral") {
-        const key = localStorage.getItem("ai-mistral-key") || "";
-        if (!key) throw new Error("No key");
-        const r = await fetch("https://api.mistral.ai/v1/models", {
-          headers: { Authorization: `Bearer ${key}` },
-        });
-        ok = r.ok;
-      } else {
-        const url =
-          localStorage.getItem("ai-openclaw-url") || "http://localhost:3333";
-        const r = await fetch(`${url}/health`).catch(() => null);
-        ok = !!r?.ok;
-      }
-      resultEl.textContent = ok
-        ? isFr
-          ? "Connexion réussie !"
-          : "Connection successful!"
-        : t.connectionFailed;
-      resultEl.className = `wizard-test-result ${ok ? "ok" : "fail"}`;
-      return ok;
-    } catch {
-      resultEl.textContent = t.checkKeyOrUrl;
-      resultEl.className = "wizard-test-result fail";
-      return false;
-    }
-  }
-
-  document.getElementById("open-ai-wizard")?.addEventListener("click", () => {
-    wizardProvider = activeProvider;
-    document.getElementById("wizard-test-result") &&
-      (document.getElementById("wizard-test-result").textContent = "");
-    wizardOverlay?.querySelectorAll(".wizard-provider-card").forEach((c) => {
-      c.classList.toggle("active", c.dataset.wizardProvider === wizardProvider);
-    });
-    if (isRuntimeConfigured()) {
-      wizardBuildStep2Fields(wizardProvider);
-      wizardShowStep(2);
-    } else {
-      wizardShowStep(1);
-    }
-    wizardOverlay?.classList.add("open");
-  });
-  document
-    .getElementById("ai-wizard-close")
-    ?.addEventListener("click", () => wizardOverlay?.classList.remove("open"));
-  wizardOverlay?.addEventListener("click", (e) => {
-    if (e.target === wizardOverlay) wizardOverlay.classList.remove("open");
-  });
-
-  wizardOverlay?.querySelectorAll(".wizard-provider-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      wizardOverlay
-        .querySelectorAll(".wizard-provider-card")
-        .forEach((c) => c.classList.remove("active"));
-      card.classList.add("active");
-      wizardProvider = card.dataset.wizardProvider;
-      wizardBuildStep2Fields(wizardProvider);
-      wizardShowStep(2);
-    });
-  });
-  document
-    .getElementById("wizard-back-1")
-    ?.addEventListener("click", () => wizardShowStep(1));
-  document.getElementById("wizard-next-2")?.addEventListener("click", () => {
-    wizardSaveFromStep2();
-    document.getElementById("wizard-test-result") &&
-      (document.getElementById("wizard-test-result").textContent = "");
-    wizardShowStep(3);
-  });
-  document.getElementById("wizard-back-2")?.addEventListener("click", () => {
-    wizardBuildStep2Fields(wizardProvider);
-    wizardShowStep(2);
-  });
-  document
-    .getElementById("wizard-test-btn")
-    ?.addEventListener("click", wizardRunTest);
-  document
-    .getElementById("wizard-save-btn")
-    ?.addEventListener("click", async () => {
-      wizardSaveFromStep2();
-      wizardOverlay?.classList.remove("open");
-      if (providerFeedback) {
-        providerFeedback.className = "test-result ok";
-        providerFeedback.textContent = t.runtimeSaved;
-        providerFeedback.style.display = "inline-block";
-      }
-      refreshRuntimeHealth();
-    });
 
   async function loadInstances() {
     const sel = document.getElementById("instances-multi");
@@ -3260,7 +3041,7 @@ async function wireChat() {
         statusBar.className = `chat-status-bar ${configured ? "ok" : "warn"}`;
         statusBar.innerHTML = configured
           ? `<span class="chat-status-dot ok"></span>${labels[s.provider] || s.provider} — ${fr ? "Connecté" : "Connected"}`
-          : `<span class="chat-status-dot warn"></span>${fr ? "Runtime IA non configuré. " : "AI Runtime not configured. "}<a href="/settings/" class="chat-setup-link">${fr ? "Configurer le runtime →" : "Setup runtime →"}</a>`;
+          : `<span class="chat-status-dot warn"></span>${fr ? "Runtime IA non configuré. " : "AI Runtime not configured. "}<a href="/setup/runtime/" class="chat-setup-link">${fr ? "Configurer le runtime →" : "Setup runtime →"}</a>`;
       }
     }
   } catch {
