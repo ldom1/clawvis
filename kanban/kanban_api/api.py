@@ -5,11 +5,10 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 
 from .core import (
     DependencyBlockedError,
-    active_brain_memory_root,
     add_comment,
     add_dependencies,
     archive_project,
@@ -21,37 +20,24 @@ from .core import (
     delete_dependency,
     delete_project,
     delete_project_logo,
-    get_hub_settings,
     get_project_logo_path,
-    link_instance,
-    list_instances,
     get_meta,
     get_project,
     get_stats,
     list_active_tasks,
     list_archive_tasks,
-    list_memory_project_files,
-    list_memory_quartz_pages,
     list_projects,
-    read_memory_project_file,
-    read_memory_quartz_page,
     rebuild_brain_static,
     restore_task,
-    save_memory_project_file,
     save_project_logo,
     update_project_memory_major,
     split_task,
-    unlink_instance,
-    update_hub_settings,
     update_meta,
     update_task,
 )
 from .models import (
     CommentCreate,
     DependenciesUpdate,
-    HubSettingsUpdate,
-    InstanceLinkRequest,
-    MemoryFileSave,
     MetaUpdate,
     ProjectCreate,
     ProjectMemoryMajorUpdate,
@@ -96,39 +82,6 @@ def get_meta_endpoint():
 @router.post("/tasks")
 def create_task_endpoint(body: TaskCreate):
     return create_task(body)
-
-
-@router.get("/hub/settings")
-def get_hub_settings_endpoint():
-    data = dict(get_hub_settings())
-    data["active_brain_memory"] = str(active_brain_memory_root(data))
-    return data
-
-
-@router.put("/hub/settings")
-def update_hub_settings_endpoint(body: HubSettingsUpdate):
-    return update_hub_settings(body)
-
-
-@router.get("/hub/instances")
-def list_instances_endpoint():
-    return list_instances()
-
-
-@router.post("/hub/instances/link")
-def link_instance_endpoint(body: InstanceLinkRequest):
-    try:
-        return link_instance(body.path)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-
-
-@router.post("/hub/instances/unlink")
-def unlink_instance_endpoint(body: InstanceLinkRequest):
-    try:
-        return unlink_instance(body.path)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
 
 
 @router.get("/hub/projects")
@@ -213,80 +166,6 @@ def delete_project_endpoint(project_slug: str):
         return delete_project(project_slug)
     except KeyError:
         raise HTTPException(404, "Project not found")
-
-
-@router.get("/memory/projects")
-def list_memory_projects_endpoint():
-    return list_memory_project_files()
-
-
-@router.get("/memory/quartz")
-def list_memory_quartz_endpoint():
-    return list_memory_quartz_pages()
-
-
-@router.get("/memory/quartz/{filename}")
-def read_memory_quartz_endpoint(filename: str):
-    try:
-        return read_memory_quartz_page(filename)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    except KeyError:
-        raise HTTPException(404, "Quartz page not found")
-
-
-@router.get("/memory/quartz-static/{path:path}")
-def quartz_static_endpoint(path: str):
-    # Serve Quartz build output as real files (CSS/JS/assets) so the Hub iframe can render properly.
-    if not path or path.endswith("/"):
-        path = "index.html"
-    if not Path(path).suffix:
-        path = f"{path}.html"
-    safe = Path(path)
-    if safe.is_absolute() or ".." in safe.parts:
-        raise HTTPException(400, "Invalid path")
-    root = Path(__file__).resolve().parents[2]  # .../kanban/kanban_api/ -> repo root
-    quartz_public = root / "quartz" / "public"
-    target = (quartz_public / safe).resolve()
-    if not str(target).startswith(str(quartz_public.resolve())):
-        raise HTTPException(400, "Invalid path")
-    if not target.exists() or not target.is_file():
-        raise HTTPException(404, "Not found")
-    media, _ = mimetypes.guess_type(str(target))
-    # For HTML, inject a base href so internal links (Home, Explorer) work under our mount path.
-    if target.suffix.lower() == ".html":
-        html = target.read_text(encoding="utf-8", errors="ignore")
-        prefix = "/api/hub/kanban/memory/quartz-static/"
-        base = f'<base href="{prefix}" />'
-        if "<base" not in html.lower():
-            html = html.replace("<head>", f"<head>{base}", 1)
-        # Quartz emits some absolute links (href="/...", src="/...") which bypass <base>.
-        # Rewrite them to stay under our mount prefix so clicks don't hit unknown API routes.
-        html = html.replace(' href="/', f' href="{prefix}')
-        html = html.replace(" href='/", f" href='{prefix}")
-        html = html.replace(' src="/', f' src="{prefix}')
-        html = html.replace(" src='/", f" src='{prefix}")
-        return HTMLResponse(content=html, media_type="text/html")
-    # Don't set "filename": would force download instead of inline render in iframe.
-    return FileResponse(target, media_type=media or "application/octet-stream")
-
-
-@router.get("/memory/projects/{filename}")
-def read_memory_project_endpoint(filename: str):
-    try:
-        return read_memory_project_file(filename)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    except KeyError:
-        raise HTTPException(404, "Memory file not found")
-
-
-@router.put("/memory/projects")
-def save_memory_project_endpoint(body: MemoryFileSave):
-    try:
-        return save_memory_project_file(body.filename, body.content)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
 
 
 @router.get("/codir")

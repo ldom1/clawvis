@@ -360,12 +360,12 @@ cmd_restart() {
   fi
   cd "${ROOT_DIR}"
   if [ -n "${CLAWVIS_QUIET_START:-}" ]; then
-    docker compose up -d --build hub memory >/dev/null 2>&1 || {
+    docker compose up -d --build hub kanban-api hub-memory-api memory >/dev/null 2>&1 || {
       echo "[clawvis] docker compose up a échoué" >&2
       exit 1
     }
   else
-    docker compose up -d --build hub memory
+    docker compose up -d --build hub kanban-api hub-memory-api memory
   fi
 }
 

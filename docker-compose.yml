@@ -15,6 +15,7 @@ services:
       - "app=clawvis"
     depends_on:
       - kanban-api
+      - hub-memory-api
 
   kanban-api:
     build:
@@ -30,6 +31,33 @@ services:
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     labels:
       - "app=clawvis"
+
+  hub-memory-api:
+    build:
+      context: .
+      dockerfile: kanban/Dockerfile
+    ports:
+      - "${HUB_MEMORY_API_PORT:-8091}:8091"
+    env_file: .env
+    volumes:
+      - ./instances:/clawvis/instances
+      - ./quartz:/clawvis/quartz
+    environment:
+      - MEMORY_ROOT=instances/${INSTANCE_NAME:-example}/memory
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    labels:
+      - "app=clawvis"
+    command:
+      [
+        "uv",
+        "run",
+        "uvicorn",
+        "hub_core.memory_api:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8091",
+      ]
 
   memory:
     image: ghcr.io/logseq/logseq-webapp:latest

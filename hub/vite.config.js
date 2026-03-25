@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, repoRoot, ["HUB_", "KANBAN_"]);
   const port = Number(env.HUB_PORT || 8088);
   const kanbanPort = Number(env.KANBAN_API_PORT || 8090);
+  const memoryPort = Number(env.HUB_MEMORY_API_PORT || 8091);
 
   return {
     server: {
@@ -25,6 +26,10 @@ export default defineConfig(({ mode }) => {
         "/api/hub/kanban": {
           target: `http://127.0.0.1:${kanbanPort}`,
           rewrite: (p) => p.replace(/^\/api\/hub\/kanban/, ""),
+        },
+        "/api/hub/memory": {
+          target: `http://127.0.0.1:${memoryPort}`,
+          rewrite: (p) => p.replace(/^\/api\/hub\/memory/, ""),
         },
       },
     },

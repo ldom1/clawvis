@@ -9,6 +9,7 @@ load_env_file
 
 HUB_PORT="${HUB_PORT:-8088}"
 KANBAN_API_PORT="${KANBAN_API_PORT:-8090}"
+HUB_MEMORY_API_PORT="${HUB_MEMORY_API_PORT:-8091}"
 HUB_VITE_PORT="${HUB_VITE_PORT:-5173}"
 
 say() {
@@ -45,9 +46,10 @@ else
   say "[clawvis] Docker absent — compose ignoré"
 fi
 
-say "[clawvis] Libération ports ${HUB_PORT}, ${KANBAN_API_PORT}, ${HUB_VITE_PORT} (dev local)"
+say "[clawvis] Libération ports ${HUB_PORT}, ${KANBAN_API_PORT}, ${HUB_MEMORY_API_PORT}, ${HUB_VITE_PORT} (dev local)"
 free_listen_port "${HUB_PORT}"
 free_listen_port "${KANBAN_API_PORT}"
+free_listen_port "${HUB_MEMORY_API_PORT}"
 free_listen_port "${HUB_VITE_PORT}"
 
 say "[clawvis] Shutdown terminé."

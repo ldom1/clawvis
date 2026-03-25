@@ -334,10 +334,12 @@ fi
 upsert_env "MODE" "${RUN_MODE}"
 
 if [ "${MODE}" = "1" ]; then
-  docker compose up -d hub kanban-api memory
+  # hub depends_on kanban-api + hub-memory-api; list them explicitly so all modes match.
+  docker compose up -d hub kanban-api hub-memory-api memory
   info "Instance started"
   echo "- Hub:    http://localhost:${HUB_PORT}"
   echo "- Brain:  http://localhost:${MEMORY_PORT}"
+  echo "- Memory API (Quartz/settings): http://localhost:${HUB_MEMORY_API_PORT:-8091}"
   echo "- Logs:   http://localhost:${HUB_PORT}/logs/"
   echo "- Kanban: http://localhost:${HUB_PORT}/kanban/"
 else

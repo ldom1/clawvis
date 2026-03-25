@@ -539,7 +539,7 @@ program
 
 program
   .command("shutdown")
-  .description("Stop compose + free Hub / Kanban API / Vite dev ports")
+  .description("Stop compose + free Hub / Kanban / Memory API / Vite dev ports")
   .action(() => runShutdown());
 
 program

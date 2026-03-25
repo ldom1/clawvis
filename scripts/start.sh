@@ -12,10 +12,12 @@ load_env_file
 
 PORT="${HUB_PORT:-8088}"
 API_PORT="${KANBAN_API_PORT:-8090}"
+MEM_API_PORT="${HUB_MEMORY_API_PORT:-8091}"
 
 if [ -z "${CLAWVIS_SKIP_START_ECHO:-}" ]; then
   echo "Starting Clawvis dev server on http://localhost:${PORT}"
   echo "Starting Kanban API on http://localhost:${API_PORT}"
+  echo "Starting Hub Memory API on http://localhost:${MEM_API_PORT}"
   echo "Starting Vite Hub app (port ${PORT}, or next free if busy; URL in Vite output)"
   echo "Ensuring Brain runtime on http://localhost:${MEMORY_PORT:-3099}"
   echo "If port is busy, run: clawvis shutdown   (or: docker compose down)"
@@ -55,6 +57,29 @@ wait_kanban_api() {
   return 1
 }
 
+wait_memory_api() {
+  local pid="$1"
+  local i=0
+  local max=80
+  while [ "${i}" -lt "${max}" ]; do
+    if ! kill -0 "${pid}" 2>/dev/null; then
+      echo "[clawvis] L'API Memory (uvicorn) s'est arrêtée — port ${MEM_API_PORT} déjà pris ou erreur uv/Python ?" >&2
+      return 1
+    fi
+    if command -v curl >/dev/null 2>&1 \
+      && curl -fsS -m 1 "http://127.0.0.1:${MEM_API_PORT}/openapi.json" >/dev/null 2>&1; then
+      return 0
+    fi
+    if (echo >/dev/tcp/127.0.0.1/"${MEM_API_PORT}") 2>/dev/null; then
+      return 0
+    fi
+    sleep 0.25
+    i=$((i + 1))
+  done
+  echo "[clawvis] Timeout: pas de réponse Memory API sur http://127.0.0.1:${MEM_API_PORT}/ (openapi.json)." >&2
+  return 1
+}
+
 uv run --directory "${ROOT_DIR}/kanban" python -m uvicorn \
   kanban_api.server:app \
   --host 0.0.0.0 \
@@ -65,12 +90,26 @@ uv run --directory "${ROOT_DIR}/kanban" python -m uvicorn \
   "${uvicorn_extra[@]}" &
 API_PID=$!
 
+uv run --directory "${ROOT_DIR}/kanban" python -m uvicorn \
+  hub_core.memory_api:app \
+  --host 0.0.0.0 \
+  --port "${MEM_API_PORT}" \
+  --reload \
+  --reload-dir "${ROOT_DIR}/hub-core/hub_core" \
+  --reload-dir "${ROOT_DIR}/kanban/kanban_api" \
+  "${uvicorn_extra[@]}" &
+MEM_API_PID=$!
+
 cleanup() {
   kill "${API_PID}" >/dev/null 2>&1 || true
+  kill "${MEM_API_PID}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT INT TERM
 
 if ! wait_kanban_api "${API_PID}"; then
+  exit 1
+fi
+if ! wait_memory_api "${MEM_API_PID}"; then
   exit 1
 fi
 
