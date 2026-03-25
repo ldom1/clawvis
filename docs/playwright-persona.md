@@ -35,33 +35,33 @@ Base URL: `http://localhost:8088` (or `HUB_PORT` value).
    - Assert Business KPIs row is visible (Projects, Active tasks, Done, Brain notes)
    - Assert "Core tools" section with Kanban, Brain, Chat tiles is visible
 
-2. **Navigate to Settings** via AI runtime banner CTA or settings icon
-   - URL: `/settings/`
-   - Assert settings page header: "Paramètres · Clawvis" or "Settings · Clawvis"
-   - Assert runtime card shows "Not configured" / "À configurer" badge
-   - Assert "Configure" button is present
+2. **Navigate to Setup Runtime** via AI runtime banner CTA
+   - Assert URL is `/setup/runtime/`
+   - Assert page header contains "Setup · Clawvis" or "Setup · Clawvis"
+   - Assert stepper is visible with 4 step circles
 
-3. **Open AI Runtime wizard**
-   - Click "Configure" button
-   - Assert wizard modal opens
-   - Assert step 1/3 shows three provider cards: Claude, Mistral, OpenClaw
+3. **Step 1 — Choose provider**
+   - Assert 3 provider cards visible: Claude, Mistral, OpenClaw
+   - Assert "Next →" button is disabled
+   - Click "Claude" card
+   - Assert "Next →" button is now enabled
 
-4. **Configure Claude provider**
-   - Click "Claude" provider card
-   - Assert wizard advances to step 2/3
-   - Assert API key input is visible (type=password, placeholder `sk-ant-...`)
-   - Type a test key: `sk-ant-test-key-00000000`
+4. **Step 2 — Credentials**
    - Click "Next →"
-   - Assert step 3/3 is visible
-   - Click "Test connection" (expected: error, key is fake — just assert result shown)
-   - Click "Save"
-   - Assert wizard closes
-   - Assert runtime badge changes to "Configured" / "Connecté"
+   - Assert stepper advances to step 2 (circle 2 is active)
+   - Assert API key input is visible (`type=password`, placeholder `sk-ant-...`)
+   - Assert "Next →" is disabled
+   - Type `sk-ant-test-key-00000000`
+   - Assert "Next →" is now enabled
+   - Click "Next →"
 
-5. **Verify home page reflects configuration**
-   - Navigate back to `/`
-   - Assert AI runtime banner status badge shows "Connected" / "Connecté"
-   - Assert provider label shows "Claude"
+5. **Step 3 — Test gate**
+   - Assert stepper is on step 3
+   - Assert "Next →" is disabled (no test run yet)
+   - Click "Run test" / "Lancer le test"
+   - Assert test result is shown (error expected — key is fake)
+   - Assert "Next →" remains **disabled** (failed test must not unlock step 4)
+   - *(Journey ends here — step 4 mini-chat not tested with fake key)*
 
 ---
 
@@ -213,12 +213,10 @@ Base URL: `http://localhost:8088` (or `HUB_PORT` value).
    - Click "Link selection"
    - Assert success or info feedback
 
-3. **Appearance**
-   - Assert dark/light theme cards are visible
-   - Click "Light" card
-   - Assert body has class `theme-light`
-   - Click "Dark" card
-   - Assert body does not have class `theme-light`
+3. **AI Runtime section (no modal)**
+   - Assert a link with text matching "Configurer le runtime" / "Configure runtime" is visible
+   - Assert the link's `href` attribute is `/setup/runtime/`
+   - Assert **no modal overlay is present** (`#ai-wizard-overlay` must not exist in the DOM)
 
 4. **Back to hub**
    - Click "← Back to hub" / "Retour au hub"
@@ -235,7 +233,7 @@ Base URL: `http://localhost:8088` (or `HUB_PORT` value).
 1. **Open Chat** (`/chat/`)
    - Assert page header "Chat · Clawvis"
    - Assert status bar visible
-   - If runtime not configured: assert warn status bar with link to settings
+   - If runtime not configured: assert warn status bar contains a link with `href="/setup/runtime/"` and visible text matching "Configurer le runtime" / "Setup runtime"
    - If configured: assert "Connected" / "Connecté" status
 
 2. **Send a message (unconfigured)**
