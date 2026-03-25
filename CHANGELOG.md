@@ -17,8 +17,6 @@ All notable changes to this project will be documented in this file.
 - Backend: `kanban_api/chat_api.py` — POST `/chat` streams from Claude / Mistral / OpenClaw based on `.env` config.
 - Provider status endpoint: GET `/chat/status` — returns which provider is configured.
 - Chat accessible from home tools bar tile and topbar (future).
-- `docs/playwright-persona.md` — Persona 6 covers full chat test journey.
-
 ### Brain / Quartz integration (2026-03-24)
 - `scripts/setup-quartz.sh` — clone, patch content path, and first-build Quartz in one command.
 - `clawvis setup quartz` — wired in both bash `clawvis` script and `clawvis-cli/cli.mjs`.
@@ -29,9 +27,6 @@ All notable changes to this project will be documented in this file.
 - `scripts/setup-runtime.sh` — configure any AI provider in `.env` from CLI: `clawvis setup provider --provider claude --key <key>`.
 - `clawvis setup quartz` and `clawvis setup provider` now routed correctly in the bash fallback script.
 - `clawvis update --channel stable|beta` — replaced `rg` with `grep` (non-standard tool, was CI failure on vanilla Ubuntu).
-
-### Docs (2026-03-24)
-- `docs/playwright-persona.md` — comprehensive 7-persona test guide: onboarding, kanban lifecycle, project CRUD, Brain/Quartz, Settings, Chat, health check.
 
 ### Hub — production-grade redesign (`hub/public/index.html`)
 - Aligned hub template with the production design from hub-ldom: dark theme, Inter font, indigo accent.

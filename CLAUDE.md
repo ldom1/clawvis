@@ -114,6 +114,31 @@ Two layers must stay separated:
 - local overrides, secrets, branding, runtime paths, private routes
 - instance memory and instance-specific operational data
 
+## Hub API Contract (Domain-separated)
+
+Clawvis APIs must be **split by domain** under `/api/hub/*` (no cross-domain leakage):
+
+- **`/api/hub/kanban/*`**: Kanban domain (projects/tasks/deps/stats)
+- **`/api/hub/memory/*`**: Brain domain (memory tree, Quartz, instance linking, brain rebuild)
+- **`/api/hub/logs/*`**: Logs domain (process logs, filters, SSE if needed)
+- **`/api/hub/chat/*`**: Chat domain (LLM actions, streaming, etc.)
+
+Rules:
+- Brain/Quartz endpoints must **never** live under the Kanban API surface.
+- The frontend must call the matching domain prefix (no “/api/hub/kanban/memory/...”, etc.).
+
+### Memory API — quel mode lance quoi
+
+Les **trois modes d’identité** (Franc / Mérovingien / Soissons) ne sont pas trois binaires différents : ce sont des profils d’usage. Le **Hub Memory API** (`hub_core.memory_api`, port **`HUB_MEMORY_API_PORT`**, défaut **8091**) doit tourner dès que le Hub sert Brain/Quartz/settings instances.
+
+| Profil | Chemin typique | Démarrage Memory API |
+|--------|----------------|----------------------|
+| **Franc** (Docker simple) | `./install.sh` → choix **1) Docker** | `docker compose up … hub-memory-api` avec `hub` / `kanban-api` / Logseq `memory` |
+| **Mérovingien** (VPS / déploiement) | `clawvis deploy` → `docker compose up -d --build` sur le serveur | Toute la stack compose, y compris **`hub-memory-api`** |
+| **Soissons** (contribution / dev local) | `clawvis start` ou `./install.sh` → **2) Local dev** | `scripts/start.sh` lance **Kanban API** + **Memory API** (uvicorn) + Vite ; `shutdown` libère aussi le port Memory API |
+
+En **Docker**, nginx du conteneur `hub` proxy `/api/hub/memory/` vers le service **`hub-memory-api`**. En **dev**, le proxy Vite (`hub/vite.config.js`) pointe `/api/hub/memory` vers `127.0.0.1:${HUB_MEMORY_API_PORT}`.
+
 ```mermaid
 flowchart TD
   SharedCore["SharedCore"]
