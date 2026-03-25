@@ -3348,39 +3348,74 @@ const SETUP_RUNTIME_TEXT = {
     subtitle: "Configure ton runtime IA en 4 étapes.",
     back: "Retour au hub",
     step1Title: "Choisir ton fournisseur",
-    step1Desc: "Clawvis supporte plusieurs fournisseurs. Sélectionne celui que tu veux configurer.",
+    step1Desc:
+      "Clawvis supporte plusieurs fournisseurs. Sélectionne celui que tu veux configurer.",
     step2Title: "Obtenir et entrer la clé",
-    step2Desc: "Suis les instructions pour ton fournisseur, puis entre ta clé API.",
+    step2Desc:
+      "Suis les instructions pour ton fournisseur, puis entre ta clé API.",
     step3Title: "Tester la connexion",
     step3Desc: "Vérifie que la connexion fonctionne avant de continuer.",
     step4Title: "Valide avec un message",
-    step4Desc: "Envoie un message à ton runtime pour confirmer que tout fonctionne.",
+    step4Desc:
+      "Envoie un message à ton runtime pour confirmer que tout fonctionne.",
     next: "Suivant →",
     back_btn: "← Retour",
     testBtn: "Lancer le test",
     testLoading: "Connexion en cours…",
     testOk: "Connexion réussie — ton runtime répond.",
     testErr: "Échec de connexion.",
-    testErrHint: { claude: "Vérifie ta clé API.", mistral: "Vérifie ta clé API.", openclaw: "Vérifie l'URL et la clé." },
-    chatWelcome: "Bonjour ! Je suis ton runtime IA. Pose-moi une question pour vérifier que tout fonctionne.",
+    testErrHint: {
+      claude: "Vérifie ta clé API.",
+      mistral: "Vérifie ta clé API.",
+      openclaw: "Vérifie l'URL et la clé.",
+    },
+    chatWelcome:
+      "Bonjour ! Je suis ton runtime IA. Pose-moi une question pour vérifier que tout fonctionne.",
     chatPlaceholder: "Envoie un message…",
     chatSend: "Envoyer",
     finish: "Terminer →",
     providers: {
-      claude: { name: "Claude", owner: "Anthropic", badge: "Cloud", desc: "Le modèle le plus capable d'Anthropic. Clé API sur console.anthropic.com.", link: "https://console.anthropic.com/settings/keys", linkLabel: "Obtenir une clé →", placeholder: "sk-ant-..." },
-      mistral: { name: "Mistral", owner: "Mistral AI", badge: "Cloud", desc: "Modèle open-weight performant. Clé API sur console.mistral.ai.", link: "https://console.mistral.ai/api-keys", linkLabel: "Obtenir une clé →", placeholder: "..." },
-      openclaw: { name: "OpenClaw", owner: "Auto-hébergé", badge: "Self-hosted", desc: "Instance compatible OpenAI. Renseigne l'URL de ton serveur.", link: null, linkLabel: null, placeholder: "http://host:port" },
+      claude: {
+        name: "Claude",
+        owner: "Anthropic",
+        badge: "Cloud",
+        desc: "Le modèle le plus capable d'Anthropic. Clé API sur console.anthropic.com.",
+        link: "https://console.anthropic.com/settings/keys",
+        linkLabel: "Obtenir une clé →",
+        placeholder: "sk-ant-...",
+      },
+      mistral: {
+        name: "Mistral",
+        owner: "Mistral AI",
+        badge: "Cloud",
+        desc: "Modèle open-weight performant. Clé API sur console.mistral.ai.",
+        link: "https://console.mistral.ai/api-keys",
+        linkLabel: "Obtenir une clé →",
+        placeholder: "...",
+      },
+      openclaw: {
+        name: "OpenClaw",
+        owner: "Auto-hébergé",
+        badge: "Self-hosted",
+        desc: "Instance compatible OpenAI. Renseigne l'URL de ton serveur.",
+        link: null,
+        linkLabel: null,
+        placeholder: "http://host:port",
+      },
     },
-    securityNote: "La clé est stockée dans ton navigateur (localStorage). Elle n'est jamais envoyée à nos serveurs.",
+    securityNote:
+      "La clé est stockée dans ton navigateur (localStorage). Elle n'est jamais envoyée à nos serveurs.",
   },
   en: {
     title: "Setup",
     subtitle: "Configure your AI runtime in 4 steps.",
     back: "Back to hub",
     step1Title: "Choose your provider",
-    step1Desc: "Clawvis supports multiple providers. Select the one you want to configure.",
+    step1Desc:
+      "Clawvis supports multiple providers. Select the one you want to configure.",
     step2Title: "Get and enter your key",
-    step2Desc: "Follow the instructions for your provider, then enter your API key.",
+    step2Desc:
+      "Follow the instructions for your provider, then enter your API key.",
     step3Title: "Test the connection",
     step3Desc: "Verify the connection works before continuing.",
     step4Title: "Validate with a message",
@@ -3391,17 +3426,47 @@ const SETUP_RUNTIME_TEXT = {
     testLoading: "Connecting…",
     testOk: "Connection successful — your runtime is responding.",
     testErr: "Connection failed.",
-    testErrHint: { claude: "Check your API key.", mistral: "Check your API key.", openclaw: "Check the URL and key." },
-    chatWelcome: "Hello! I'm your AI runtime. Ask me a question to confirm everything is working.",
+    testErrHint: {
+      claude: "Check your API key.",
+      mistral: "Check your API key.",
+      openclaw: "Check the URL and key.",
+    },
+    chatWelcome:
+      "Hello! I'm your AI runtime. Ask me a question to confirm everything is working.",
     chatPlaceholder: "Send a message…",
     chatSend: "Send",
     finish: "Finish →",
     providers: {
-      claude: { name: "Claude", owner: "Anthropic", badge: "Cloud", desc: "Anthropic's most capable model. API key at console.anthropic.com.", link: "https://console.anthropic.com/settings/keys", linkLabel: "Get a key →", placeholder: "sk-ant-..." },
-      mistral: { name: "Mistral", owner: "Mistral AI", badge: "Cloud", desc: "High-performance open-weight model. API key at console.mistral.ai.", link: "https://console.mistral.ai/api-keys", linkLabel: "Get a key →", placeholder: "..." },
-      openclaw: { name: "OpenClaw", owner: "Self-hosted", badge: "Self-hosted", desc: "OpenAI-compatible self-hosted instance. Enter your server URL.", link: null, linkLabel: null, placeholder: "http://host:port" },
+      claude: {
+        name: "Claude",
+        owner: "Anthropic",
+        badge: "Cloud",
+        desc: "Anthropic's most capable model. API key at console.anthropic.com.",
+        link: "https://console.anthropic.com/settings/keys",
+        linkLabel: "Get a key →",
+        placeholder: "sk-ant-...",
+      },
+      mistral: {
+        name: "Mistral",
+        owner: "Mistral AI",
+        badge: "Cloud",
+        desc: "High-performance open-weight model. API key at console.mistral.ai.",
+        link: "https://console.mistral.ai/api-keys",
+        linkLabel: "Get a key →",
+        placeholder: "...",
+      },
+      openclaw: {
+        name: "OpenClaw",
+        owner: "Self-hosted",
+        badge: "Self-hosted",
+        desc: "OpenAI-compatible self-hosted instance. Enter your server URL.",
+        link: null,
+        linkLabel: null,
+        placeholder: "http://host:port",
+      },
     },
-    securityNote: "Your key is stored in your browser (localStorage). It is never sent to our servers.",
+    securityNote:
+      "Your key is stored in your browser (localStorage). It is never sent to our servers.",
   },
 };
 
@@ -3438,15 +3503,17 @@ function renderSetupRuntime() {
         <h2>${escapeHtml(t.step1Title)}</h2>
         <p class="setup-step-desc">${escapeHtml(t.step1Desc)}</p>
         <div class="setup-provider-cards">
-          ${["claude", "mistral", "openclaw"].map((pid) => {
-            const p = t.providers[pid];
-            return `<button class="setup-provider-card" data-provider="${pid}" type="button">
+          ${["claude", "mistral", "openclaw"]
+            .map((pid) => {
+              const p = t.providers[pid];
+              return `<button class="setup-provider-card" data-provider="${pid}" type="button">
               <span class="setup-provider-icon">${pid === "claude" ? "🧠" : pid === "mistral" ? "✨" : "🐾"}</span>
               <strong>${escapeHtml(p.name)}</strong>
               <span>${escapeHtml(p.owner)}</span>
               <span class="setup-provider-badge">${escapeHtml(p.badge)}</span>
             </button>`;
-          }).join("")}
+            })
+            .join("")}
         </div>
         <div class="setup-actions">
           <button class="btn btn-primary" id="setup-next-1" type="button" disabled>${escapeHtml(t.next)}</button>
@@ -3506,7 +3573,281 @@ function renderSetupRuntime() {
 }
 
 async function wireSetupRuntime() {
-  // wired in Task 4
+  const isFr = settingsLocale() === "fr";
+  const t = SETUP_RUNTIME_TEXT[isFr ? "fr" : "en"];
+
+  // ── In-memory wizard state (not written to localStorage until "Terminer") ──
+  let selectedProvider = localStorage.getItem("ai-provider") || "";
+  let credKey = ""; // holds claude key or mistral key
+  let credUrl = ""; // holds openclaw url
+
+  // ── Stepper helpers ──
+  const STEPS = [1, 2, 3, 4];
+  function goToStep(n) {
+    STEPS.forEach((s) => {
+      const el = document.getElementById(`setup-step-${s}`);
+      if (el) el.style.display = s === n ? "" : "none";
+      const circle = document.getElementById(`step-circle-${s}`);
+      if (!circle) return;
+      circle.classList.remove("active", "done");
+      if (s < n) circle.classList.add("done");
+      else if (s === n) circle.classList.add("active");
+      const line = document.getElementById(`step-line-${s}`);
+      if (line) line.classList.toggle("done", s < n);
+    });
+    // Reset step 3 state when going back to 1 or 2
+    if (n <= 2) resetStep3();
+  }
+
+  function resetStep3() {
+    const result = document.getElementById("setup-test-result");
+    if (result) {
+      result.className = "setup-test-result";
+      result.innerHTML = "";
+    }
+    const next3 = document.getElementById("setup-next-3");
+    if (next3) next3.disabled = true;
+  }
+
+  // ── Pre-fill from localStorage if returning user ──
+  // Only pre-select the provider card and enable "Next →". Do NOT touch stepper circle
+  // classes here — goToStep() manages them when the user actually navigates.
+  // The page always starts on step 1 (default from renderSetupRuntime).
+  if (selectedProvider) {
+    const card = document.querySelector(
+      `[data-provider="${selectedProvider}"]`,
+    );
+    if (card) card.classList.add("selected");
+    const next1 = document.getElementById("setup-next-1");
+    if (next1) next1.disabled = false;
+    // Pre-load cred values from localStorage into memory (shown in step 2 fields)
+    credKey = localStorage.getItem(`ai-${selectedProvider}-key`) || "";
+    credUrl = localStorage.getItem("ai-openclaw-url") || "";
+  }
+
+  // ── Stepper click-back (delegated — works for circles marked done after navigation) ──
+  document.getElementById("setup-stepper").addEventListener("click", (e) => {
+    const circle = e.target.closest(".setup-step-circle.done");
+    if (!circle) return;
+    const n = parseInt(circle.dataset.step, 10);
+    if (n && n < 4) goToStep(n);
+  });
+
+  // ── Step 1: Provider selection ──
+  document.querySelectorAll("[data-provider]").forEach((card) => {
+    card.addEventListener("click", () => {
+      document
+        .querySelectorAll("[data-provider]")
+        .forEach((c) => c.classList.remove("selected"));
+      card.classList.add("selected");
+      selectedProvider = card.dataset.provider;
+      document.getElementById("setup-next-1").disabled = false;
+    });
+  });
+
+  document.getElementById("setup-next-1").addEventListener("click", () => {
+    renderStep2Detail();
+    goToStep(2);
+  });
+
+  // ── Step 2: Render provider-specific detail and credentials ──
+  function renderStep2Detail() {
+    const p = t.providers[selectedProvider];
+    const detail = document.getElementById("setup-provider-detail");
+    if (!detail) return;
+
+    if (selectedProvider === "openclaw") {
+      detail.innerHTML = `
+        <p>${escapeHtml(p.desc)}</p>
+        <div class="setup-key-field">
+          <input id="setup-cred-url" type="text" placeholder="${escapeHtml(p.placeholder)}"
+            value="${escapeHtml(credUrl)}" autocomplete="off" />
+        </div>
+      `;
+      const urlInput = document.getElementById("setup-cred-url");
+      urlInput.addEventListener("input", () => {
+        credUrl = urlInput.value.trim();
+        document.getElementById("setup-next-2").disabled = !credUrl;
+      });
+      document.getElementById("setup-next-2").disabled = !credUrl;
+    } else {
+      const existingKey =
+        localStorage.getItem(`ai-${selectedProvider}-key`) || credKey;
+      detail.innerHTML = `
+        <p>${escapeHtml(p.desc)}</p>
+        ${p.link ? `<p><a href="${p.link}" target="_blank" rel="noopener">${escapeHtml(p.linkLabel)}</a></p>` : ""}
+        <div class="setup-key-field">
+          <input id="setup-cred-key" type="password" placeholder="${escapeHtml(p.placeholder)}"
+            value="${escapeHtml(existingKey)}" autocomplete="off" />
+          <button class="setup-key-toggle" id="setup-key-toggle" type="button">👁</button>
+        </div>
+      `;
+      const keyInput = document.getElementById("setup-cred-key");
+      document
+        .getElementById("setup-key-toggle")
+        .addEventListener("click", () => {
+          keyInput.type = keyInput.type === "password" ? "text" : "password";
+        });
+      keyInput.addEventListener("input", () => {
+        credKey = keyInput.value.trim();
+        document.getElementById("setup-next-2").disabled = !credKey;
+      });
+      document.getElementById("setup-next-2").disabled =
+        !existingKey && !credKey;
+      if (existingKey) credKey = existingKey;
+    }
+  }
+
+  document
+    .getElementById("setup-back-1")
+    .addEventListener("click", () => goToStep(1));
+
+  document.getElementById("setup-next-2").addEventListener("click", () => {
+    // Capture final credential values before advancing
+    if (selectedProvider === "openclaw") {
+      credUrl =
+        (document.getElementById("setup-cred-url") || {}).value?.trim() ||
+        credUrl;
+    } else {
+      credKey =
+        (document.getElementById("setup-cred-key") || {}).value?.trim() ||
+        credKey;
+    }
+    goToStep(3);
+  });
+
+  // ── Step 3: Connection test ──
+  document
+    .getElementById("setup-back-2")
+    .addEventListener("click", () => goToStep(2));
+
+  document
+    .getElementById("setup-test-btn")
+    .addEventListener("click", async () => {
+      const result = document.getElementById("setup-test-result");
+      const testBtn = document.getElementById("setup-test-btn");
+      result.className = "setup-test-result";
+      result.innerHTML = t.testLoading;
+      testBtn.disabled = true;
+
+      try {
+        // ⚠️ KNOWN LIMITATION: this test validates the backend's configured key (from .env),
+        // NOT the key the user just entered in the wizard. hub_core.chat_runtime reads API
+        // keys from environment variables only. A 200 response confirms the backend is
+        // reachable and its env has a working key — it does not validate the wizard-entered key.
+        // Future improvement: pass the key in a request header that chat_runtime reads
+        // preferentially over the env.
+        const res = await fetch("/api/hub/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: isFr ? "Réponds juste 'ok'." : "Just reply 'ok'.",
+            history: [],
+            system: "Reply with only the word 'ok'.",
+          }),
+        });
+        if (res.ok) {
+          const text = await res.text();
+          result.className = "setup-test-result ok";
+          result.innerHTML = `${escapeHtml(t.testOk)}
+          <details class="setup-test-raw"><summary>${isFr ? "Réponse" : "Response"}</summary>${escapeHtml(text.slice(0, 200))}</details>`;
+          document.getElementById("setup-next-3").disabled = false;
+        } else {
+          throw new Error(`HTTP ${res.status}`);
+        }
+      } catch (e) {
+        result.className = "setup-test-result err";
+        const hint = t.testErrHint[selectedProvider] || "";
+        result.innerHTML = `${escapeHtml(t.testErr)} ${escapeHtml(hint)} <span style="opacity:.6">(${escapeHtml(String(e))})</span>`;
+      }
+      testBtn.disabled = false;
+    });
+
+  document
+    .getElementById("setup-next-3")
+    .addEventListener("click", () => goToStep(4));
+
+  // ── Step 4: Mini-chat ──
+  document
+    .getElementById("setup-back-3")
+    .addEventListener("click", () => goToStep(3));
+
+  const chatMessages = document.getElementById("setup-chat-messages");
+  const chatInput = document.getElementById("setup-chat-input");
+  const chatSend = document.getElementById("setup-chat-send");
+  const chatHistory = [];
+
+  function addSetupBubble(role, text, streaming = false) {
+    const div = document.createElement("div");
+    div.className = `setup-chat-bubble ${role}`;
+    div.textContent = text;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return div;
+  }
+
+  async function sendSetupMessage() {
+    const msg = chatInput.value.trim();
+    if (!msg) return;
+    chatInput.value = "";
+    chatSend.disabled = true;
+    addSetupBubble("user", msg);
+    chatHistory.push({ role: "user", content: msg });
+
+    const el = addSetupBubble("assistant", "…", true);
+    let full = "";
+    try {
+      const res = await fetch("/api/hub/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: msg,
+          history: chatHistory.slice(0, -1),
+        }),
+      });
+      if (res.ok && res.body) {
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        el.textContent = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          full += dec.decode(value, { stream: true });
+          el.textContent = full;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        chatHistory.push({ role: "assistant", content: full });
+      } else {
+        el.textContent = isFr ? "Erreur." : "Error.";
+      }
+    } catch {
+      el.textContent = isFr ? "Erreur réseau." : "Network error.";
+    }
+    chatSend.disabled = false;
+    chatInput.focus();
+  }
+
+  chatSend.addEventListener("click", sendSetupMessage);
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendSetupMessage();
+    }
+  });
+
+  // ── Finish: write to localStorage and redirect ──
+  document.getElementById("setup-finish").addEventListener("click", () => {
+    localStorage.setItem("ai-provider", selectedProvider);
+    if (selectedProvider === "openclaw") {
+      localStorage.setItem("ai-openclaw-url", credUrl);
+    } else {
+      localStorage.setItem(`ai-${selectedProvider}-key`, credKey);
+    }
+    window.location.href = "/";
+  });
+
+  // ── If returning user, land on step 1 (already pre-selected above) ──
+  // (goToStep is not called here; step 1 is already visible from renderSetupRuntime)
 }
 
 async function boot() {
