@@ -24,6 +24,7 @@ run_step() {
 run_step "kanban" "bash tests/ci-kanban.sh"
 run_step "hub-core" "bash tests/ci-hub-core.sh"
 run_step "hub" "bash tests/ci-hub.sh"
+run_step "playwright" "bash tests/ci-playwright.sh"
 run_step "skills" "bash tests/ci-skills.sh"
 run_step "cli" "bash tests/ci-cli.sh"
 

@@ -42,6 +42,7 @@ jobs:
           bash -n get.sh
           bash -n scripts/init-memory.sh
           bash -n scripts/lifecycle.sh
+          bash -n tests/ci-playwright.sh
 
       - name: Run Clawvis global test suite
         run: |

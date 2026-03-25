@@ -1,0 +1,25 @@
+{
+  "name": "clawvis-playwright",
+  "version": "1.0.0",
+  "description": "Playwright E2E tests for Clawvis",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ldom1/clawvis.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ldom1/clawvis/issues"
+  },
+  "homepage": "https://github.com/ldom1/clawvis#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.5.0"
+  }
+}

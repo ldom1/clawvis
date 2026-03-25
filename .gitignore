@@ -13,6 +13,7 @@ build/
 .vscode/
 .superpowers/
 .claude/
+.cursor/
 
 ########################
 # Env / secrets
@@ -72,3 +73,14 @@ instances/*
 ########################
 .tmp/
 .gitnexus
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+tests/playwright/test-results/
+tests/playwright/playwright-report/
+tests/playwright/blob-report/
+tests/playwright/.cache/
