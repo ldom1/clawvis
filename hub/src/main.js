@@ -821,6 +821,10 @@ function renderMemoryPage() {
         <select id="brain-memory-select" style="min-width:140px;max-width:200px;"></select>
         <span id="brain-memory-path" class="muted" style="font-size:11px;opacity:.75;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       </div>
+      <div id="quartz-rebuild-loading" class="brain-rebuild-loading" hidden>
+        <div class="brain-rebuild-loading-label">${fr ? "Reconstruction de la prévisualisation…" : "Rebuilding preview…"}</div>
+        <div class="brain-rebuild-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
       <iframe id="quartz-frame" class="quartz-frame" title="Quartz preview"></iframe>
     </div>
   `;
@@ -2870,6 +2874,9 @@ async function wireMemoryEditor() {
   const fr = settingsLocale() === "fr";
   const quartzFrame = document.getElementById("quartz-frame");
   const quartzRefresh = document.getElementById("quartz-refresh");
+  const quartzRebuildLoading = document.getElementById(
+    "quartz-rebuild-loading",
+  );
   if (!quartzFrame || !quartzRefresh) return;
 
   let brainPreviewKind = "html";
@@ -2929,23 +2936,31 @@ async function wireMemoryEditor() {
   }
 
   quartzRefresh.addEventListener("click", async () => {
-    // Refresh = rebuild Quartz, then reload list + currently selected page.
-    const res = await fetch("/api/hub/memory/brain/rebuild-static", {
-      method: "POST",
-    });
-    let data = {};
+    if (quartzRebuildLoading) quartzRebuildLoading.hidden = false;
+    quartzRefresh.disabled = true;
+    quartzRefresh.setAttribute("aria-busy", "true");
     try {
-      data = await res.json();
-    } catch {
-      /* ignore */
+      const res = await fetch("/api/hub/memory/brain/rebuild-static", {
+        method: "POST",
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        /* ignore */
+      }
+      if (!res.ok || !data.ok) {
+        const tail = (data.stderr || data.stdout || "").toString().slice(-600);
+        const msg = data.error || data.detail || "Rebuild failed";
+        alert(tail ? `${msg}\n${tail}` : msg);
+        return;
+      }
+      await loadQuartzList();
+    } finally {
+      if (quartzRebuildLoading) quartzRebuildLoading.hidden = true;
+      quartzRefresh.disabled = false;
+      quartzRefresh.removeAttribute("aria-busy");
     }
-    if (!res.ok || !data.ok) {
-      const tail = (data.stderr || data.stdout || "").toString().slice(-600);
-      const msg = data.error || data.detail || "Rebuild failed";
-      alert(tail ? `${msg}\n${tail}` : msg);
-      return;
-    }
-    await loadQuartzList();
   });
   await loadQuartzList();
 }

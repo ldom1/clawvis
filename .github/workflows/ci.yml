@@ -33,6 +33,7 @@ jobs:
       - name: Validate shell scripts
         run: |
           bash -n scripts/start.sh
+          bash -n scripts/start-for-e2e.sh
           bash -n scripts/deploy.sh
           bash -n scripts/upgrade.sh
           bash -n scripts/setup-quartz.sh

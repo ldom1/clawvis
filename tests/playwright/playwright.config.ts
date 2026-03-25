@@ -1,12 +1,20 @@
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+const repoRoot = path.resolve(__dirname, '..', '..');
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8088';
+
+const webServer = process.env.PW_NO_WEBSERVER
+  ? undefined
+  : {
+      command: `bash "${path.join(repoRoot, 'scripts', 'start-for-e2e.sh')}"`,
+      cwd: repoRoot,
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+      stdout: 'ignore',
+      stderr: 'ignore',
+    };
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -25,7 +33,7 @@ export default defineConfig({
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8088',
+    baseURL,
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
@@ -68,10 +76,5 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  ...(webServer ? { webServer } : {}),
 });
