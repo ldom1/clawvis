@@ -28,6 +28,17 @@ services:
       - ./instances:/clawvis/instances
     environment:
       - MEMORY_ROOT=instances/${INSTANCE_NAME:-example}/memory
+      # OpenClaw: set OPENCLAW_BASE_URL to reach your OpenClaw instance.
+      # Same-host deployment (OpenClaw on the VPS alongside Clawvis):
+      #   OPENCLAW_BASE_URL=http://host.docker.internal:3333
+      # OpenClaw as a Docker service in this compose (see openclaw service below):
+      #   OPENCLAW_BASE_URL=http://openclaw:3333
+      - OPENCLAW_BASE_URL=${OPENCLAW_BASE_URL:-}
+      - OPENCLAW_API_KEY=${OPENCLAW_API_KEY:-}
+      - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
+    # Allow reaching OpenClaw running on the Docker host (same VPS, different process)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     labels:
       - "app=clawvis"
@@ -78,4 +89,13 @@ services:
       - "${HUB_VITE_PORT:-5173}:${HUB_VITE_PORT:-5173}"
     env_file: .env
 
-  # openclaw: # coming in Phase Setup.1
+  # OpenClaw — optional: uncomment if you want to run OpenClaw alongside Clawvis
+  # in the same compose stack. Set OPENCLAW_BASE_URL=http://openclaw:3333 above.
+  # openclaw:
+  #   image: ${OPENCLAW_IMAGE:-ghcr.io/open-claw/openclaw:latest}
+  #   ports:
+  #     - "${OPENCLAW_PORT:-3333}:3333"
+  #   environment:
+  #     - OPENCLAW_API_KEY=${OPENCLAW_API_KEY:-}
+  #   labels:
+  #     - "app=clawvis"

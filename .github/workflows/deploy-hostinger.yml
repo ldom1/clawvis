@@ -1,0 +1,32 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hostinger
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Clawvis to Hostinger VPS
+    runs-on: ubuntu-latest
+    # Only runs if secrets are configured — safe to have in the repo
+    if: vars.HOSTINGER_DEPLOY_ENABLED == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Hostinger VPS
+        uses: hostinger/deploy-on-vps@v1
+        with:
+          api-token: ${{ secrets.HOSTINGER_API_KEY }}
+          virtual-machine-id: ${{ secrets.HOSTINGER_VM_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          docker-compose-path: docker-compose.yml
