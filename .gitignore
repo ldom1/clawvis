@@ -12,6 +12,7 @@ build/
 .idea/
 .vscode/
 .superpowers/
+.claude/
 
 ########################
 # Env / secrets
@@ -70,3 +71,4 @@ instances/*
 # Private projects
 ########################
 .tmp/
+.gitnexus
