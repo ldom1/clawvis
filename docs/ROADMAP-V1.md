@@ -33,15 +33,27 @@
 | 2A.4 | Envoyer un message depuis `/chat/` → vérifier la réponse streaming | `POST /api/hub/chat/` |
 | 2A.5 | Activer le service `openclaw` dans `docker-compose.yml` (retirer le commentaire) | `docker-compose.yml` ligne ~81 |
 
-### 2B — OpenClaw Hostinger (prod)
+### 2B — OpenClaw + Clawvis sur Hostinger VPS (prod, non-tech)
+
+> Guide complet : `docs/DEPLOY-HOSTINGER.md`
+
+**Outillage Hostinger disponible :**
+- **Docker Manager** dans hPanel : "Compose from URL" → coller l'URL brute du `docker-compose.yml` GitHub, configurer les env vars via UI, cliquer Deploy. Aucun terminal requis.
+- **GitHub Actions** : workflow `.github/workflows/deploy-hostinger.yml` (inclus) — redéploiement automatique sur chaque push. Nécessite `HOSTINGER_API_KEY` + `HOSTINGER_VM_ID` en secrets GitHub et variable `HOSTINGER_DEPLOY_ENABLED=true`.
+
+**Architecture VPS :**
+OpenClaw et Clawvis Hub sur le même VPS. Communication via `http://host.docker.internal:3333` (résolu automatiquement par Docker vers l'hôte). Un seul port exposé : Hub sur 8088 (ou 80 avec nginx reverse proxy).
 
 | # | Action | Détails |
 |---|--------|---------|
-| 2B.1 | Déployer OpenClaw sur Hostinger (VPS ou conteneur) | URL cible : `https://openclaw.<domaine>` |
-| 2B.2 | Configurer CORS sur OpenClaw pour autoriser le domaine Hub | Config OpenClaw |
-| 2B.3 | Dans `/settings/` Hub prod : saisir l'URL Hostinger + API key | Stocké dans `localStorage` (frontend) ou `.env` (backend) |
-| 2B.4 | Test de connexion + envoi d'un message depuis le Hub prod | Même flow que 2A.3/2A.4 |
-| 2B.5 | Ajouter `OPENCLAW_BASE_URL` et `OPENCLAW_API_KEY` dans `.env.example` | `.env.example` |
+| 2B.1 | OpenClaw déjà en cours sur le VPS — vérifier `curl http://localhost:3333/v1/models` depuis le VPS | SSH → VPS |
+| 2B.2 | hPanel → VPS → Docker → New project → **Compose from URL** | URL : raw GitHub `docker-compose.yml` |
+| 2B.3 | Configurer les env vars dans Docker Manager : `INSTANCE_NAME`, `OPENCLAW_BASE_URL=http://host.docker.internal:3333`, `PRIMARY_AI_PROVIDER=openclaw` | hPanel UI |
+| 2B.4 | Cliquer Deploy — vérifier que les 3 conteneurs (hub, kanban-api, hub-memory-api) démarrent | hPanel → Logs |
+| 2B.5 | Tester : `curl http://<IP-VPS>:8088/api/hub/chat/status` → `{"openclaw_configured":true}` | Terminal local |
+| 2B.6 | Ouvrir `http://<IP-VPS>:8088/chat/` → envoyer un message → réponse OpenClaw | Navigateur |
+| 2B.7 | (Optionnel) Configurer nginx + Let's Encrypt pour HTTPS sur un sous-domaine | `docs/DEPLOY-HOSTINGER.md` section domaine |
+| 2B.8 | Activer le redéploiement auto : ajouter secrets GitHub + variable `HOSTINGER_DEPLOY_ENABLED=true` | GitHub Settings |
 
 ### 2C — Test E2E Chat
 
