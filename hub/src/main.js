@@ -412,7 +412,7 @@ function renderHome() {
           </div>
         </div>
         <div class="ai-runtime-banner-right">
-          <a href="/settings/" id="ai-runtime-cta" class="btn btn-primary ai-runtime-cta">${escapeHtml(t.runtimeBannerCta)}</a>
+          <a href="/setup/runtime/" id="ai-runtime-cta" class="btn btn-primary ai-runtime-cta">${escapeHtml(t.runtimeBannerCta)}</a>
         </div>
       </div>
 
@@ -840,7 +840,7 @@ function renderSettings() {
               <div class="card-desc">${t.runtimeDesc}</div>
               <div id="settings-active-provider" class="settings-active-provider"></div>
             </div>
-            <button id="open-ai-wizard" class="btn btn-primary" type="button">${t.configureRuntime}</button>
+            <a href="/setup/runtime/" class="btn btn-primary">${t.configureRuntime}</a>
           </div>
           <span id="provider-save-feedback" class="test-result"></span>
         </section>
@@ -906,61 +906,6 @@ function renderSettings() {
             </label>
           </div>
         </section>
-      </div>
-    </div>
-
-    <!-- Wizard IA Modal -->
-    <div id="ai-wizard-overlay" class="modal-overlay">
-      <div class="panel ai-wizard-panel">
-        <button class="modal-close" id="ai-wizard-close" type="button">&times;</button>
-        <div id="ai-wizard-steps">
-          <!-- Step 1: Choix provider -->
-          <div id="wizard-step-1" class="wizard-step">
-            <div class="wizard-step-badge">1 / 3</div>
-            <h2>${isFr ? "Choisissez votre fournisseur d'IA" : "Choose your AI provider"}</h2>
-            <p class="wizard-desc">${isFr ? "Clawvis supporte plusieurs fournisseurs. Sélectionnez celui que vous voulez configurer." : "Clawvis supports multiple providers. Select the one you want to set up."}</p>
-            <div class="wizard-provider-cards">
-              <button class="wizard-provider-card" data-wizard-provider="claude" type="button">
-                <span class="wizard-provider-icon">&#x1F9E0;</span>
-                <strong>Claude</strong>
-                <span>Anthropic</span>
-              </button>
-              <button class="wizard-provider-card" data-wizard-provider="mistral" type="button">
-                <span class="wizard-provider-icon">&#x2728;</span>
-                <strong>Mistral</strong>
-                <span>Mistral AI</span>
-              </button>
-              <button class="wizard-provider-card" data-wizard-provider="openclaw" type="button">
-                <span class="wizard-provider-icon">&#x1F43E;</span>
-                <strong>OpenClaw</strong>
-                <span>${isFr ? "Auto-hébergé" : "Self-hosted"}</span>
-              </button>
-            </div>
-          </div>
-          <!-- Step 2: Clé API -->
-          <div id="wizard-step-2" class="wizard-step" style="display:none;">
-            <div class="wizard-step-badge">2 / 3</div>
-            <h2 id="wizard-step2-title">${isFr ? "Entrez vos credentials" : "Enter your credentials"}</h2>
-            <p class="wizard-desc" id="wizard-step2-desc"></p>
-            <div id="wizard-step2-fields"></div>
-            <div class="wizard-actions">
-              <button class="btn" id="wizard-back-1" type="button">← ${isFr ? "Retour" : "Back"}</button>
-              <button class="btn btn-primary" id="wizard-next-2" type="button">${isFr ? "Suivant" : "Next"} →</button>
-            </div>
-          </div>
-          <!-- Step 3: Test + Sauvegarde -->
-          <div id="wizard-step-3" class="wizard-step" style="display:none;">
-            <div class="wizard-step-badge">3 / 3</div>
-            <h2>${isFr ? "Testez et sauvegardez" : "Test and save"}</h2>
-            <p class="wizard-desc">${isFr ? "Vérifiez que la connexion fonctionne, puis sauvegardez." : "Verify the connection works, then save."}</p>
-            <div id="wizard-test-result" class="wizard-test-result"></div>
-            <div class="wizard-actions">
-              <button class="btn" id="wizard-back-2" type="button">← ${isFr ? "Retour" : "Back"}</button>
-              <button class="btn" id="wizard-test-btn" type="button">${t.testConnection}</button>
-              <button class="btn btn-primary" id="wizard-save-btn" type="button">${isFr ? "Sauvegarder" : "Save"}</button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   `;
@@ -1256,7 +1201,7 @@ function createKanbanBoard(
         const taskId = btn.dataset.taskId;
         const nextStatus = btn.dataset.nextStatus;
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(taskId)}`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(taskId)}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -1285,7 +1230,7 @@ function createKanbanBoard(
         if (timeline) body.timeline = timeline;
         if (assignee) body.assignee = assignee;
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(task.id)}`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -1305,7 +1250,7 @@ function createKanbanBoard(
         if (!Number.isFinite(count) || count < 1) return;
         const base_title = prompt("Base title (optional)", "") || null;
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(task.id)}/split`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}/split`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1320,7 +1265,7 @@ function createKanbanBoard(
       .getElementById("kanban-detail-archive")
       ?.addEventListener("click", async () => {
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(task.id)}/archive`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}/archive`,
           {
             method: "PUT",
           },
@@ -1339,7 +1284,7 @@ function createKanbanBoard(
         )
           return;
         const res = await fetch(
-          `/api/kanban/tasks/${encodeURIComponent(task.id)}`,
+          `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}`,
           { method: "DELETE" },
         );
         if (!res.ok) return alert("Suppression impossible");
@@ -1377,7 +1322,7 @@ function createKanbanBoard(
       if (!draggedId) return;
       const nextStatus = col.dataset.status;
       const res = await fetch(
-        `/api/kanban/tasks/${encodeURIComponent(draggedId)}`,
+        `/api/hub/kanban/tasks/${encodeURIComponent(draggedId)}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -1397,13 +1342,13 @@ function createKanbanBoard(
     }
     if (projectSlug) {
       const refresh = await fetch(
-        `/api/kanban/tasks?project=${encodeURIComponent(projectSlug)}`,
+        `/api/hub/kanban/tasks?project=${encodeURIComponent(projectSlug)}`,
       );
       const payload = refresh.ok ? await refresh.json() : { tasks: [] };
       createKanbanBoard(payload.tasks || [], target, projectSlug);
       return;
     }
-    const refresh = await fetch("/api/kanban/tasks");
+    const refresh = await fetch("/api/hub/kanban/tasks");
     const payload = refresh.ok ? await refresh.json() : { tasks: [] };
     const refreshedTasks = payload.tasks || [];
     updateKanbanOverview(refreshedTasks);
@@ -1413,7 +1358,7 @@ function createKanbanBoard(
 
 async function loadProjects() {
   const grid = document.getElementById("projects-grid");
-  const res = await fetch("/api/kanban/hub/projects");
+  const res = await fetch("/api/hub/kanban/hub/projects");
   if (!res.ok) {
     const fr = settingsLocale() === "fr";
     grid.insertAdjacentHTML(
@@ -1439,7 +1384,7 @@ async function loadProjects() {
       .map((t) => `<span class="chip">${t}</span>`)
       .join("");
     const logoBlock = project.has_logo
-      ? `<div class="card-project-logo"><img src="/api/kanban/hub/projects/${encodeURIComponent(project.slug)}/logo?v=${v}" alt="" loading="lazy" /></div>`
+      ? `<div class="card-project-logo"><img src="/api/hub/kanban/hub/projects/${encodeURIComponent(project.slug)}/logo?v=${v}" alt="" loading="lazy" /></div>`
       : "";
     const main = `<div class="card-project-main"><div class="title">${escapeHtml(project.name)} · ${escapeHtml(project.stage || "PoC")}</div><div class="desc">${escapeHtml(project.description || "")}</div>${tags ? `<div class="chips">${tags}</div>` : ""}</div>`;
     card.innerHTML = `<div class="card-project-row">${logoBlock}${main}</div>`;
@@ -1454,8 +1399,8 @@ async function wireProjectPage() {
   if (!slug) return;
   const fr = settingsLocale() === "fr";
   const [projectRes, taskRes] = await Promise.all([
-    fetch(`/api/kanban/hub/projects/${encodeURIComponent(slug)}`),
-    fetch(`/api/kanban/tasks?project=${encodeURIComponent(slug)}`),
+    fetch(`/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}`),
+    fetch(`/api/hub/kanban/tasks?project=${encodeURIComponent(slug)}`),
   ]);
   if (!projectRes.ok) {
     document.getElementById("project-details").innerHTML =
@@ -1580,7 +1525,7 @@ async function wireProjectPage() {
     const hero = document.getElementById("project-logo-hero");
     const mascot = document.querySelector(".project-hero-mascot");
     const show = !!project.has_logo;
-    const url = `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo?t=${Date.now()}`;
+    const url = `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo?t=${Date.now()}`;
     if (prev) {
       prev.hidden = !show;
       if (show) prev.src = url;
@@ -1613,7 +1558,7 @@ async function wireProjectPage() {
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
         { method: "PUT", body: fd },
       );
       if (!res.ok) {
@@ -1641,7 +1586,7 @@ async function wireProjectPage() {
       )
         return;
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo`,
         { method: "DELETE" },
       );
       if (!res.ok) return;
@@ -1654,7 +1599,7 @@ async function wireProjectPage() {
     if (!frame) return;
     const fn = `${slug}.html`;
     const res = await fetch(
-      `/api/kanban/memory/quartz/${encodeURIComponent(fn)}`,
+      `/api/hub/kanban/memory/quartz/${encodeURIComponent(fn)}`,
     );
     const emptyMsg = fr
       ? `Aucune page ${fn}. Enregistrez la fiche, puis régénérez l'aperçu ou ouvrez le Brain.`
@@ -1671,7 +1616,7 @@ async function wireProjectPage() {
       }
     }
     const mdRes = await fetch(
-      `/api/kanban/memory/projects/${encodeURIComponent(`${slug}.md`)}`,
+      `/api/hub/kanban/memory/projects/${encodeURIComponent(`${slug}.md`)}`,
     );
     if (mdRes.ok) {
       const mdData = await mdRes.json();
@@ -1692,7 +1637,7 @@ async function wireProjectPage() {
   document
     .getElementById("project-rebuild-btn")
     .addEventListener("click", async () => {
-      const res = await fetch("/api/kanban/hub/brain/rebuild-static", {
+      const res = await fetch("/api/hub/kanban/hub/brain/rebuild-static", {
         method: "POST",
       });
       let data = {};
@@ -1742,7 +1687,7 @@ async function wireProjectPage() {
         notes: document.getElementById("pm-notes").value,
       };
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/memory-major`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/memory-major`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -1779,7 +1724,7 @@ async function wireProjectPage() {
       )
         return;
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}/archive`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/archive`,
         {
           method: "POST",
         },
@@ -1799,7 +1744,7 @@ async function wireProjectPage() {
       )
         return;
       const res = await fetch(
-        `/api/kanban/hub/projects/${encodeURIComponent(slug)}`,
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}`,
         {
           method: "DELETE",
         },
@@ -1984,7 +1929,7 @@ async function wireLogs() {
   }
 
   async function refreshLogs() {
-    const url = "/api/kanban/logs?limit=400";
+    const url = "/api/hub/kanban/logs?limit=400";
     const res = await fetch(url);
     const data = res.ok ? await res.json() : { logs: [] };
     allLogs = data.logs || [];
@@ -2163,10 +2108,10 @@ async function wireKanbanPage() {
   }
 
   async function refreshAll() {
-    const res = await fetch("/api/kanban/tasks");
+    const res = await fetch("/api/hub/kanban/tasks");
     const data = res.ok ? await res.json() : { tasks: [] };
     allTasks = data.tasks || [];
-    const metaRes = await fetch("/api/kanban/meta");
+    const metaRes = await fetch("/api/hub/kanban/meta");
     meta = metaRes.ok ? await metaRes.json() : {};
     if (filterSel) {
       const current = filterSel.value;
@@ -2228,7 +2173,7 @@ async function wireKanbanPage() {
         document.getElementById("kanban-create-description")?.value?.trim() ||
         "";
       const effort_hours = effortRaw ? Number(effortRaw) : null;
-      const res = await fetch("/api/kanban/tasks", {
+      const res = await fetch("/api/hub/kanban/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2251,7 +2196,7 @@ async function wireKanbanPage() {
       archiveOverlay?.classList.add("open");
       if (!archiveContent) return;
       archiveContent.innerHTML = '<div class="task">Loading archive...</div>';
-      const res = await fetch("/api/kanban/tasks/archive");
+      const res = await fetch("/api/hub/kanban/tasks/archive");
       const data = res.ok ? await res.json() : { tasks: [] };
       const archived = data.tasks || [];
       archiveContent.innerHTML =
@@ -2270,7 +2215,7 @@ async function wireKanbanPage() {
         btn.addEventListener("click", async () => {
           const taskId = btn.dataset.restoreTask;
           const resp = await fetch(
-            `/api/kanban/tasks/${encodeURIComponent(taskId)}/restore`,
+            `/api/hub/kanban/tasks/${encodeURIComponent(taskId)}/restore`,
             {
               method: "PUT",
             },
@@ -2385,7 +2330,7 @@ async function wireHome() {
       const tags = tagValues;
       const template = document.getElementById("project-template").value;
       const stage = document.getElementById("project-stage").value;
-      const res = await fetch("/api/kanban/hub/projects", {
+      const res = await fetch("/api/hub/kanban/hub/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2489,9 +2434,9 @@ function wireSystemStatus() {
   async function loadBusinessKpis() {
     try {
       const [projRes, tasksRes, brainRes] = await Promise.allSettled([
-        fetch("/api/kanban/hub/projects", { cache: "no-store" }),
-        fetch("/api/kanban/tasks", { cache: "no-store" }),
-        fetch("/api/kanban/memory/projects", { cache: "no-store" }),
+        fetch("/api/hub/kanban/hub/projects", { cache: "no-store" }),
+        fetch("/api/hub/kanban/tasks", { cache: "no-store" }),
+        fetch("/api/hub/kanban/memory/projects", { cache: "no-store" }),
       ]);
 
       if (projRes.status === "fulfilled" && projRes.value.ok) {
@@ -2554,8 +2499,6 @@ async function wireSettings() {
   const refreshRuntimeHealth = () => {
     const ok = isRuntimeConfigured();
     setHealth(runtimeHealth, ok, ok ? t.configured : t.notConfigured);
-    const wbtn = document.getElementById("open-ai-wizard");
-    if (wbtn) wbtn.textContent = ok ? t.modifyRuntime : t.configureRuntime;
     const statusBadge = document.getElementById("settings-runtime-status");
     if (statusBadge) {
       statusBadge.className = `ai-runtime-status-badge ${ok ? "ok" : "warn"}`;
@@ -2583,7 +2526,7 @@ async function wireSettings() {
     setHealth(workspaceHealth, !!root, !!root ? t.configured : t.notConfigured);
   };
 
-  const res = await fetch("/api/kanban/hub/settings");
+  const res = await fetch("/api/hub/kanban/hub/settings");
   if (res.ok) {
     const data = await res.json();
     document.getElementById("projects-root").value = data.projects_root || "";
@@ -2600,7 +2543,7 @@ async function wireSettings() {
       const instances_external_root = document
         .getElementById("instances-external-root")
         .value.trim();
-      const save = await fetch("/api/kanban/hub/settings", {
+      const save = await fetch("/api/hub/kanban/hub/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projects_root, instances_external_root }),
@@ -2643,173 +2586,11 @@ async function wireSettings() {
 
   let activeProvider = localStorage.getItem("ai-provider") || "claude";
 
-  // Wizard IA
-  const wizardOverlay = document.getElementById("ai-wizard-overlay");
-  const isFr = settingsLocale() === "fr";
-  let wizardProvider = activeProvider;
-
-  function wizardShowStep(n) {
-    [1, 2, 3].forEach((i) => {
-      const el = document.getElementById(`wizard-step-${i}`);
-      if (el) el.style.display = i === n ? "" : "none";
-    });
-  }
-  function wizardBuildStep2Fields(provider) {
-    const title = document.getElementById("wizard-step2-title");
-    const desc = document.getElementById("wizard-step2-desc");
-    const fields = document.getElementById("wizard-step2-fields");
-    if (!title || !desc || !fields) return;
-    if (provider === "claude") {
-      title.textContent = "Claude (Anthropic)";
-      desc.textContent = isFr
-        ? "Entrez votre clé API Anthropic. Pour une utilisation serveur, renseignez aussi CLAUDE_API_KEY dans .env."
-        : "Enter your Anthropic API key. For server-side usage, also set CLAUDE_API_KEY in .env.";
-      fields.innerHTML = `<label>API key</label><input id="wizard-claude-key" type="password" placeholder="sk-ant-..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-claude-key") || "")}" /><p class="hint">${t.getClaudeKey}</p>`;
-    } else if (provider === "mistral") {
-      title.textContent = "Mistral AI";
-      desc.textContent = isFr
-        ? "Entrez votre clé API Mistral."
-        : "Enter your Mistral API key.";
-      fields.innerHTML = `<label>API key</label><input id="wizard-mistral-key" type="password" placeholder="..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-mistral-key") || "")}" /><p class="hint">${t.getMistralKey}</p>`;
-    } else {
-      title.textContent = "OpenClaw";
-      desc.textContent = isFr
-        ? "Entrez l'URL de votre instance OpenClaw self-hosted."
-        : "Enter the URL of your self-hosted OpenClaw instance.";
-      fields.innerHTML = `<label>URL</label><input id="wizard-openclaw-url" type="text" placeholder="http://localhost:3333" value="${escapeHtml(localStorage.getItem("ai-openclaw-url") || "")}" /><label style="margin-top:8px;">API key (${isFr ? "optionnel" : "optional"})</label><input id="wizard-openclaw-key" type="password" placeholder="..." autocomplete="off" value="${escapeHtml(localStorage.getItem("ai-openclaw-key") || "")}" /><p class="hint">${t.openclawHint}</p>`;
-    }
-  }
-  function wizardSaveFromStep2() {
-    if (wizardProvider === "claude") {
-      const v =
-        document.getElementById("wizard-claude-key")?.value.trim() || "";
-      localStorage.setItem("ai-claude-key", v);
-    } else if (wizardProvider === "mistral") {
-      const v =
-        document.getElementById("wizard-mistral-key")?.value.trim() || "";
-      localStorage.setItem("ai-mistral-key", v);
-    } else {
-      localStorage.setItem(
-        "ai-openclaw-url",
-        document.getElementById("wizard-openclaw-url")?.value.trim() || "",
-      );
-      localStorage.setItem(
-        "ai-openclaw-key",
-        document.getElementById("wizard-openclaw-key")?.value.trim() || "",
-      );
-    }
-    localStorage.setItem("ai-provider", wizardProvider);
-    activeProvider = wizardProvider;
-    refreshRuntimeHealth();
-  }
-  async function wizardRunTest() {
-    const resultEl = document.getElementById("wizard-test-result");
-    if (!resultEl) return false;
-    resultEl.textContent = isFr ? "Test en cours..." : "Testing...";
-    resultEl.className = "wizard-test-result";
-    try {
-      let ok = false;
-      if (wizardProvider === "claude") {
-        const key = localStorage.getItem("ai-claude-key") || "";
-        if (!key) throw new Error("No key");
-        const r = await fetch("https://api.anthropic.com/v1/models", {
-          headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
-        });
-        ok = r.ok;
-      } else if (wizardProvider === "mistral") {
-        const key = localStorage.getItem("ai-mistral-key") || "";
-        if (!key) throw new Error("No key");
-        const r = await fetch("https://api.mistral.ai/v1/models", {
-          headers: { Authorization: `Bearer ${key}` },
-        });
-        ok = r.ok;
-      } else {
-        const url =
-          localStorage.getItem("ai-openclaw-url") || "http://localhost:3333";
-        const r = await fetch(`${url}/health`).catch(() => null);
-        ok = !!r?.ok;
-      }
-      resultEl.textContent = ok
-        ? isFr
-          ? "Connexion réussie !"
-          : "Connection successful!"
-        : t.connectionFailed;
-      resultEl.className = `wizard-test-result ${ok ? "ok" : "fail"}`;
-      return ok;
-    } catch {
-      resultEl.textContent = t.checkKeyOrUrl;
-      resultEl.className = "wizard-test-result fail";
-      return false;
-    }
-  }
-
-  document.getElementById("open-ai-wizard")?.addEventListener("click", () => {
-    wizardProvider = activeProvider;
-    document.getElementById("wizard-test-result") &&
-      (document.getElementById("wizard-test-result").textContent = "");
-    wizardOverlay?.querySelectorAll(".wizard-provider-card").forEach((c) => {
-      c.classList.toggle("active", c.dataset.wizardProvider === wizardProvider);
-    });
-    if (isRuntimeConfigured()) {
-      wizardBuildStep2Fields(wizardProvider);
-      wizardShowStep(2);
-    } else {
-      wizardShowStep(1);
-    }
-    wizardOverlay?.classList.add("open");
-  });
-  document
-    .getElementById("ai-wizard-close")
-    ?.addEventListener("click", () => wizardOverlay?.classList.remove("open"));
-  wizardOverlay?.addEventListener("click", (e) => {
-    if (e.target === wizardOverlay) wizardOverlay.classList.remove("open");
-  });
-
-  wizardOverlay?.querySelectorAll(".wizard-provider-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      wizardOverlay
-        .querySelectorAll(".wizard-provider-card")
-        .forEach((c) => c.classList.remove("active"));
-      card.classList.add("active");
-      wizardProvider = card.dataset.wizardProvider;
-      wizardBuildStep2Fields(wizardProvider);
-      wizardShowStep(2);
-    });
-  });
-  document
-    .getElementById("wizard-back-1")
-    ?.addEventListener("click", () => wizardShowStep(1));
-  document.getElementById("wizard-next-2")?.addEventListener("click", () => {
-    wizardSaveFromStep2();
-    document.getElementById("wizard-test-result") &&
-      (document.getElementById("wizard-test-result").textContent = "");
-    wizardShowStep(3);
-  });
-  document.getElementById("wizard-back-2")?.addEventListener("click", () => {
-    wizardBuildStep2Fields(wizardProvider);
-    wizardShowStep(2);
-  });
-  document
-    .getElementById("wizard-test-btn")
-    ?.addEventListener("click", wizardRunTest);
-  document
-    .getElementById("wizard-save-btn")
-    ?.addEventListener("click", async () => {
-      wizardSaveFromStep2();
-      wizardOverlay?.classList.remove("open");
-      if (providerFeedback) {
-        providerFeedback.className = "test-result ok";
-        providerFeedback.textContent = t.runtimeSaved;
-        providerFeedback.style.display = "inline-block";
-      }
-      refreshRuntimeHealth();
-    });
-
   async function loadInstances() {
     const sel = document.getElementById("instances-multi");
     if (!sel) return;
     sel.innerHTML = `<option disabled>${escapeHtml(t.loadingInstances)}</option>`;
-    const r = await fetch("/api/kanban/hub/instances");
+    const r = await fetch("/api/hub/kanban/hub/instances");
     if (!r.ok) {
       sel.innerHTML = `<option disabled>${escapeHtml(t.loadInstancesFailed)}</option>`;
       setHealth(instancesHealth, false, `0 ${t.linked}`);
@@ -2846,8 +2627,8 @@ async function wireSettings() {
       .map((o) => o.value);
     if (!paths.length) return;
     const url = link
-      ? "/api/kanban/hub/instances/link"
-      : "/api/kanban/hub/instances/unlink";
+      ? "/api/hub/kanban/hub/instances/link"
+      : "/api/hub/kanban/hub/instances/unlink";
     const results = await Promise.all(
       paths.map((pathValue) =>
         fetch(url, {
@@ -2888,7 +2669,7 @@ async function refreshBrainSourceHint() {
   if (!el) return;
   const fr = settingsLocale() === "fr";
   try {
-    const r = await fetch("/api/kanban/hub/settings");
+    const r = await fetch("/api/hub/kanban/hub/settings");
     const d = r.ok ? await r.json() : {};
     const p = (d.active_brain_memory || "").trim();
     el.textContent = p
@@ -2915,12 +2696,12 @@ async function wireMemoryEditor() {
   await refreshBrainSourceHint();
 
   async function loadQuartzList() {
-    const res = await fetch("/api/kanban/memory/quartz");
+    const res = await fetch("/api/hub/kanban/memory/quartz");
     const payload = res.ok ? await res.json() : { files: [] };
     let files = payload.files || [];
     brainPreviewKind = "html";
     if (!files.length) {
-      const mres = await fetch("/api/kanban/memory/projects");
+      const mres = await fetch("/api/hub/kanban/memory/projects");
       const mp = mres.ok ? await mres.json() : { files: [] };
       files = (mp.files || []).filter((f) =>
         String(f).toLowerCase().endsWith(".md"),
@@ -2951,7 +2732,7 @@ async function wireMemoryEditor() {
   async function loadQuartzPage(filename) {
     if (brainPreviewKind === "md") {
       const res = await fetch(
-        `/api/kanban/memory/projects/${encodeURIComponent(filename)}`,
+        `/api/hub/kanban/memory/projects/${encodeURIComponent(filename)}`,
       );
       const payload = res.ok ? await res.json() : { content: "" };
       const text = (payload.content || "").trim();
@@ -2959,7 +2740,7 @@ async function wireMemoryEditor() {
       return;
     }
     const res = await fetch(
-      `/api/kanban/memory/quartz/${encodeURIComponent(filename)}`,
+      `/api/hub/kanban/memory/quartz/${encodeURIComponent(filename)}`,
     );
     const payload = res.ok ? await res.json() : { content: "" };
     let html = (payload.content || "").trim();
@@ -2977,7 +2758,7 @@ async function wireMemoryEditor() {
   });
   quartzRefresh.addEventListener("click", loadQuartzList);
   quartzRebuild?.addEventListener("click", async () => {
-    const res = await fetch("/api/kanban/hub/brain/rebuild-static", {
+    const res = await fetch("/api/hub/kanban/hub/brain/rebuild-static", {
       method: "POST",
     });
     let data = {};
@@ -3009,7 +2790,7 @@ async function wireMemoryEdit() {
   await refreshBrainSourceHint();
 
   async function loadList() {
-    const res = await fetch("/api/kanban/memory/projects");
+    const res = await fetch("/api/hub/kanban/memory/projects");
     const payload = res.ok ? await res.json() : { files: [] };
     select.innerHTML = (payload.files || [])
       .map((f) => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`)
@@ -3022,7 +2803,7 @@ async function wireMemoryEdit() {
   }
   async function loadFile(filename) {
     const res = await fetch(
-      `/api/kanban/memory/projects/${encodeURIComponent(filename)}`,
+      `/api/hub/kanban/memory/projects/${encodeURIComponent(filename)}`,
     );
     if (!res.ok) return;
     const payload = await res.json();
@@ -3037,7 +2818,7 @@ async function wireMemoryEdit() {
   document.getElementById("memory-save").addEventListener("click", async () => {
     const filename = name.value.trim();
     if (!filename) return;
-    const res = await fetch("/api/kanban/memory/projects", {
+    const res = await fetch("/api/hub/kanban/memory/projects", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ filename, content: content.value }),
@@ -3174,7 +2955,7 @@ async function wireMemoryGraph() {
   }
 
   async function loadGraph() {
-    const res = await fetch("/api/kanban/memory/graph");
+    const res = await fetch("/api/hub/kanban/memory/graph");
     const data = res.ok ? await res.json() : { nodes: [], edges: [] };
     const nodes = data.nodes || [];
     const edges = data.edges || [];
@@ -3244,7 +3025,7 @@ async function wireChat() {
 
   // Fetch provider status from backend
   try {
-    const res = await fetch("/api/kanban/hub/chat/status");
+    const res = await fetch("/api/hub/chat/status");
     if (res.ok) {
       const s = await res.json();
       const configured =
@@ -3260,7 +3041,7 @@ async function wireChat() {
         statusBar.className = `chat-status-bar ${configured ? "ok" : "warn"}`;
         statusBar.innerHTML = configured
           ? `<span class="chat-status-dot ok"></span>${labels[s.provider] || s.provider} — ${fr ? "Connecté" : "Connected"}`
-          : `<span class="chat-status-dot warn"></span>${fr ? "Runtime IA non configuré. " : "AI Runtime not configured. "}<a href="/settings/" class="chat-setup-link">${fr ? "Configurer le runtime →" : "Setup runtime →"}</a>`;
+          : `<span class="chat-status-dot warn"></span>${fr ? "Runtime IA non configuré. " : "AI Runtime not configured. "}<a href="/setup/runtime/" class="chat-setup-link">${fr ? "Configurer le runtime →" : "Setup runtime →"}</a>`;
       }
     }
   } catch {
@@ -3297,7 +3078,7 @@ async function wireChat() {
     let full = "";
 
     try {
-      const res = await fetch("/api/kanban/hub/chat", {
+      const res = await fetch("/api/hub/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg, history: history.slice(0, -1) }),
@@ -3342,8 +3123,517 @@ async function wireChat() {
   input.focus();
 }
 
+const SETUP_RUNTIME_TEXT = {
+  fr: {
+    title: "Setup",
+    subtitle: "Configure ton runtime IA en 4 étapes.",
+    back: "Retour au hub",
+    step1Title: "Choisir ton fournisseur",
+    step1Desc:
+      "Clawvis supporte plusieurs fournisseurs. Sélectionne celui que tu veux configurer.",
+    step2Title: "Obtenir et entrer la clé",
+    step2Desc:
+      "Suis les instructions pour ton fournisseur, puis entre ta clé API.",
+    step3Title: "Tester la connexion",
+    step3Desc: "Vérifie que la connexion fonctionne avant de continuer.",
+    step4Title: "Valide avec un message",
+    step4Desc:
+      "Envoie un message à ton runtime pour confirmer que tout fonctionne.",
+    next: "Suivant →",
+    back_btn: "← Retour",
+    testBtn: "Lancer le test",
+    testLoading: "Connexion en cours…",
+    testOk: "Connexion réussie — ton runtime répond.",
+    testErr: "Échec de connexion.",
+    testErrHint: {
+      claude: "Vérifie ta clé API.",
+      mistral: "Vérifie ta clé API.",
+      openclaw: "Vérifie l'URL et la clé.",
+    },
+    chatWelcome:
+      "Bonjour ! Je suis ton runtime IA. Pose-moi une question pour vérifier que tout fonctionne.",
+    chatPlaceholder: "Envoie un message…",
+    chatSend: "Envoyer",
+    finish: "Terminer →",
+    providers: {
+      claude: {
+        name: "Claude",
+        owner: "Anthropic",
+        badge: "Cloud",
+        desc: "Le modèle le plus capable d'Anthropic. Clé API sur console.anthropic.com.",
+        link: "https://console.anthropic.com/settings/keys",
+        linkLabel: "Obtenir une clé →",
+        placeholder: "sk-ant-...",
+      },
+      mistral: {
+        name: "Mistral",
+        owner: "Mistral AI",
+        badge: "Cloud",
+        desc: "Modèle open-weight performant. Clé API sur console.mistral.ai.",
+        link: "https://console.mistral.ai/api-keys",
+        linkLabel: "Obtenir une clé →",
+        placeholder: "...",
+      },
+      openclaw: {
+        name: "OpenClaw",
+        owner: "Auto-hébergé",
+        badge: "Self-hosted",
+        desc: "Instance compatible OpenAI. Renseigne l'URL de ton serveur.",
+        link: null,
+        linkLabel: null,
+        placeholder: "http://host:port",
+      },
+    },
+    securityNote:
+      "La clé est stockée dans ton navigateur (localStorage). Elle n'est jamais envoyée à nos serveurs.",
+  },
+  en: {
+    title: "Setup",
+    subtitle: "Configure your AI runtime in 4 steps.",
+    back: "Back to hub",
+    step1Title: "Choose your provider",
+    step1Desc:
+      "Clawvis supports multiple providers. Select the one you want to configure.",
+    step2Title: "Get and enter your key",
+    step2Desc:
+      "Follow the instructions for your provider, then enter your API key.",
+    step3Title: "Test the connection",
+    step3Desc: "Verify the connection works before continuing.",
+    step4Title: "Validate with a message",
+    step4Desc: "Send a message to your runtime to confirm everything works.",
+    next: "Next →",
+    back_btn: "← Back",
+    testBtn: "Run test",
+    testLoading: "Connecting…",
+    testOk: "Connection successful — your runtime is responding.",
+    testErr: "Connection failed.",
+    testErrHint: {
+      claude: "Check your API key.",
+      mistral: "Check your API key.",
+      openclaw: "Check the URL and key.",
+    },
+    chatWelcome:
+      "Hello! I'm your AI runtime. Ask me a question to confirm everything is working.",
+    chatPlaceholder: "Send a message…",
+    chatSend: "Send",
+    finish: "Finish →",
+    providers: {
+      claude: {
+        name: "Claude",
+        owner: "Anthropic",
+        badge: "Cloud",
+        desc: "Anthropic's most capable model. API key at console.anthropic.com.",
+        link: "https://console.anthropic.com/settings/keys",
+        linkLabel: "Get a key →",
+        placeholder: "sk-ant-...",
+      },
+      mistral: {
+        name: "Mistral",
+        owner: "Mistral AI",
+        badge: "Cloud",
+        desc: "High-performance open-weight model. API key at console.mistral.ai.",
+        link: "https://console.mistral.ai/api-keys",
+        linkLabel: "Get a key →",
+        placeholder: "...",
+      },
+      openclaw: {
+        name: "OpenClaw",
+        owner: "Self-hosted",
+        badge: "Self-hosted",
+        desc: "OpenAI-compatible self-hosted instance. Enter your server URL.",
+        link: null,
+        linkLabel: null,
+        placeholder: "http://host:port",
+      },
+    },
+    securityNote:
+      "Your key is stored in your browser (localStorage). It is never sent to our servers.",
+  },
+};
+
+function renderSetupRuntime() {
+  const isFr = settingsLocale() === "fr";
+  const t = SETUP_RUNTIME_TEXT[isFr ? "fr" : "en"];
+  app.innerHTML = `
+    <div class="wrap">
+      <header class="settings-page-header">
+        <div class="title">
+          <h1>${escapeHtml(t.title)} · <span>Clawvis</span></h1>
+          <p>${escapeHtml(t.subtitle)}</p>
+        </div>
+        <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme" type="button">
+          <span id="theme-toggle-icon">🌙</span>
+        </button>
+      </header>
+
+      <!-- Stepper -->
+      <div class="setup-stepper" id="setup-stepper" role="list" aria-label="${isFr ? "Étapes de configuration" : "Configuration steps"}">
+        <div class="setup-step-circle active" id="step-circle-1" data-step="1" role="listitem" aria-label="${isFr ? "Étape 1 : Choisir ton fournisseur" : "Step 1: Choose your provider"}">1</div>
+        <div class="setup-step-line" id="step-line-1" aria-hidden="true"></div>
+        <div class="setup-step-circle" id="step-circle-2" data-step="2" role="listitem" aria-label="${isFr ? "Étape 2 : Entrer la clé" : "Step 2: Enter your key"}">2</div>
+        <div class="setup-step-line" id="step-line-2" aria-hidden="true"></div>
+        <div class="setup-step-circle" id="step-circle-3" data-step="3" role="listitem" aria-label="${isFr ? "Étape 3 : Tester la connexion" : "Step 3: Test connection"}">3</div>
+        <div class="setup-step-line" id="step-line-3" aria-hidden="true"></div>
+        <div class="setup-step-circle" id="step-circle-4" data-step="4" role="listitem" aria-label="${isFr ? "Étape 4 : Valider" : "Step 4: Validate"}">4</div>
+      </div>
+
+      <!-- Step 1: Choose provider -->
+      <div class="setup-step" id="setup-step-1">
+        <div class="setup-step-badge">1 / 4</div>
+        <h2>${escapeHtml(t.step1Title)}</h2>
+        <p class="setup-step-desc">${escapeHtml(t.step1Desc)}</p>
+        <div class="setup-provider-cards">
+          ${["claude", "mistral", "openclaw"]
+            .map((pid) => {
+              const p = t.providers[pid];
+              return `<button class="setup-provider-card" data-provider="${pid}" type="button">
+              <span class="setup-provider-icon">${pid === "claude" ? "🧠" : pid === "mistral" ? "✨" : "🐾"}</span>
+              <strong>${escapeHtml(p.name)}</strong>
+              <span>${escapeHtml(p.owner)}</span>
+              <span class="setup-provider-badge">${escapeHtml(p.badge)}</span>
+            </button>`;
+            })
+            .join("")}
+        </div>
+        <div class="setup-actions">
+          <button class="btn btn-primary" id="setup-next-1" type="button" disabled>${escapeHtml(t.next)}</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Credentials -->
+      <div class="setup-step" id="setup-step-2" style="display:none">
+        <div class="setup-step-badge">2 / 4</div>
+        <h2>${escapeHtml(t.step2Title)}</h2>
+        <p class="setup-step-desc">${escapeHtml(t.step2Desc)}</p>
+        <div id="setup-provider-detail" class="setup-provider-detail"></div>
+        <p class="setup-security-note">${escapeHtml(t.securityNote)}</p>
+        <div class="setup-actions">
+          <button class="btn" id="setup-back-1" type="button">${escapeHtml(t.back_btn)}</button>
+          <button class="btn btn-primary" id="setup-next-2" type="button" disabled>${escapeHtml(t.next)}</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Test -->
+      <div class="setup-step" id="setup-step-3" style="display:none">
+        <div class="setup-step-badge">3 / 4</div>
+        <h2>${escapeHtml(t.step3Title)}</h2>
+        <p class="setup-step-desc">${escapeHtml(t.step3Desc)}</p>
+        <div class="setup-test-area">
+          <button class="btn btn-primary" id="setup-test-btn" type="button">${escapeHtml(t.testBtn)}</button>
+          <div id="setup-test-result" class="setup-test-result"></div>
+        </div>
+        <div class="setup-actions">
+          <button class="btn" id="setup-back-2" type="button">${escapeHtml(t.back_btn)}</button>
+          <button class="btn btn-primary" id="setup-next-3" type="button" disabled>${escapeHtml(t.next)}</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Mini-chat -->
+      <div class="setup-step" id="setup-step-4" style="display:none">
+        <div class="setup-step-badge">4 / 4</div>
+        <h2>${escapeHtml(t.step4Title)}</h2>
+        <p class="setup-step-desc">${escapeHtml(t.step4Desc)}</p>
+        <div class="setup-mini-chat">
+          <div class="setup-mini-chat-messages" id="setup-chat-messages">
+            <div class="setup-chat-bubble assistant">${escapeHtml(t.chatWelcome)}</div>
+          </div>
+          <div class="setup-mini-chat-input-row">
+            <textarea id="setup-chat-input" class="setup-mini-chat-input" rows="1"
+              placeholder="${escapeHtml(t.chatPlaceholder)}"></textarea>
+            <button class="btn" id="setup-chat-send" type="button">${escapeHtml(t.chatSend)}</button>
+          </div>
+        </div>
+        <div class="setup-actions">
+          <button class="btn" id="setup-back-3" type="button">${escapeHtml(t.back_btn)}</button>
+          <button class="btn btn-primary" id="setup-finish" type="button">${escapeHtml(t.finish)}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function wireSetupRuntime() {
+  const isFr = settingsLocale() === "fr";
+  const t = SETUP_RUNTIME_TEXT[isFr ? "fr" : "en"];
+
+  // ── In-memory wizard state (not written to localStorage until "Terminer") ──
+  let selectedProvider = localStorage.getItem("ai-provider") || "";
+  let credKey = ""; // holds claude key or mistral key
+  let credUrl = ""; // holds openclaw url
+
+  // ── Stepper helpers ──
+  const STEPS = [1, 2, 3, 4];
+  function goToStep(n) {
+    STEPS.forEach((s) => {
+      const el = document.getElementById(`setup-step-${s}`);
+      if (el) el.style.display = s === n ? "" : "none";
+      const circle = document.getElementById(`step-circle-${s}`);
+      if (!circle) return;
+      circle.classList.remove("active", "done");
+      if (s < n) circle.classList.add("done");
+      else if (s === n) circle.classList.add("active");
+      const line = document.getElementById(`step-line-${s}`);
+      if (line) line.classList.toggle("done", s < n);
+    });
+    // Reset step 3 state when going back to 1 or 2
+    if (n <= 2) resetStep3();
+  }
+
+  function resetStep3() {
+    const result = document.getElementById("setup-test-result");
+    if (result) {
+      result.className = "setup-test-result";
+      result.innerHTML = "";
+    }
+    const next3 = document.getElementById("setup-next-3");
+    if (next3) next3.disabled = true;
+  }
+
+  // ── Pre-fill from localStorage if returning user ──
+  // Only pre-select the provider card and enable "Next →". Do NOT touch stepper circle
+  // classes here — goToStep() manages them when the user actually navigates.
+  // The page always starts on step 1 (default from renderSetupRuntime).
+  if (selectedProvider) {
+    const card = document.querySelector(
+      `[data-provider="${selectedProvider}"]`,
+    );
+    if (card) card.classList.add("selected");
+    const next1 = document.getElementById("setup-next-1");
+    if (next1) next1.disabled = false;
+    // Pre-load cred values from localStorage into memory (shown in step 2 fields)
+    credKey = localStorage.getItem(`ai-${selectedProvider}-key`) || "";
+    credUrl = localStorage.getItem("ai-openclaw-url") || "";
+  }
+
+  // ── Stepper click-back (delegated — works for circles marked done after navigation) ──
+  document.getElementById("setup-stepper").addEventListener("click", (e) => {
+    const circle = e.target.closest(".setup-step-circle.done");
+    if (!circle) return;
+    const n = parseInt(circle.dataset.step, 10);
+    if (n && n < 4) goToStep(n);
+  });
+
+  // ── Step 1: Provider selection ──
+  document.querySelectorAll("[data-provider]").forEach((card) => {
+    card.addEventListener("click", () => {
+      document
+        .querySelectorAll("[data-provider]")
+        .forEach((c) => c.classList.remove("selected"));
+      card.classList.add("selected");
+      selectedProvider = card.dataset.provider;
+      document.getElementById("setup-next-1").disabled = false;
+    });
+  });
+
+  document.getElementById("setup-next-1").addEventListener("click", () => {
+    renderStep2Detail();
+    goToStep(2);
+  });
+
+  // ── Step 2: Render provider-specific detail and credentials ──
+  function renderStep2Detail() {
+    const p = t.providers[selectedProvider];
+    const detail = document.getElementById("setup-provider-detail");
+    if (!detail) return;
+
+    if (selectedProvider === "openclaw") {
+      detail.innerHTML = `
+        <p>${escapeHtml(p.desc)}</p>
+        <div class="setup-key-field">
+          <input id="setup-cred-url" type="text" placeholder="${escapeHtml(p.placeholder)}"
+            value="${escapeHtml(credUrl)}" autocomplete="off" />
+        </div>
+      `;
+      const urlInput = document.getElementById("setup-cred-url");
+      urlInput.addEventListener("input", () => {
+        credUrl = urlInput.value.trim();
+        document.getElementById("setup-next-2").disabled = !credUrl;
+      });
+      document.getElementById("setup-next-2").disabled = !credUrl;
+    } else {
+      const existingKey =
+        localStorage.getItem(`ai-${selectedProvider}-key`) || credKey;
+      detail.innerHTML = `
+        <p>${escapeHtml(p.desc)}</p>
+        ${p.link ? `<p><a href="${p.link}" target="_blank" rel="noopener">${escapeHtml(p.linkLabel)}</a></p>` : ""}
+        <div class="setup-key-field">
+          <input id="setup-cred-key" type="password" placeholder="${escapeHtml(p.placeholder)}"
+            value="${escapeHtml(existingKey)}" autocomplete="off" />
+          <button class="setup-key-toggle" id="setup-key-toggle" type="button">👁</button>
+        </div>
+      `;
+      const keyInput = document.getElementById("setup-cred-key");
+      document
+        .getElementById("setup-key-toggle")
+        .addEventListener("click", () => {
+          keyInput.type = keyInput.type === "password" ? "text" : "password";
+        });
+      keyInput.addEventListener("input", () => {
+        credKey = keyInput.value.trim();
+        document.getElementById("setup-next-2").disabled = !credKey;
+      });
+      document.getElementById("setup-next-2").disabled =
+        !existingKey && !credKey;
+      if (existingKey) credKey = existingKey;
+    }
+  }
+
+  document
+    .getElementById("setup-back-1")
+    .addEventListener("click", () => goToStep(1));
+
+  document.getElementById("setup-next-2").addEventListener("click", () => {
+    // Capture final credential values before advancing
+    if (selectedProvider === "openclaw") {
+      credUrl =
+        (document.getElementById("setup-cred-url") || {}).value?.trim() ||
+        credUrl;
+    } else {
+      credKey =
+        (document.getElementById("setup-cred-key") || {}).value?.trim() ||
+        credKey;
+    }
+    goToStep(3);
+  });
+
+  // ── Step 3: Connection test ──
+  document
+    .getElementById("setup-back-2")
+    .addEventListener("click", () => goToStep(2));
+
+  document
+    .getElementById("setup-test-btn")
+    .addEventListener("click", async () => {
+      const result = document.getElementById("setup-test-result");
+      const testBtn = document.getElementById("setup-test-btn");
+      result.className = "setup-test-result";
+      result.innerHTML = t.testLoading;
+      testBtn.disabled = true;
+
+      try {
+        // ⚠️ KNOWN LIMITATION: this test validates the backend's configured key (from .env),
+        // NOT the key the user just entered in the wizard. hub_core.chat_runtime reads API
+        // keys from environment variables only. A 200 response confirms the backend is
+        // reachable and its env has a working key — it does not validate the wizard-entered key.
+        // Future improvement: pass the key in a request header that chat_runtime reads
+        // preferentially over the env.
+        const res = await fetch("/api/hub/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: isFr ? "Réponds juste 'ok'." : "Just reply 'ok'.",
+            history: [],
+            system: "Reply with only the word 'ok'.",
+          }),
+        });
+        if (res.ok) {
+          const text = await res.text();
+          result.className = "setup-test-result ok";
+          result.innerHTML = `${escapeHtml(t.testOk)}
+          <details class="setup-test-raw"><summary>${isFr ? "Réponse" : "Response"}</summary>${escapeHtml(text.slice(0, 200))}</details>`;
+          document.getElementById("setup-next-3").disabled = false;
+        } else {
+          throw new Error(`HTTP ${res.status}`);
+        }
+      } catch (e) {
+        result.className = "setup-test-result err";
+        const hint = t.testErrHint[selectedProvider] || "";
+        result.innerHTML = `${escapeHtml(t.testErr)} ${escapeHtml(hint)} <span style="opacity:.6">(${escapeHtml(String(e))})</span>`;
+      }
+      testBtn.disabled = false;
+    });
+
+  document
+    .getElementById("setup-next-3")
+    .addEventListener("click", () => goToStep(4));
+
+  // ── Step 4: Mini-chat ──
+  document
+    .getElementById("setup-back-3")
+    .addEventListener("click", () => goToStep(3));
+
+  const chatMessages = document.getElementById("setup-chat-messages");
+  const chatInput = document.getElementById("setup-chat-input");
+  const chatSend = document.getElementById("setup-chat-send");
+  const chatHistory = [];
+
+  function addSetupBubble(role, text, streaming = false) {
+    const div = document.createElement("div");
+    div.className = `setup-chat-bubble ${role}`;
+    div.textContent = text;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return div;
+  }
+
+  async function sendSetupMessage() {
+    const msg = chatInput.value.trim();
+    if (!msg) return;
+    chatInput.value = "";
+    chatSend.disabled = true;
+    addSetupBubble("user", msg);
+    chatHistory.push({ role: "user", content: msg });
+
+    const el = addSetupBubble("assistant", "…", true);
+    let full = "";
+    try {
+      const res = await fetch("/api/hub/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: msg,
+          history: chatHistory.slice(0, -1),
+        }),
+      });
+      if (res.ok && res.body) {
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        el.textContent = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          full += dec.decode(value, { stream: true });
+          el.textContent = full;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        chatHistory.push({ role: "assistant", content: full });
+      } else {
+        el.textContent = isFr ? "Erreur." : "Error.";
+      }
+    } catch {
+      el.textContent = isFr ? "Erreur réseau." : "Network error.";
+    }
+    chatSend.disabled = false;
+    chatInput.focus();
+  }
+
+  chatSend.addEventListener("click", sendSetupMessage);
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendSetupMessage();
+    }
+  });
+
+  // ── Finish: write to localStorage and redirect ──
+  document.getElementById("setup-finish").addEventListener("click", () => {
+    localStorage.setItem("ai-provider", selectedProvider);
+    if (selectedProvider === "openclaw") {
+      localStorage.setItem("ai-openclaw-url", credUrl);
+    } else {
+      localStorage.setItem(`ai-${selectedProvider}-key`, credKey);
+    }
+    window.location.href = "/";
+  });
+
+  // ── If returning user, land on step 1 (already pre-selected above) ──
+  // (goToStep is not called here; step 1 is already visible from renderSetupRuntime)
+}
+
 async function boot() {
-  if (path.startsWith("/settings")) renderSettings();
+  if (path.startsWith("/setup/runtime")) renderSetupRuntime();
+  else if (path.startsWith("/settings")) renderSettings();
   else if (path.startsWith("/logs")) renderLogs();
   else if (path.startsWith("/chat")) renderChatPage();
   else if (path.startsWith("/kanban")) renderKanbanPage();
@@ -3364,7 +3654,8 @@ async function boot() {
       themeToggleIcon.textContent = next === "light" ? "☀️" : "🌙";
     });
   }
-  if (path.startsWith("/settings")) await wireSettings();
+  if (path.startsWith("/setup/runtime")) await wireSetupRuntime();
+  else if (path.startsWith("/settings")) await wireSettings();
   else if (path.startsWith("/logs")) await wireLogs();
   else if (path.startsWith("/chat")) await wireChat();
   else if (path.startsWith("/kanban")) await wireKanbanPage();
