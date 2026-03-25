@@ -2717,7 +2717,10 @@ body {
   border: 2px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 .setup-step-circle.active {
   border-color: var(--accent);
@@ -2777,20 +2780,31 @@ body {
   background: transparent;
   cursor: pointer;
   text-align: center;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   align-items: center;
 }
-.setup-provider-card:hover { border-color: var(--accent); }
+.setup-provider-card:hover {
+  border-color: var(--accent);
+}
 .setup-provider-card.selected {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
-.setup-provider-icon { font-size: 1.75rem; }
-.setup-provider-card strong { font-size: 0.95rem; }
-.setup-provider-card span { font-size: 0.8rem; color: var(--text-muted); }
+.setup-provider-icon {
+  font-size: 1.75rem;
+}
+.setup-provider-card strong {
+  font-size: 0.95rem;
+}
+.setup-provider-card span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
 .setup-provider-badge {
   font-size: 0.7rem;
   padding: 2px 6px;
@@ -2809,9 +2823,16 @@ body {
   margin-bottom: 1rem;
   font-size: 0.9rem;
 }
-.setup-provider-detail a { color: var(--accent); }
-.setup-provider-detail p { margin: 0 0 0.5rem; }
-.setup-key-field { position: relative; margin-bottom: 0.5rem; }
+.setup-provider-detail a {
+  color: var(--accent);
+}
+.setup-provider-detail p {
+  margin: 0 0 0.5rem;
+}
+.setup-key-field {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
 .setup-key-field input {
   width: 100%;
   padding: 0.6rem 2.5rem 0.6rem 0.75rem;
