@@ -3342,8 +3342,176 @@ async function wireChat() {
   input.focus();
 }
 
+const SETUP_RUNTIME_TEXT = {
+  fr: {
+    title: "Setup",
+    subtitle: "Configure ton runtime IA en 4 étapes.",
+    back: "Retour au hub",
+    step1Title: "Choisir ton fournisseur",
+    step1Desc: "Clawvis supporte plusieurs fournisseurs. Sélectionne celui que tu veux configurer.",
+    step2Title: "Obtenir et entrer la clé",
+    step2Desc: "Suis les instructions pour ton fournisseur, puis entre ta clé API.",
+    step3Title: "Tester la connexion",
+    step3Desc: "Vérifie que la connexion fonctionne avant de continuer.",
+    step4Title: "Valide avec un message",
+    step4Desc: "Envoie un message à ton runtime pour confirmer que tout fonctionne.",
+    next: "Suivant →",
+    back_btn: "← Retour",
+    testBtn: "Lancer le test",
+    testLoading: "Connexion en cours…",
+    testOk: "Connexion réussie — ton runtime répond.",
+    testErr: "Échec de connexion.",
+    testErrHint: { claude: "Vérifie ta clé API.", mistral: "Vérifie ta clé API.", openclaw: "Vérifie l'URL et la clé." },
+    chatWelcome: "Bonjour ! Je suis ton runtime IA. Pose-moi une question pour vérifier que tout fonctionne.",
+    chatPlaceholder: "Envoie un message…",
+    chatSend: "Envoyer",
+    finish: "Terminer →",
+    providers: {
+      claude: { name: "Claude", owner: "Anthropic", badge: "Cloud", desc: "Le modèle le plus capable d'Anthropic. Clé API sur console.anthropic.com.", link: "https://console.anthropic.com/settings/keys", linkLabel: "Obtenir une clé →", placeholder: "sk-ant-..." },
+      mistral: { name: "Mistral", owner: "Mistral AI", badge: "Cloud", desc: "Modèle open-weight performant. Clé API sur console.mistral.ai.", link: "https://console.mistral.ai/api-keys", linkLabel: "Obtenir une clé →", placeholder: "..." },
+      openclaw: { name: "OpenClaw", owner: "Auto-hébergé", badge: "Self-hosted", desc: "Instance compatible OpenAI. Renseigne l'URL de ton serveur.", link: null, linkLabel: null, placeholder: "http://host:port" },
+    },
+    securityNote: "La clé est stockée dans ton navigateur (localStorage). Elle n'est jamais envoyée à nos serveurs.",
+  },
+  en: {
+    title: "Setup",
+    subtitle: "Configure your AI runtime in 4 steps.",
+    back: "Back to hub",
+    step1Title: "Choose your provider",
+    step1Desc: "Clawvis supports multiple providers. Select the one you want to configure.",
+    step2Title: "Get and enter your key",
+    step2Desc: "Follow the instructions for your provider, then enter your API key.",
+    step3Title: "Test the connection",
+    step3Desc: "Verify the connection works before continuing.",
+    step4Title: "Validate with a message",
+    step4Desc: "Send a message to your runtime to confirm everything works.",
+    next: "Next →",
+    back_btn: "← Back",
+    testBtn: "Run test",
+    testLoading: "Connecting…",
+    testOk: "Connection successful — your runtime is responding.",
+    testErr: "Connection failed.",
+    testErrHint: { claude: "Check your API key.", mistral: "Check your API key.", openclaw: "Check the URL and key." },
+    chatWelcome: "Hello! I'm your AI runtime. Ask me a question to confirm everything is working.",
+    chatPlaceholder: "Send a message…",
+    chatSend: "Send",
+    finish: "Finish →",
+    providers: {
+      claude: { name: "Claude", owner: "Anthropic", badge: "Cloud", desc: "Anthropic's most capable model. API key at console.anthropic.com.", link: "https://console.anthropic.com/settings/keys", linkLabel: "Get a key →", placeholder: "sk-ant-..." },
+      mistral: { name: "Mistral", owner: "Mistral AI", badge: "Cloud", desc: "High-performance open-weight model. API key at console.mistral.ai.", link: "https://console.mistral.ai/api-keys", linkLabel: "Get a key →", placeholder: "..." },
+      openclaw: { name: "OpenClaw", owner: "Self-hosted", badge: "Self-hosted", desc: "OpenAI-compatible self-hosted instance. Enter your server URL.", link: null, linkLabel: null, placeholder: "http://host:port" },
+    },
+    securityNote: "Your key is stored in your browser (localStorage). It is never sent to our servers.",
+  },
+};
+
+function renderSetupRuntime() {
+  const isFr = settingsLocale() === "fr";
+  const t = SETUP_RUNTIME_TEXT[isFr ? "fr" : "en"];
+  app.innerHTML = `
+    <div class="wrap">
+      <header class="settings-page-header">
+        <div class="title">
+          <h1>${escapeHtml(t.title)} · <span>Clawvis</span></h1>
+          <p>${escapeHtml(t.subtitle)}</p>
+        </div>
+        <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme" type="button">
+          <span id="theme-toggle-icon">🌙</span>
+        </button>
+      </header>
+
+      <!-- Stepper -->
+      <div class="setup-stepper" id="setup-stepper" role="list" aria-label="${isFr ? "Étapes de configuration" : "Configuration steps"}">
+        <div class="setup-step-circle active" id="step-circle-1" data-step="1" role="listitem" aria-label="${isFr ? "Étape 1 : Choisir ton fournisseur" : "Step 1: Choose your provider"}">1</div>
+        <div class="setup-step-line" id="step-line-1" aria-hidden="true"></div>
+        <div class="setup-step-circle" id="step-circle-2" data-step="2" role="listitem" aria-label="${isFr ? "Étape 2 : Entrer la clé" : "Step 2: Enter your key"}">2</div>
+        <div class="setup-step-line" id="step-line-2" aria-hidden="true"></div>
+        <div class="setup-step-circle" id="step-circle-3" data-step="3" role="listitem" aria-label="${isFr ? "Étape 3 : Tester la connexion" : "Step 3: Test connection"}">3</div>
+        <div class="setup-step-line" id="step-line-3" aria-hidden="true"></div>
+        <div class="setup-step-circle" id="step-circle-4" data-step="4" role="listitem" aria-label="${isFr ? "Étape 4 : Valider" : "Step 4: Validate"}">4</div>
+      </div>
+
+      <!-- Step 1: Choose provider -->
+      <div class="setup-step" id="setup-step-1">
+        <div class="setup-step-badge">1 / 4</div>
+        <h2>${escapeHtml(t.step1Title)}</h2>
+        <p class="setup-step-desc">${escapeHtml(t.step1Desc)}</p>
+        <div class="setup-provider-cards">
+          ${["claude", "mistral", "openclaw"].map((pid) => {
+            const p = t.providers[pid];
+            return `<button class="setup-provider-card" data-provider="${pid}" type="button">
+              <span class="setup-provider-icon">${pid === "claude" ? "🧠" : pid === "mistral" ? "✨" : "🐾"}</span>
+              <strong>${escapeHtml(p.name)}</strong>
+              <span>${escapeHtml(p.owner)}</span>
+              <span class="setup-provider-badge">${escapeHtml(p.badge)}</span>
+            </button>`;
+          }).join("")}
+        </div>
+        <div class="setup-actions">
+          <button class="btn btn-primary" id="setup-next-1" type="button" disabled>${escapeHtml(t.next)}</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Credentials -->
+      <div class="setup-step" id="setup-step-2" style="display:none">
+        <div class="setup-step-badge">2 / 4</div>
+        <h2>${escapeHtml(t.step2Title)}</h2>
+        <p class="setup-step-desc">${escapeHtml(t.step2Desc)}</p>
+        <div id="setup-provider-detail" class="setup-provider-detail"></div>
+        <p class="setup-security-note">${escapeHtml(t.securityNote)}</p>
+        <div class="setup-actions">
+          <button class="btn" id="setup-back-1" type="button">${escapeHtml(t.back_btn)}</button>
+          <button class="btn btn-primary" id="setup-next-2" type="button" disabled>${escapeHtml(t.next)}</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Test -->
+      <div class="setup-step" id="setup-step-3" style="display:none">
+        <div class="setup-step-badge">3 / 4</div>
+        <h2>${escapeHtml(t.step3Title)}</h2>
+        <p class="setup-step-desc">${escapeHtml(t.step3Desc)}</p>
+        <div class="setup-test-area">
+          <button class="btn btn-primary" id="setup-test-btn" type="button">${escapeHtml(t.testBtn)}</button>
+          <div id="setup-test-result" class="setup-test-result"></div>
+        </div>
+        <div class="setup-actions">
+          <button class="btn" id="setup-back-2" type="button">${escapeHtml(t.back_btn)}</button>
+          <button class="btn btn-primary" id="setup-next-3" type="button" disabled>${escapeHtml(t.next)}</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Mini-chat -->
+      <div class="setup-step" id="setup-step-4" style="display:none">
+        <div class="setup-step-badge">4 / 4</div>
+        <h2>${escapeHtml(t.step4Title)}</h2>
+        <p class="setup-step-desc">${escapeHtml(t.step4Desc)}</p>
+        <div class="setup-mini-chat">
+          <div class="setup-mini-chat-messages" id="setup-chat-messages">
+            <div class="setup-chat-bubble assistant">${escapeHtml(t.chatWelcome)}</div>
+          </div>
+          <div class="setup-mini-chat-input-row">
+            <textarea id="setup-chat-input" class="setup-mini-chat-input" rows="1"
+              placeholder="${escapeHtml(t.chatPlaceholder)}"></textarea>
+            <button class="btn" id="setup-chat-send" type="button">${escapeHtml(t.chatSend)}</button>
+          </div>
+        </div>
+        <div class="setup-actions">
+          <button class="btn" id="setup-back-3" type="button">${escapeHtml(t.back_btn)}</button>
+          <button class="btn btn-primary" id="setup-finish" type="button">${escapeHtml(t.finish)}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function wireSetupRuntime() {
+  // wired in Task 4
+}
+
 async function boot() {
-  if (path.startsWith("/settings")) renderSettings();
+  if (path.startsWith("/setup/runtime")) renderSetupRuntime();
+  else if (path.startsWith("/settings")) renderSettings();
   else if (path.startsWith("/logs")) renderLogs();
   else if (path.startsWith("/chat")) renderChatPage();
   else if (path.startsWith("/kanban")) renderKanbanPage();
@@ -3364,7 +3532,8 @@ async function boot() {
       themeToggleIcon.textContent = next === "light" ? "☀️" : "🌙";
     });
   }
-  if (path.startsWith("/settings")) await wireSettings();
+  if (path.startsWith("/setup/runtime")) await wireSetupRuntime();
+  else if (path.startsWith("/settings")) await wireSettings();
   else if (path.startsWith("/logs")) await wireLogs();
   else if (path.startsWith("/chat")) await wireChat();
   else if (path.startsWith("/kanban")) await wireKanbanPage();
