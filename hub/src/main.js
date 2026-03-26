@@ -861,7 +861,12 @@ function renderSettings() {
           <h1>${t.title} · <span>Clawvis</span></h1>
           <p>${t.subtitle}</p>
         </div>
-        <a href="/" class="back-btn"><span class="icon">←</span><span>${t.back}</span></a>
+        <div class="sub-page-header-actions">
+          <a href="/" class="back-btn"><span class="icon">←</span><span>${t.back}</span></a>
+          <button class="header-icon icon-button" type="button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+            <span id="theme-toggle-icon">🌙</span>
+          </button>
+        </div>
       </header>
 
       <!-- Health banner centré -->
@@ -3287,10 +3292,12 @@ function renderSetupRuntime() {
           <h1>${escapeHtml(t.title)} · <span>Clawvis</span></h1>
           <p>${escapeHtml(t.subtitle)}</p>
         </div>
-        <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
-        <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme" type="button">
-          <span id="theme-toggle-icon">🌙</span>
-        </button>
+        <div class="sub-page-header-actions">
+          <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
+          <button class="header-icon icon-button" type="button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+            <span id="theme-toggle-icon">🌙</span>
+          </button>
+        </div>
       </header>
 
       <!-- Stepper -->
