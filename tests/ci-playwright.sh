@@ -13,8 +13,8 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 # CI skip mode: validate config only, don't start services or run tests.
-# Set PW_CI_SKIP=1 in GitHub Actions until a live environment is available (phase 1).
-if [[ "${PW_CI_SKIP:-0}" == "1" ]]; then
+# Activates when PW_CI_SKIP=1 OR running on GitHub Actions (until live env available, phase 1).
+if [[ "${PW_CI_SKIP:-0}" == "1" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   echo "==> [SKIP] Playwright E2E skipped (PW_CI_SKIP=1) — install + config validation only"
   npm ci --prefix "${ROOT_DIR}/tests/playwright" --silent
   echo "==> [OK] Playwright deps installed"
