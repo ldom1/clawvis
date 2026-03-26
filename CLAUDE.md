@@ -383,9 +383,17 @@ Implementation rules:
 
 ## TODO (Next step)
 
-- Connect Clawvis to the OpenClaw instance deployed on Hostinger.
-- Make repo public (or host get.sh separately) so the one-liner works.
-- Add `clawvis setup provider` command to CLI for post-install provider config.
+**Phase 1 — dernier item :**
+- [ ] Smoke test services réels : `docker compose up` sur machine propre, vérifier Hub + Kanban répondent
+
+**Phase 2 — priorité :**
+- [ ] Connecter Clawvis à l'instance OpenClaw déployée sur Hostinger (guide : `docs/guides/deploy-hostinger.md`)
+- [ ] Tester `GET /api/hub/chat/status` → `{"openclaw_configured":true}` depuis le VPS
+- [ ] Envoyer un message depuis `/chat/` et recevoir une réponse OpenClaw
+
+**Phase 3 — onboarding :**
+- [ ] `clawvis setup provider` — commande CLI post-install pour configurer le provider en terminal
+- [ ] README : one-liner `get.sh` en premier, section "Démarrage rapide" avec captures d'écran
 
 @RTK.md
 
@@ -543,11 +551,22 @@ Overall average: **60-90% token reduction** on common development operations.
 8. **hub/src/main.js — compteur services** : `/openclaw/` (toujours 404) comptabilisé comme service "down" → marqué `optional: true`, exclu du comptage.
 9. **hub/src/main.js — i18n FR accents** : `"Parametres"` → `"Paramètres"`, `"A configurer"` → `"À configurer"`, `"liee(s)"` → `"liée(s)"`, `"Echec"` → `"Échec"`, etc.
 
-### Points de friction install non résolus (priorité pour prochaine session)
+### Points de friction install non résolus
 
-- **Kanban API absent du docker-compose** : En mode `docker` (mode Franc), le tableau Kanban est inutilisable. Il faut ajouter un service `kanban-api` basé sur `hub-core` avec proxy nginx dans le conteneur hub.
-- **Quartz Brain build** : `scripts/build-quartz.sh` gère le build Quartz mais dépend d'un submodule optionnel. Si absent, le Brain n'affiche rien. Rendre la dégradation gracieuse.
-- **`clawvis setup provider`** : Commande CLI post-install pour configurer le provider depuis le terminal (mentionnée dans TODO CLAUDE.md mais non implémentée).
+- **Smoke test services réels** : `docker/test.Dockerfile` valide le bootstrap (12/12) mais mocke `docker compose up`. Il reste à tester que Hub + Kanban répondent vraiment sur leurs ports après `docker compose up` sur machine propre.
+- **Quartz Brain build** : `scripts/build-quartz.sh` dépend d'un submodule optionnel. Si absent, le Brain n'affiche rien. Dégradation gracieuse à améliorer.
+- **`clawvis setup provider`** : Commande CLI post-install non implémentée. Pour l'instant, configuration via Hub UI Settings uniquement.
+
+### Acquis session 2026-03-26
+
+- `instances/example/` restauré comme template d'install (docker-compose.override.yml + .env.local.example)
+- `docker/test.Dockerfile` : smoke test bootstrap Ubuntu, 12/12 assertions
+- Convention de commit `feat/fix/enh/update/hotfix(<scope>)` + hook `.githooks/commit-msg`
+- `docs/` restructuré : `adr/`, `guides/`, `roadmap/`, `docs/README.md` index
+- `docs/adr/0001` (Docker default) + `0002` (instance-scoped memory)
+- `.claude/settings.json` commité — permissions Soissons (docker, yarn, uv, clawvis, npm, git)
+- CI : fix `playwright.yml` (setup-uv manquant) + mode skip Playwright sur GitHub Actions
+- PR #8 mergée sur `main` — CI verte (3x test pass + validate-future-tag pass)
 
 ### Règles d'outillage confirmées
 
