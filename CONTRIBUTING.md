@@ -5,6 +5,34 @@
 - Follow the existing code style and structure.
 - Update `README.md` and `CHANGELOG.md` when behavior or interfaces change.
 
+## Commit Convention
+
+Every commit must follow:
+
+```
+<type>(<scope>): <explicit message>
+```
+
+**Types:** `feat` · `fix` · `enh` · `update` · `hotfix`
+
+**Scopes:** `core` · `api` · `cli` · `design` · `test` · `deploy` · `docs` · `install` · `kanban` · `brain` · `hub` · `ci`
+
+**Examples:**
+```
+feat(hub): add dark mode toggle to settings page
+fix(api): correct memory root resolution when multiple instances linked
+enh(kanban): improve task card density on mobile
+update(docs): add prerequisites table to README
+hotfix(install): prevent instance rename when target already exists
+```
+
+**Rules:** English, imperative mood, no period at end.
+
+Install the commit-msg hook to enforce this locally:
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Clawvis lifecycle model
 
 Clawvis uses a strict two-layer lifecycle:

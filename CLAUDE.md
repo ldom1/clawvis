@@ -305,6 +305,43 @@ Repository automation must stay aligned with lifecycle:
   - accepts tags matching `vYYYY-MM-dd`
   - publishes GitHub Release notes automatically
 
+## Commit Convention (Mandatory)
+
+Every commit MUST follow this format — no exceptions:
+
+```
+<type>(<scope>): <explicit message>
+```
+
+**Types** (only these five):
+| Type | When |
+|------|------|
+| `feat` | New feature or capability |
+| `fix` | Bug fix |
+| `enh` | Enhancement to an existing feature |
+| `update` | Non-functional update (deps, config, docs, tooling) |
+| `hotfix` | Urgent production fix |
+
+**Scopes** (match the affected area):
+`core` · `api` · `cli` · `design` · `test` · `deploy` · `docs` · `install` · `kanban` · `brain` · `hub` · `ci`
+
+**Examples:**
+```
+feat(hub): add dark mode toggle to settings page
+fix(api): correct memory root resolution when multiple instances linked
+enh(kanban): improve task card density on mobile
+update(docs): add prerequisites table to README
+hotfix(install): prevent instance rename when target already exists
+feat(test): add install smoke test and fix instances/example template
+```
+
+**Rules:**
+- Message in English, imperative mood, lowercase after `): `
+- No period at the end
+- Body optional, separated by blank line
+- Hook `.githooks/commit-msg` enforces the format — install with:
+  `git config core.hooksPath .githooks`
+
 ## Contribution Model
 
 If a change is generic:
