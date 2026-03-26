@@ -24,9 +24,11 @@ if [ -z "${CLAWVIS_SKIP_START_ECHO:-}" ]; then
 fi
 
 init_instance_memory
-if ! docker compose up -d memory >/dev/null 2>&1; then
-  echo "[clawvis] Échec: docker compose up memory (Docker démarré ? lance depuis la racine Clawvis ?)." >&2
-  exit 1
+if [ -z "${CLAWVIS_SKIP_MEMORY_DOCKER:-}" ]; then
+  if ! docker compose up -d memory >/dev/null 2>&1; then
+    echo "[clawvis] Échec: docker compose up memory (Docker démarré ? lance depuis la racine Clawvis ?)." >&2
+    exit 1
+  fi
 fi
 
 uvicorn_extra=()
@@ -99,8 +101,10 @@ uv run --directory "${ROOT_DIR}/kanban" python -m uvicorn \
   --reload-dir "${ROOT_DIR}/kanban/kanban_api" \
   "${uvicorn_extra[@]}" &
 MEM_API_PID=$!
+VITE_PID=""
 
 cleanup() {
+  [ -n "${VITE_PID}" ] && kill "${VITE_PID}" >/dev/null 2>&1 || true
   kill "${API_PID}" >/dev/null 2>&1 || true
   kill "${MEM_API_PID}" >/dev/null 2>&1 || true
 }
@@ -116,7 +120,20 @@ fi
 rebuild_hub_yarn
 
 if [ -n "${CLAWVIS_QUIET_START:-}" ]; then
+  if [ -n "${CLAWVIS_NO_EXEC_VITE:-}" ]; then
+    node "${ROOT_DIR}/hub/node_modules/vite/bin/vite.js" "${ROOT_DIR}/hub" \
+      --port "${PORT}" --no-strictPort --logLevel silent &
+    VITE_PID=$!
+    wait "${VITE_PID}" || true
+    exit 0
+  fi
   exec node "${ROOT_DIR}/hub/node_modules/vite/bin/vite.js" "${ROOT_DIR}/hub" \
     --port "${PORT}" --no-strictPort --logLevel silent
+fi
+if [ -n "${CLAWVIS_NO_EXEC_VITE:-}" ]; then
+  yarn --cwd "${ROOT_DIR}/hub" dev --port "${PORT}" --no-strictPort &
+  VITE_PID=$!
+  wait "${VITE_PID}" || true
+  exit 0
 fi
 exec yarn --cwd "${ROOT_DIR}/hub" dev --port "${PORT}" --no-strictPort

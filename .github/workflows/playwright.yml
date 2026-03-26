@@ -16,7 +16,13 @@ jobs:
           node-version: lts/*
           cache: npm
           cache-dependency-path: tests/playwright/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v4
       - name: Run Playwright CI script
+        env:
+          PW_CI_SKIP: "1"
         run: |
           chmod +x tests/ci-playwright.sh
           bash tests/ci-playwright.sh

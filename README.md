@@ -36,10 +36,32 @@ Your data stays in `instances/<your-name>/` — never touched by core updates.
 
 ## Prerequisites
 
-- **Docker** (Engine 24+ or Docker Desktop) — [install](https://docs.docker.com/get-docker/)
-- **Git** — to clone the repo (`get.sh` handles this automatically)
+### Mode Franc — default (Docker)
 
-For dev mode only: Node.js >= 18, uv (Python)
+Everything runs inside containers. You only need:
+
+| Tool | Why | Install |
+|------|-----|---------|
+| **Docker** Engine 24+ or Desktop | runs the full stack | [docs.docker.com](https://docs.docker.com/get-docker/) |
+| **Git** | clones the repo (`get.sh` handles this) | pre-installed on most systems |
+| **python3** | used by the installer to write `.env` | pre-installed on Linux/macOS |
+
+That's it. Yarn, npm, uv and all build tools run **inside Docker** — you don't install them.
+
+### Mode Soissons — dev / contribution
+
+Running the stack locally (outside Docker) requires additional tools:
+
+| Tool | Version | Why |
+|------|---------|-----|
+| **Node.js** | >= 18 | Vite dev server + CLI wizard |
+| **npm** | bundled with Node | CLI dependencies |
+| **Yarn** (via corepack) | 4.x | Hub frontend build (`corepack enable` installs it automatically) |
+| **uv** | latest | Kanban API + hub-core (Python) — `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+
+### Mode Mérovingien — VPS deploy
+
+Same as Franc on the server side. Locally you also need **SSH access** to the VPS.
 
 ---
 

@@ -122,8 +122,18 @@ def quartz_static_endpoint(path: str):
     # Same root as kanban_api (works in Docker + editable installs; not Path(__file__).parents).
     quartz_public = _CLAWVIS_ROOT / "quartz" / "public"
     target = (quartz_public / safe).resolve()
-    if not str(target).startswith(str(quartz_public.resolve())):
+    qroot = quartz_public.resolve()
+    if not str(target).startswith(str(qroot)):
         raise HTTPException(400, "Invalid path")
+    if not target.exists() or not target.is_file():
+        # Quartz often has README.html as home but no root index.html; clients still request index.html.
+        if safe.parent == Path(".") and safe.name == "index.html":
+            for alt in ("README.html", "home.html", "clawvis.html"):
+                cand = (quartz_public / alt).resolve()
+                if cand.is_file() and str(cand).startswith(str(qroot)):
+                    target = cand
+                    safe = Path(alt)
+                    break
     if not target.exists() or not target.is_file():
         raise HTTPException(404, "Not found")
 

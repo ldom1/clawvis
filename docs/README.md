@@ -1,0 +1,10 @@
+# Clawvis — Documentation
+
+| Document | Description |
+|----------|-------------|
+| [architecture.md](./architecture.md) | Stack, API domains, routing, memory resolution |
+| [guides/deploy-hostinger.md](./guides/deploy-hostinger.md) | Deploy to Hostinger VPS (Docker Manager + GitHub Actions) |
+| [roadmap/v1.md](./roadmap/v1.md) | V1 launch roadmap — 4 phases |
+| [adr/](./adr/) | Architecture Decision Records |
+| [specs/](./specs/) | Design specs (brainstorming outputs) |
+| [plans/](./plans/) | Implementation plans |

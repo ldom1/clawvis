@@ -289,10 +289,6 @@ const SUBPAGE_TEXT = {
       title: "Modifier le Brain",
       sub: "Éditez vos fichiers projets markdown. Pour les tâches, utilisez le Kanban.",
     },
-    brainGraph: {
-      title: "Graphe mémoire",
-      sub: "Liens entre les pages (wiki-links).",
-    },
     chat: {
       title: "Chat",
       sub: "Discutez avec votre runtime IA pour valider le setup, tester ou explorer.",
@@ -314,10 +310,6 @@ const SUBPAGE_TEXT = {
     brainEdit: {
       title: "Edit Brain",
       sub: "Edit your project markdown files. For tasks, use Kanban.",
-    },
-    brainGraph: {
-      title: "Memory graph",
-      sub: "Links between pages (wiki-links).",
     },
     chat: {
       title: "Chat",
@@ -821,6 +813,10 @@ function renderMemoryPage() {
         <select id="brain-memory-select" style="min-width:140px;max-width:200px;"></select>
         <span id="brain-memory-path" class="muted" style="font-size:11px;opacity:.75;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       </div>
+      <div id="quartz-rebuild-loading" class="brain-rebuild-loading" hidden>
+        <div class="brain-rebuild-loading-label">${fr ? "Reconstruction de la prévisualisation…" : "Rebuilding preview…"}</div>
+        <div class="brain-rebuild-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
       <iframe id="quartz-frame" class="quartz-frame" title="Quartz preview"></iframe>
     </div>
   `;
@@ -850,26 +846,6 @@ function renderMemoryEditPage() {
             <button id="memory-refresh" class="btn" type="button">Actualiser</button>
           </div>
         </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderMemoryGraphPage() {
-  app.innerHTML = `
-    <div class="container">
-      ${subpageHeader("brainGraph")}
-      <div style="margin-bottom:10px;">
-        <a class="btn" href="/memory/">← Back to Memory editor</a>
-        <button id="graph-refresh" class="btn" type="button" style="margin-left:8px;">Refresh graph</button>
-      </div>
-      <div class="tile">
-        <div class="graph-toolbar">
-          <input id="graph-search" placeholder="Search node..." />
-          <button id="graph-clear-focus" class="btn" type="button">Clear focus</button>
-        </div>
-        <div id="graph-summary" class="desc">Loading graph...</div>
-        <div id="memory-graph" class="memory-graph"></div>
       </div>
     </div>
   `;
@@ -2870,6 +2846,9 @@ async function wireMemoryEditor() {
   const fr = settingsLocale() === "fr";
   const quartzFrame = document.getElementById("quartz-frame");
   const quartzRefresh = document.getElementById("quartz-refresh");
+  const quartzRebuildLoading = document.getElementById(
+    "quartz-rebuild-loading",
+  );
   if (!quartzFrame || !quartzRefresh) return;
 
   let brainPreviewKind = "html";
@@ -2929,23 +2908,31 @@ async function wireMemoryEditor() {
   }
 
   quartzRefresh.addEventListener("click", async () => {
-    // Refresh = rebuild Quartz, then reload list + currently selected page.
-    const res = await fetch("/api/hub/memory/brain/rebuild-static", {
-      method: "POST",
-    });
-    let data = {};
+    if (quartzRebuildLoading) quartzRebuildLoading.hidden = false;
+    quartzRefresh.disabled = true;
+    quartzRefresh.setAttribute("aria-busy", "true");
     try {
-      data = await res.json();
-    } catch {
-      /* ignore */
+      const res = await fetch("/api/hub/memory/brain/rebuild-static", {
+        method: "POST",
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        /* ignore */
+      }
+      if (!res.ok || !data.ok) {
+        const tail = (data.stderr || data.stdout || "").toString().slice(-600);
+        const msg = data.error || data.detail || "Rebuild failed";
+        alert(tail ? `${msg}\n${tail}` : msg);
+        return;
+      }
+      await loadQuartzList();
+    } finally {
+      if (quartzRebuildLoading) quartzRebuildLoading.hidden = true;
+      quartzRefresh.disabled = false;
+      quartzRefresh.removeAttribute("aria-busy");
     }
-    if (!res.ok || !data.ok) {
-      const tail = (data.stderr || data.stdout || "").toString().slice(-600);
-      const msg = data.error || data.detail || "Rebuild failed";
-      alert(tail ? `${msg}\n${tail}` : msg);
-      return;
-    }
-    await loadQuartzList();
   });
   await loadQuartzList();
 }
@@ -3000,170 +2987,6 @@ async function wireMemoryEdit() {
     alert("Saved");
   });
   await loadList();
-}
-
-async function wireMemoryGraph() {
-  const host = document.getElementById("memory-graph");
-  const summary = document.getElementById("graph-summary");
-  const search = document.getElementById("graph-search");
-  const clearFocus = document.getElementById("graph-clear-focus");
-  if (!host || !summary || !search || !clearFocus) return;
-
-  let focusedId = null;
-  let state = null;
-
-  function renderGraph(nodes, edges, init = false) {
-    const width = Math.max(900, host.clientWidth || 900);
-    const height = 560;
-    const nodeMap =
-      state && !init
-        ? state.nodeMap
-        : new Map(
-            nodes.map((n) => [
-              n.id,
-              {
-                ...n,
-                x: Math.random() * width,
-                y: Math.random() * height,
-                vx: 0,
-                vy: 0,
-              },
-            ]),
-          );
-
-    for (let i = 0; i < 220; i += 1) {
-      edges.forEach((e) => {
-        const a = nodeMap.get(e.source);
-        const b = nodeMap.get(e.target);
-        if (!a || !b) return;
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const dist = Math.hypot(dx, dy) || 1;
-        const spring = (dist - 90) * 0.0016;
-        const fx = (dx / dist) * spring;
-        const fy = (dy / dist) * spring;
-        a.vx += fx;
-        a.vy += fy;
-        b.vx -= fx;
-        b.vy -= fy;
-      });
-      const arr = Array.from(nodeMap.values());
-      for (let j = 0; j < arr.length; j += 1) {
-        for (let k = j + 1; k < arr.length; k += 1) {
-          const a = arr[j];
-          const b = arr[k];
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const distSq = dx * dx + dy * dy || 1;
-          const rep = 700 / distSq;
-          a.vx -= dx * rep * 0.0008;
-          a.vy -= dy * rep * 0.0008;
-          b.vx += dx * rep * 0.0008;
-          b.vy += dy * rep * 0.0008;
-        }
-      }
-      nodeMap.forEach((n) => {
-        n.vx *= 0.92;
-        n.vy *= 0.92;
-        n.x = Math.min(width - 20, Math.max(20, n.x + n.vx));
-        n.y = Math.min(height - 20, Math.max(20, n.y + n.vy));
-      });
-    }
-
-    const neighbors = new Set();
-    if (focusedId) {
-      neighbors.add(focusedId);
-      edges.forEach((e) => {
-        if (e.source === focusedId) neighbors.add(e.target);
-        if (e.target === focusedId) neighbors.add(e.source);
-      });
-    }
-
-    const lines = edges.map((e) => {
-      const a = nodeMap.get(e.source);
-      const b = nodeMap.get(e.target);
-      if (!a || !b) return "";
-      const active =
-        !focusedId ||
-        (neighbors.has(e.source) &&
-          neighbors.has(e.target) &&
-          (e.source === focusedId || e.target === focusedId));
-      return `<line class="${active ? "" : "dim"}" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" />`;
-    });
-    const circles = Array.from(nodeMap.values()).map((n) => {
-      const isFocused = focusedId === n.id;
-      const isVisible = !focusedId || neighbors.has(n.id);
-      const classes = [
-        n.kind === "project" ? "node-project" : "node-ref",
-        isFocused ? "focused" : "",
-        isVisible ? "" : "dim",
-      ]
-        .filter(Boolean)
-        .join(" ");
-      return `
-        <g class="graph-node" data-node-id="${escapeHtml(n.id)}">
-          <circle class="${classes}" cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${n.kind === "project" ? 9 : 7}" />
-          <text class="${isVisible ? "" : "dim"}" x="${(n.x + 11).toFixed(1)}" y="${(n.y - 10).toFixed(1)}">${escapeHtml(n.label || n.id)}</text>
-        </g>
-      `;
-    });
-
-    host.innerHTML = `
-      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Memory graph">
-        <g class="graph-links">${lines.join("")}</g>
-        <g class="graph-nodes">${circles.join("")}</g>
-      </svg>
-    `;
-
-    host.querySelectorAll(".graph-node").forEach((el) => {
-      el.addEventListener("click", () => {
-        const id = el.dataset.nodeId || "";
-        focusedId = focusedId === id ? null : id;
-        search.value = focusedId || "";
-        renderGraph(nodes, edges, false);
-      });
-    });
-    state = { nodes, edges, nodeMap };
-  }
-
-  async function loadGraph() {
-    const res = await fetch("/api/hub/kanban/memory/graph");
-    const data = res.ok ? await res.json() : { nodes: [], edges: [] };
-    const nodes = data.nodes || [];
-    const edges = data.edges || [];
-    summary.textContent = `${nodes.length} nodes, ${edges.length} links`;
-    if (!nodes.length) {
-      host.innerHTML =
-        '<div class="task">No links found yet. Add wiki-links like [[project-name]] in your markdown pages.</div>';
-      state = null;
-      return;
-    }
-    renderGraph(nodes, edges, true);
-  }
-
-  document.getElementById("graph-refresh").addEventListener("click", loadGraph);
-  search.addEventListener("input", () => {
-    if (!state) return;
-    const query = search.value.trim().toLowerCase();
-    if (!query) {
-      focusedId = null;
-      renderGraph(state.nodes, state.edges, false);
-      return;
-    }
-    const match = state.nodes.find(
-      (n) =>
-        (n.id || "").toLowerCase().includes(query) ||
-        (n.label || "").toLowerCase().includes(query),
-    );
-    focusedId = match ? match.id : null;
-    renderGraph(state.nodes, state.edges, false);
-  });
-  clearFocus.addEventListener("click", () => {
-    focusedId = null;
-    search.value = "";
-    if (state) renderGraph(state.nodes, state.edges, false);
-  });
-  await loadGraph();
 }
 
 /** Parse streamed chat error tokens from hub_core.chat_runtime (i18n). */

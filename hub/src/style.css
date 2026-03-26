@@ -2262,19 +2262,45 @@ body.theme-light .settings-section.card {
   margin-top: 4px;
 }
 
-.memory-graph {
-  margin-top: 12px;
-  min-height: 560px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--bg);
-}
 .graph-toolbar {
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
   flex-wrap: wrap;
+}
+.brain-rebuild-loading {
+  margin: -4px 0 12px;
+}
+.brain-rebuild-loading-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.brain-rebuild-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.14);
+  overflow: hidden;
+  position: relative;
+}
+.brain-rebuild-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 38%;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: brain-rebuild-indeterminate 1.05s ease-in-out infinite;
+}
+@keyframes brain-rebuild-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
 }
 .quartz-frame {
   width: 100%;
@@ -2284,48 +2310,6 @@ body.theme-light .settings-section.card {
   border-radius: 10px;
   background: #fff;
 }
-.memory-graph svg {
-  width: 100%;
-  height: 560px;
-  display: block;
-}
-.memory-graph .graph-links line {
-  stroke: rgba(124, 140, 255, 0.35);
-  stroke-width: 1.2;
-}
-.memory-graph .graph-links line.dim {
-  opacity: 0.15;
-}
-.memory-graph .graph-nodes .node-project {
-  fill: #7c8cff;
-}
-.memory-graph .graph-nodes .node-ref {
-  fill: #22c55e;
-}
-.memory-graph .graph-nodes circle {
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-.memory-graph .graph-nodes circle:hover {
-  stroke: #fff;
-  stroke-width: 1.4;
-}
-.memory-graph .graph-nodes .focused {
-  stroke: #fff;
-  stroke-width: 2;
-  filter: drop-shadow(0 0 10px rgba(124, 140, 255, 0.65));
-}
-.memory-graph .graph-nodes .dim {
-  opacity: 0.25;
-}
-.memory-graph .graph-nodes text {
-  fill: var(--text);
-  font-size: 11px;
-}
-.memory-graph .graph-nodes text.dim {
-  opacity: 0.35;
-}
-
 /* ldom-like hub layout overrides */
 :root {
   --bg: #09090b;

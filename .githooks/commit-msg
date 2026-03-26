@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# commit-msg hook — enforces Clawvis commit convention
+# Install: git config core.hooksPath .githooks
+
+MSG_FILE="$1"
+MSG="$(head -1 "$MSG_FILE")"
+
+PATTERN='^(feat|fix|enh|update|hotfix)\([a-z0-9_/-]+\): .+'
+
+if ! echo "$MSG" | grep -qE "$PATTERN"; then
+  echo ""
+  echo "  [commit-msg] Commit message does not follow Clawvis convention."
+  echo ""
+  echo "  Required format:  <type>(<scope>): <message>"
+  echo "  Allowed types:    feat | fix | enh | update | hotfix"
+  echo "  Example:          feat(hub): add dark mode toggle"
+  echo ""
+  echo "  Your message:     $MSG"
+  echo ""
+  exit 1
+fi

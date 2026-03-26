@@ -3,7 +3,7 @@ import { registerHubGate, enLocale } from "./hub-gate";
 
 registerHubGate();
 
-test.describe("Project — Kanban split, memory rebuild, cleanup", () => {
+test.describe("Persona 8 — Project × Memory × Kanban integration", () => {
   test.beforeEach(async ({ page }) => {
     await enLocale(page);
   });

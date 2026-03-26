@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker*)",
+      "Bash(docker compose*)",
+      "Bash(yarn --cwd hub*)",
+      "Bash(npm*)",
+      "Bash(uv*)",
+      "Bash(bash tests/*)",
+      "Bash(bash scripts/*)",
+      "Bash(./clawvis*)",
+      "Bash(clawvis*)",
+      "Bash(rtk*)",
+      "Bash(git*)"
+    ]
+  }
+}

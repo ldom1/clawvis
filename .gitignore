@@ -13,6 +13,7 @@ build/
 .vscode/
 .superpowers/
 .claude/
+!.claude/settings.json
 .cursor/
 
 ########################

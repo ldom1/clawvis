@@ -1,0 +1,32 @@
+# docker-compose.override.yml — instance-level overrides
+# Renamed from instances/example/ to instances/<your-name>/ by the installer.
+# Customize ports, volumes, extra services here without touching core files.
+#
+# This file is merged automatically by Docker Compose when present.
+# See: https://docs.docker.com/compose/multiple-compose-files/merge/
+
+services: {}
+
+# --- Examples (uncomment and adapt) ---
+
+# Override hub port:
+# services:
+#   hub:
+#     ports:
+#       - "8089:80"
+
+# Mount a custom instance public/ folder (branding, static assets):
+# services:
+#   hub:
+#     volumes:
+#       - ./instances/<your-name>/public:/usr/share/nginx/html/instance:ro
+
+# Add a reverse proxy (Traefik, Caddy…):
+# services:
+#   caddy:
+#     image: caddy:2-alpine
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     volumes:
+#       - ./instances/<your-name>/Caddyfile:/etc/caddy/Caddyfile
