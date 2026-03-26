@@ -2086,6 +2086,15 @@ body.theme-light .settings-section.card {
   font-weight: 600;
   color: var(--text);
 }
+.lang-flag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  background: none;
+  border: none;
+  height: 2.35rem;
+}
 #provider-save-feedback {
   margin-top: 0.65rem;
 }

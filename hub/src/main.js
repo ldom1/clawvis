@@ -47,6 +47,8 @@ function applyTheme(next) {
 }
 
 function settingsLocale() {
+  const saved = localStorage.getItem("clawvis-locale");
+  if (saved === "fr" || saved === "en") return saved;
   return (navigator.language || "en").toLowerCase().startsWith("fr")
     ? "fr"
     : "en";
@@ -190,6 +192,12 @@ const SETTINGS_TEXT = {
     kpiTasks: "Tâches actives",
     kpiDone: "Terminées",
     kpiBrain: "Notes Brain",
+    languageTitle: "Langue",
+    languageDesc: "Langue de l'interface (ce navigateur).",
+    languageInfo:
+      "Le choix est enregistré localement et appliqué immédiatement.",
+    languageFr: "Français",
+    languageEn: "English",
   },
   en: {
     title: "Settings",
@@ -268,6 +276,11 @@ const SETTINGS_TEXT = {
     kpiTasks: "Active tasks",
     kpiDone: "Done",
     kpiBrain: "Brain notes",
+    languageTitle: "Language",
+    languageDesc: "Interface language (this browser).",
+    languageInfo: "Your choice is stored locally and applied immediately.",
+    languageFr: "Français",
+    languageEn: "English",
   },
 };
 
@@ -967,6 +980,29 @@ function renderSettings() {
               <input id="appearance-light" type="radio" name="hub-theme-choice" value="light" />
               <span class="theme-card-preview" aria-hidden="true"></span>
               <span class="theme-card-label">${isFr ? "Clair" : "Light"}</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="card settings-card settings-section">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">${t.languageTitle}</h2>
+            <span class="settings-info-hold" tabindex="0" aria-label="${escapeHtml(t.moreInfo)}">
+              <span class="settings-info-i" aria-hidden="true">i</span>
+            </span>
+            <div class="settings-info-popover" role="tooltip">${escapeHtml(t.languageInfo)}</div>
+          </div>
+          <p class="card-desc">${t.languageDesc}</p>
+          <div class="theme-cards">
+            <label class="theme-card" data-value="fr">
+              <input id="lang-fr" type="radio" name="hub-lang-choice" value="fr" ${isFr ? "checked" : ""} />
+              <span class="theme-card-preview lang-flag" aria-hidden="true">🇫🇷</span>
+              <span class="theme-card-label">${t.languageFr}</span>
+            </label>
+            <label class="theme-card" data-value="en">
+              <input id="lang-en" type="radio" name="hub-lang-choice" value="en" ${!isFr ? "checked" : ""} />
+              <span class="theme-card-preview lang-flag" aria-hidden="true">🇬🇧</span>
+              <span class="theme-card-label">${t.languageEn}</span>
             </label>
           </div>
         </section>
@@ -2692,6 +2728,28 @@ async function wireSettings() {
     light.addEventListener("change", () => {
       applyTheme("light");
       syncThemeCards("light");
+    });
+  }
+
+  const langFr = document.getElementById("lang-fr");
+  const langEn = document.getElementById("lang-en");
+  function syncLangCards(loc) {
+    document.querySelectorAll("[name='hub-lang-choice']").forEach((r) => {
+      r.closest(".theme-card")?.classList.toggle("active", r.value === loc);
+    });
+  }
+  if (langFr && langEn) {
+    const cur = settingsLocale();
+    langFr.checked = cur === "fr";
+    langEn.checked = cur === "en";
+    syncLangCards(cur);
+    langFr.addEventListener("change", () => {
+      localStorage.setItem("clawvis-locale", "fr");
+      renderSettings();
+    });
+    langEn.addEventListener("change", () => {
+      localStorage.setItem("clawvis-locale", "en");
+      renderSettings();
     });
   }
 
