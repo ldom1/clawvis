@@ -323,6 +323,8 @@ async function runInstallInteractive() {
         summaryMemoryPort: "memory_port",
         summaryKanbanApiPort: "kanban_api_port",
         doneTitle: "Hub démarré !",
+        doneTitleNoStart: "Instance prête (services non démarrés)",
+        doneNoStartHint: "→ Lancez manuellement : docker compose up -d hub kanban-api hub-memory-api memory",
         doneHub: "Hub",
         doneBrain: "Brain",
         doneLogs: "Logs",
@@ -357,6 +359,8 @@ async function runInstallInteractive() {
         summaryMemoryPort: "memory_port",
         summaryKanbanApiPort: "kanban_api_port",
         doneTitle: "Hub is running!",
+        doneTitleNoStart: "Instance ready (services not started)",
+        doneNoStartHint: "→ Start manually: docker compose up -d hub kanban-api hub-memory-api memory",
         doneHub: "Hub",
         doneBrain: "Brain",
         doneLogs: "Logs",
@@ -443,6 +447,7 @@ async function runInstallInteractive() {
       "--kanban-api-port", kanbanApiPort,
       "--projects-root", projectsRoot,
       "--mode", mode,
+      ...(modePick === 2 ? ["--no-start"] : []),
     ];
 
     const child = spawn("bash", [INSTALL_BIN, ...args], {
@@ -453,19 +458,26 @@ async function runInstallInteractive() {
     child.on("exit", (code) => {
       if (code === 0) {
         console.log("");
+        const noStart = modePick === 2;
         console.log(
           boxen(
-            [
-              chalk.bold(t("doneTitle")),
-              "",
-              `${t("doneHub")}:     ${chalk.cyan(`http://localhost:${hubPort}`)}`,
-              `${t("doneBrain")}:   ${chalk.cyan(`http://localhost:${hubPort}/memory/`)}`,
-              `${t("doneLogs")}:    ${chalk.cyan(`http://localhost:${hubPort}/logs/`)}`,
-              `${t("doneKanban")}: ${chalk.cyan(`http://localhost:${hubPort}/kanban/`)}`,
-              "",
-              chalk.yellow(`${t("doneSettings")}: http://localhost:${hubPort}/setup/runtime/`),
-            ].join("\n"),
-            { padding: 1, borderStyle: "round", borderColor: "green" },
+            noStart
+              ? [
+                  chalk.bold(t("doneTitleNoStart")),
+                  "",
+                  chalk.yellow(t("doneNoStartHint")),
+                ].join("\n")
+              : [
+                  chalk.bold(t("doneTitle")),
+                  "",
+                  `${t("doneHub")}:     ${chalk.cyan(`http://localhost:${hubPort}`)}`,
+                  `${t("doneBrain")}:   ${chalk.cyan(`http://localhost:${hubPort}/memory/`)}`,
+                  `${t("doneLogs")}:    ${chalk.cyan(`http://localhost:${hubPort}/logs/`)}`,
+                  `${t("doneKanban")}: ${chalk.cyan(`http://localhost:${hubPort}/kanban/`)}`,
+                  "",
+                  chalk.yellow(`${t("doneSettings")}: http://localhost:${hubPort}/setup/runtime/`),
+                ].join("\n"),
+            { padding: 1, borderStyle: "round", borderColor: noStart ? "yellow" : "green" },
           ),
         );
       }

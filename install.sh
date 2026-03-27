@@ -18,6 +18,7 @@ CLAUDE_API_KEY_FLAG=""
 MISTRAL_API_KEY_FLAG=""
 MODE_FLAG=""
 SKIP_PRIMARY=0
+NO_START=0
 
 info() { printf "\n==> %s\n" "$1"; }
 warn() { printf "\n[warn] %s\n" "$1"; }
@@ -81,6 +82,7 @@ Options:
   --mistral-api-key <key>
   --mode <docker|dev>
   --skip-primary  Skip primary AI runtime setup (dev-only)
+  --no-start      Create instance structure only, do not launch services
   -h, --help
 EOF
 }
@@ -113,6 +115,7 @@ parse_args() {
       --instance) INSTANCE_NAME_FLAG="${2:-}"; shift ;;
       --provider) PROVIDER_FLAG="${2:-}"; shift ;;
       --skip-primary) SKIP_PRIMARY=1 ;;
+      --no-start) NO_START=1 ;;
       --hub-port) HUB_PORT_FLAG="${2:-}"; shift ;;
       --memory-port) MEMORY_PORT_FLAG="${2:-}"; shift ;;
       --kanban-api-port) KANBAN_API_PORT_FLAG="${2:-}"; shift ;;
@@ -333,7 +336,15 @@ else
 fi
 upsert_env "MODE" "${RUN_MODE}"
 
-if [ "${MODE}" = "1" ]; then
+if [ "${NO_START}" -eq 1 ]; then
+  info "Instance ready (--no-start: services not launched)"
+  echo "- Instance: ${INSTANCE_PATH}"
+  echo "- .env:     ${ENV_FILE}"
+  echo ""
+  echo "To start manually:"
+  echo "  docker compose up -d hub kanban-api hub-memory-api memory"
+  echo "  # or: clawvis start"
+elif [ "${MODE}" = "1" ]; then
   # hub depends_on kanban-api + hub-memory-api; list them explicitly so all modes match.
   docker compose up -d hub kanban-api hub-memory-api memory
   info "Instance started"
