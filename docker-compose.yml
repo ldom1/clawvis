@@ -7,7 +7,7 @@ services:
   hub:
     build: ./hub
     ports:
-      - "${HUB_PORT:-8088}:80"
+      - "127.0.0.1:${HUB_PORT:-8088}:80"
     env_file: .env
     tmpfs:
       - /tmp
@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: kanban/Dockerfile
     ports:
-      - "${KANBAN_API_PORT:-8090}:8090"
+      - "127.0.0.1:${KANBAN_API_PORT:-8090}:8090"
     env_file: .env
     volumes:
       - ./instances:/clawvis/instances
@@ -48,7 +48,7 @@ services:
       context: .
       dockerfile: kanban/Dockerfile
     ports:
-      - "${HUB_MEMORY_API_PORT:-8091}:8091"
+      - "127.0.0.1:${HUB_MEMORY_API_PORT:-8091}:8091"
     env_file: .env
     volumes:
       - ./instances:/clawvis/instances
