@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Phase 1.5 — Dombot migration complete (2026-03-27)
+- **Clawvis stack deployed on Dombot** (hub:8089, kanban-api:8090, hub-memory-api:8091 — all bound to 127.0.0.1).
+- `docker-compose.yml`: all service ports now bound to `127.0.0.1` by default — prevents accidental exposure on `0.0.0.0` and fixes port-conflict bug when `docker-compose.override.yml` redeclares the same ports (compose merges port arrays, causing duplicate bind failures).
+- `instances/ldom/docker-compose.override.yml`: simplified — ports removed (inherited from base), only env overrides and ldom-specific volumes remain.
+- `instances/ldom/nginx/nginx.conf`: nginx ldom updated with `upstream clawvis_hub { server 127.0.0.1:8089; }`, redirect `/ → /hub/`, proxy `/hub/` and `/api/hub/` → Clawvis hub container (Authelia-protected).
+- **OpenClaw connected**: `GET /api/hub/chat/status` → `{"openclaw_configured": true}` from hub container.
+- `docs/adr/0003-dombot-migration.md`: pre-migration audit snapshot (13 services, nginx routes, skills reconciliation, 6 pitfalls).
+
 ### install.sh + CLI — `--no-start` flag for server deployments (2026-03-27)
 - `--no-start` flag added to `install.sh`: creates instance structure, initialises memory and Quartz, then stops without launching Docker services.
 - Mode **2) Mérovingien** in the CLI wizard now passes `--no-start` automatically — correct behaviour for servers where nginx already listens on the target port.
