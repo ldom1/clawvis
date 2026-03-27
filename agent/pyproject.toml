@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agent-service"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.100",
+    "httpx>=0.28",
+    "pydantic>=2.0",
+    "uvicorn[standard]>=0.22",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-asyncio>=0.23", "httpx>=0.28"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["agent_service"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
