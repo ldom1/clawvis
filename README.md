@@ -88,9 +88,20 @@ Running the stack locally (outside Docker) requires:
 | **Yarn** (via corepack) | 4.x | Hub frontend build (`corepack enable` installs it automatically) |
 | **uv** | latest | Kanban API + hub-core — `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 
-### Mode Mérovingien — VPS deploy
+### Mode Mérovingien — VPS / server deploy
 
-Same as Franc on the server side. Locally you also need **SSH access** to the VPS.
+Choose **2) Mérovingien** in the wizard for deployments where nginx or another reverse-proxy is already running on the target port. The installer creates the instance structure and `.env` **without launching Docker**, so you keep full control of startup:
+
+```bash
+# Non-interactive equivalent:
+./install.sh --non-interactive --instance myname --mode docker --no-start
+
+# Then start manually (with instance override):
+docker compose \
+  -f docker-compose.yml \
+  -f instances/myname/docker-compose.override.yml \
+  up -d
+```
 
 ---
 

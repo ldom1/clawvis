@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### install.sh + CLI — `--no-start` flag for server deployments (2026-03-27)
+- `--no-start` flag added to `install.sh`: creates instance structure, initialises memory and Quartz, then stops without launching Docker services.
+- Mode **2) Mérovingien** in the CLI wizard now passes `--no-start` automatically — correct behaviour for servers where nginx already listens on the target port.
+- CLI completion box for Mérovingien mode shows a yellow "Instance ready" panel with the manual `docker compose up` command instead of Hub URLs.
+- `README.md` — Mérovingien section rewritten with concrete `--no-start` examples and the override compose command.
+
 ### Hub — AI Runtime prominence & business KPIs (2026-03-24)
 - **AI Runtime banner** added to the Hub home page: visible status badge (Connected / Not configured), provider name, and CTA to configure — no longer hidden in Settings only.
 - **Business KPIs row** in System Status: Projects count, Active tasks, Done tasks, Brain notes — loaded live from the Kanban API.
