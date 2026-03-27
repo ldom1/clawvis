@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Clawvis bootstrap — one-liner installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/lgiron/clawvis/main/get.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/ldom1/clawvis/main/get.sh | bash
 set -euo pipefail
 
-REPO_URL="https://github.com/lgiron/clawvis"
+REPO_URL="https://github.com/ldom1/clawvis"
 INSTALL_DIR="${CLAWVIS_DIR:-$HOME/.clawvis}"
 
 echo "==> Clawvis bootstrap"

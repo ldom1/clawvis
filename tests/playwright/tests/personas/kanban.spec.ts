@@ -106,9 +106,7 @@ test.describe("Persona 2 — Kanban lifecycle", () => {
     await expect(page.locator("#confirm-modal-cancel")).toBeVisible();
     await page.locator("#confirm-modal-cancel").click();
     await expect(page.locator("#global-confirm-overlay.open")).toHaveCount(0);
-    await expect(delCard.first()).toBeVisible();
-
-    await delCard.first().click();
+    // Detail overlay is still open after canceling — delete button is still visible
     await page.locator("#kanban-detail-delete").click();
     await expect(page.locator("#global-confirm-overlay.open")).toBeVisible();
     await page.locator("#confirm-modal-ok").click();

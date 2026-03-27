@@ -12,7 +12,7 @@ Each deployment of Clawvis is an "instance" — a copy of Clawvis customized for
 
 For a private fork (recommended):
 ```bash
-git clone https://github.com/lgiron/clawvis hub-ldom
+git clone https://github.com/ldom1/clawvis hub-ldom
 cd hub-ldom
 git remote rename origin upstream
 git remote add origin git@github.com:YOURNAME/hub-ldom.git

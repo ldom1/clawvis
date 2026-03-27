@@ -2743,13 +2743,37 @@ async function wireSettings() {
     langFr.checked = cur === "fr";
     langEn.checked = cur === "en";
     syncLangCards(cur);
-    langFr.addEventListener("change", () => {
+    langFr.addEventListener("change", async () => {
       localStorage.setItem("clawvis-locale", "fr");
       renderSettings();
+      applyTheme(theme());
+      const tt = document.getElementById("theme-toggle");
+      const tti = document.getElementById("theme-toggle-icon");
+      if (tt && tti) {
+        tti.textContent = theme() === "light" ? "☀️" : "🌙";
+        tt.addEventListener("click", () => {
+          const next = theme() === "light" ? "dark" : "light";
+          applyTheme(next);
+          tti.textContent = next === "light" ? "☀️" : "🌙";
+        });
+      }
+      await wireSettings();
     });
-    langEn.addEventListener("change", () => {
+    langEn.addEventListener("change", async () => {
       localStorage.setItem("clawvis-locale", "en");
       renderSettings();
+      applyTheme(theme());
+      const tt = document.getElementById("theme-toggle");
+      const tti = document.getElementById("theme-toggle-icon");
+      if (tt && tti) {
+        tti.textContent = theme() === "light" ? "☀️" : "🌙";
+        tt.addEventListener("click", () => {
+          const next = theme() === "light" ? "dark" : "light";
+          applyTheme(next);
+          tti.textContent = next === "light" ? "☀️" : "🌙";
+        });
+      }
+      await wireSettings();
     });
   }
 

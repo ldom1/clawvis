@@ -14,6 +14,6 @@ RUN uv sync --no-dev
 
 EXPOSE 8090
 
-# instances/ is expected as a bind-mount at runtime (memory persistence)
-CMD ["uv", "run", "uvicorn", "kanban_api.server:app", \
+# Call uvicorn directly from the pre-built venv — avoids uv re-sync at startup
+CMD ["/clawvis/kanban/.venv/bin/uvicorn", "kanban_api.server:app", \
      "--host", "0.0.0.0", "--port", "8090"]

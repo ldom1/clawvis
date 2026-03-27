@@ -60,9 +60,7 @@ services:
       - "app=clawvis"
     command:
       [
-        "uv",
-        "run",
-        "uvicorn",
+        "/clawvis/kanban/.venv/bin/uvicorn",
         "hub_core.memory_api:app",
         "--host",
         "0.0.0.0",
