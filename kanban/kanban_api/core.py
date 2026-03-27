@@ -522,7 +522,7 @@ def update_meta(body: MetaUpdate) -> dict:
 
 def _default_hub_settings() -> dict:
     return {
-        "projects_root": str(Path.home() / "Lab/projects"),
+        "projects_root": str(_memory_root_path.parent / "projects"),
         "instances_external_root": "",
         "linked_instances": [],
     }
