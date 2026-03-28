@@ -70,7 +70,7 @@ def run_agent_session(
     """
     args = ["agent", "--message", message, "--json"]
     if local:
-        args.append("--local")
+        args += ["--local", "--agent", "main"]
     elif session_id:
         args += ["--session-id", session_id]
     else:
