@@ -555,13 +555,13 @@ function renderHome() {
         </div>
       </div>
       <!-- AI Runtime chip (shown when configured, hides banner) -->
-      <div id="ai-runtime-chip" class="ai-runtime-chip" hidden>
+      <div id="ai-runtime-chip" class="ai-runtime-chip" style="display:none">
         <button type="button" class="ai-runtime-chip-btn" id="ai-runtime-chip-btn" aria-expanded="false" aria-controls="ai-runtime-chip-panel">
           <span class="ai-runtime-chip-dot"></span>
           <span class="ai-runtime-chip-label">${escapeHtml(t.runtimeBannerTitle)} · <span id="ai-runtime-chip-provider"></span></span>
           <span class="ai-runtime-chip-arrow">▾</span>
         </button>
-        <div id="ai-runtime-chip-panel" class="ai-runtime-chip-panel" hidden>
+        <div id="ai-runtime-chip-panel" class="ai-runtime-chip-panel" style="display:none">
           <div class="ai-runtime-chip-panel-row">
             <span id="ai-runtime-chip-panel-status"></span>
           </div>
@@ -2707,16 +2707,16 @@ function wireSystemStatus() {
     };
     if (configured) {
       // Hide full banner, show compact chip
-      if (banner) banner.hidden = true;
-      if (chip) chip.hidden = false;
+      if (banner) banner.style.display = "none";
+      if (chip) chip.style.display = "inline-flex";
       const providerLabel = labels[activeProvider] || activeProvider || "IA";
       if (chipProvider) chipProvider.textContent = providerLabel;
       if (chipPanelStatus)
         chipPanelStatus.textContent = `${t.runtimeBannerConfigured} · ${providerLabel}`;
     } else {
       // Show full banner, hide chip
-      if (banner) banner.hidden = false;
-      if (chip) chip.hidden = true;
+      if (banner) banner.style.display = "";
+      if (chip) chip.style.display = "none";
       statusEl.className = "ai-runtime-status-badge warn";
       statusEl.textContent = t.runtimeBannerNotConfigured;
       if (labelEl) labelEl.textContent = "";
@@ -2730,21 +2730,28 @@ function wireSystemStatus() {
   const chipBtn = document.getElementById("ai-runtime-chip-btn");
   const chipPanel = document.getElementById("ai-runtime-chip-panel");
   if (chipBtn && chipPanel) {
-    chipBtn.addEventListener("click", () => {
-      const open = chipPanel.hidden;
-      chipPanel.hidden = !open;
-      chipBtn.setAttribute("aria-expanded", String(open));
-      chipBtn.querySelector(".ai-runtime-chip-arrow").textContent = open
-        ? "▴"
-        : "▾";
+    function closChipPanel() {
+      chipPanel.style.display = "none";
+      chipBtn.setAttribute("aria-expanded", "false");
+      chipBtn.querySelector(".ai-runtime-chip-arrow").textContent = "▾";
+    }
+    chipBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = chipPanel.style.display !== "none";
+      if (isOpen) {
+        closChipPanel();
+      } else {
+        chipPanel.style.display = "block";
+        chipBtn.setAttribute("aria-expanded", "true");
+        chipBtn.querySelector(".ai-runtime-chip-arrow").textContent = "▴";
+      }
     });
     document.addEventListener("click", (e) => {
       if (!chipBtn.contains(e.target) && !chipPanel.contains(e.target)) {
-        chipPanel.hidden = true;
-        chipBtn.setAttribute("aria-expanded", "false");
-        chipBtn.querySelector(".ai-runtime-chip-arrow").textContent = "▾";
+        closChipPanel();
       }
     });
+    closChipPanel(); // ensure closed on init
   }
 
   async function loadStats() {
