@@ -3108,7 +3108,9 @@ body {
   margin: 1rem 0;
 }
 @media (max-width: 640px) {
-  .agent-providers-grid { grid-template-columns: 1fr; }
+  .agent-providers-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .agent-provider-card {
   border: 1.5px solid var(--border);
@@ -3128,7 +3130,9 @@ body {
   cursor: pointer;
   font-weight: 500;
 }
-.agent-provider-name { flex: 1; }
+.agent-provider-name {
+  flex: 1;
+}
 .agent-availability-badge {
   font-size: 0.72rem;
   font-weight: 600;
@@ -3165,5 +3169,9 @@ body {
   color: var(--text);
   font-size: 0.82rem;
 }
-.chat-status-bar.ok { background: color-mix(in srgb, var(--ok) 10%, var(--surface)); }
-.chat-status-dot.ok { background: var(--ok); }
+.chat-status-bar.ok {
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface));
+}
+.chat-status-dot.ok {
+  background: var(--ok);
+}
