@@ -1114,6 +1114,7 @@ function renderProjectPage(projectSlug) {
         <span class="project-toolbar-spacer"></span>
         <button class="btn" id="project-preview-btn" type="button">${fr ? "Aperçu Brain" : "Brain preview"}</button>
         <button class="btn" id="project-dev-btn" type="button">${fr ? "Copier : lancer en local" : "Copy: run locally"}</button>
+        <a class="btn" id="project-serve-link" href="#" target="_blank" rel="noopener" hidden>${fr ? "↗ Voir l'app" : "↗ View app"}</a>
         <button class="btn" id="archive-project-btn" type="button">${fr ? "Archiver le projet" : "Archive project"}</button>
         <button class="btn" id="delete-project-btn" type="button" style="border-color:#ef4444;color:#ef4444;">${fr ? "Supprimer le projet" : "Delete project"}</button>
       </div>
@@ -1722,6 +1723,19 @@ async function wireProjectPage() {
     project.name || slug;
 
   // Endpoint bar — show repo_path + run command
+  // Check if project has a served app at /apps/<slug>/
+  const serveLink = document.getElementById("project-serve-link");
+  try {
+    const serveCheck = await fetch(`/apps/${encodeURIComponent(slug)}/`, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(2000),
+    });
+    if (serveCheck.ok && serveLink) {
+      serveLink.href = `/apps/${encodeURIComponent(slug)}/`;
+      serveLink.hidden = false;
+    }
+  } catch (_) {}
+
   const endpointBar = document.getElementById("project-endpoint-bar");
   if (endpointBar && project.repo_path) {
     const cmd = projectDevRunCommand(project.template, project.repo_path);
