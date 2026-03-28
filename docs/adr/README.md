@@ -35,3 +35,5 @@ What changes as a result.
 |---|-------|--------|
 | [0001](./0001-docker-as-default-mode.md) | Docker as default install mode (Franc) | Accepted |
 | [0002](./0002-instance-scoped-memory.md) | Instance-scoped memory separation | Accepted |
+| [0003](./0003-dombot-migration.md) | Dombot migration (Clawpilot → Clawvis) | Accepted |
+| [0004](./0004-production-deployment-pitfalls.md) | Production deployment pitfalls (first Dombot deploy) | Accepted |
