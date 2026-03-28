@@ -217,7 +217,10 @@ const SETTINGS_TEXT = {
         { value: "claude-opus-4-6", label: "Opus 4.6 — puissant" },
       ],
       mammouth: [
-        { value: "mistral-small-3.2-24b-instruct", label: "Mistral Small 3.2 — rapide" },
+        {
+          value: "mistral-small-3.2-24b-instruct",
+          label: "Mistral Small 3.2 — rapide",
+        },
         { value: "mistral-medium-3", label: "Mistral Medium 3 — équilibré" },
       ],
     },
@@ -323,7 +326,10 @@ const SETTINGS_TEXT = {
         { value: "claude-opus-4-6", label: "Opus 4.6 — powerful" },
       ],
       mammouth: [
-        { value: "mistral-small-3.2-24b-instruct", label: "Mistral Small 3.2 — fast" },
+        {
+          value: "mistral-small-3.2-24b-instruct",
+          label: "Mistral Small 3.2 — fast",
+        },
         { value: "mistral-medium-3", label: "Mistral Medium 3 — balanced" },
       ],
     },
@@ -2604,12 +2610,21 @@ function wireSystemStatus() {
     let backendConfigured = false;
     let backendProvider = null;
     try {
-      const r = await fetch("/api/hub/agent/config", { signal: AbortSignal.timeout(3000) });
+      const r = await fetch("/api/hub/agent/config", {
+        signal: AbortSignal.timeout(3000),
+      });
       if (r.ok) {
         const cfg = await r.json();
-        if (cfg.anthropic_available) { backendConfigured = true; backendProvider = "claude"; }
-        else if (cfg.mammouth_available) { backendConfigured = true; backendProvider = "mistral"; }
-        else if (cfg.openclaw_available) { backendConfigured = true; backendProvider = "openclaw"; }
+        if (cfg.anthropic_available) {
+          backendConfigured = true;
+          backendProvider = "claude";
+        } else if (cfg.mammouth_available) {
+          backendConfigured = true;
+          backendProvider = "mistral";
+        } else if (cfg.openclaw_available) {
+          backendConfigured = true;
+          backendProvider = "openclaw";
+        }
       }
     } catch (_) {}
 
@@ -2619,8 +2634,13 @@ function wireSystemStatus() {
     if (configured) {
       statusEl.className = "ai-runtime-status-badge ok";
       statusEl.textContent = t.runtimeBannerConfigured;
-      const labels = { claude: "Claude", mistral: "Mistral", openclaw: "OpenClaw" };
-      if (labelEl) labelEl.textContent = labels[activeProvider] || activeProvider || "";
+      const labels = {
+        claude: "Claude",
+        mistral: "Mistral",
+        openclaw: "OpenClaw",
+      };
+      if (labelEl)
+        labelEl.textContent = labels[activeProvider] || activeProvider || "";
       if (ctaEl) ctaEl.textContent = t.runtimeBannerChange;
       if (banner) banner.classList.remove("runtime-unconfigured");
     } else {
@@ -2970,23 +2990,31 @@ async function wireSettings() {
 
       const badgeAnthropicEl = document.getElementById("agent-badge-anthropic");
       if (badgeAnthropicEl) {
-        badgeAnthropicEl.textContent = cfg.anthropic_available ? t.agentAvailable : t.agentUnavailable;
+        badgeAnthropicEl.textContent = cfg.anthropic_available
+          ? t.agentAvailable
+          : t.agentUnavailable;
         badgeAnthropicEl.className = `agent-availability-badge ${cfg.anthropic_available ? "ok" : "warn"}`;
       }
       const badgeMammouthEl = document.getElementById("agent-badge-mammouth");
       if (badgeMammouthEl) {
-        badgeMammouthEl.textContent = cfg.mammouth_available ? t.agentAvailable : t.agentUnavailable;
+        badgeMammouthEl.textContent = cfg.mammouth_available
+          ? t.agentAvailable
+          : t.agentUnavailable;
         badgeMammouthEl.className = `agent-availability-badge ${cfg.mammouth_available ? "ok" : "warn"}`;
       }
 
-      const preferred = cfg.preferred_provider || (cfg.anthropic_available ? "anthropic" : "mammouth");
+      const preferred =
+        cfg.preferred_provider ||
+        (cfg.anthropic_available ? "anthropic" : "mammouth");
       const radioEl = document.getElementById(`ap-${preferred}`);
       if (radioEl) radioEl.checked = true;
 
       const anthropicSelect = document.getElementById("anthropic-model-select");
-      if (anthropicSelect && cfg.anthropic_model) anthropicSelect.value = cfg.anthropic_model;
+      if (anthropicSelect && cfg.anthropic_model)
+        anthropicSelect.value = cfg.anthropic_model;
       const mammouthSelect = document.getElementById("mammouth-model-select");
-      if (mammouthSelect && cfg.mammouth_model) mammouthSelect.value = cfg.mammouth_model;
+      if (mammouthSelect && cfg.mammouth_model)
+        mammouthSelect.value = cfg.mammouth_model;
 
       updateAgentCardHighlight(preferred);
     } catch {
@@ -3002,37 +3030,47 @@ async function wireSettings() {
   }
 
   document.querySelectorAll('[name="agent-provider"]').forEach((radio) => {
-    radio.addEventListener("change", () => updateAgentCardHighlight(radio.value));
+    radio.addEventListener("change", () =>
+      updateAgentCardHighlight(radio.value),
+    );
   });
 
-  document.getElementById("save-agent-config")?.addEventListener("click", async () => {
-    const feedback = document.getElementById("agent-save-feedback");
-    const selected = document.querySelector('[name="agent-provider"]:checked')?.value;
-    const anthropicModel = document.getElementById("anthropic-model-select")?.value;
-    const mammouthModel = document.getElementById("mammouth-model-select")?.value;
-    const body = {};
-    if (selected) body.preferred_provider = selected;
-    if (anthropicModel) body.anthropic_model = anthropicModel;
-    if (mammouthModel) body.mammouth_model = mammouthModel;
-    try {
-      const r = await fetch("/api/hub/agent/config", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (feedback) {
-        feedback.className = r.ok ? "test-result ok" : "test-result fail";
-        feedback.textContent = r.ok ? t.agentSaved : t.agentSaveFailed;
-        feedback.style.display = "inline-block";
+  document
+    .getElementById("save-agent-config")
+    ?.addEventListener("click", async () => {
+      const feedback = document.getElementById("agent-save-feedback");
+      const selected = document.querySelector(
+        '[name="agent-provider"]:checked',
+      )?.value;
+      const anthropicModel = document.getElementById(
+        "anthropic-model-select",
+      )?.value;
+      const mammouthModel = document.getElementById(
+        "mammouth-model-select",
+      )?.value;
+      const body = {};
+      if (selected) body.preferred_provider = selected;
+      if (anthropicModel) body.anthropic_model = anthropicModel;
+      if (mammouthModel) body.mammouth_model = mammouthModel;
+      try {
+        const r = await fetch("/api/hub/agent/config", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (feedback) {
+          feedback.className = r.ok ? "test-result ok" : "test-result fail";
+          feedback.textContent = r.ok ? t.agentSaved : t.agentSaveFailed;
+          feedback.style.display = "inline-block";
+        }
+      } catch {
+        if (feedback) {
+          feedback.className = "test-result fail";
+          feedback.textContent = t.agentSaveFailed;
+          feedback.style.display = "inline-block";
+        }
       }
-    } catch {
-      if (feedback) {
-        feedback.className = "test-result fail";
-        feedback.textContent = t.agentSaveFailed;
-        feedback.style.display = "inline-block";
-      }
-    }
-  });
+    });
 
   await loadAgentConfig();
 }
@@ -3324,9 +3362,10 @@ async function wireChat() {
         anthropic: "Claude (Anthropic)",
         mammouth: "Mammouth (Mistral)",
       };
-      const modelLabel = s.provider === "anthropic"
-        ? cfg.anthropic_model || "claude-haiku-4-5"
-        : cfg.mammouth_model || "mistral-small-3.2-24b-instruct";
+      const modelLabel =
+        s.provider === "anthropic"
+          ? cfg.anthropic_model || "claude-haiku-4-5"
+          : cfg.mammouth_model || "mistral-small-3.2-24b-instruct";
       const changeLink = `<a href="/settings" class="chat-setup-link">${fr ? "Changer →" : "Change →"}</a>`;
       if (statusBar) {
         statusBar.className = `chat-status-bar ${configured ? "ok" : "warn"}`;
