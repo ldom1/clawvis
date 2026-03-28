@@ -538,7 +538,7 @@ function renderHome() {
   app.innerHTML = `
     <div class="container">
       ${topbar()}
-      <!-- AI Runtime banner -->
+      <!-- AI Runtime banner (unconfigured) / chip (configured) -->
       <div id="ai-runtime-banner" class="ai-runtime-banner">
         <div class="ai-runtime-banner-left">
           <span class="ai-runtime-banner-icon" aria-hidden="true">
@@ -552,6 +552,20 @@ function renderHome() {
         </div>
         <div class="ai-runtime-banner-right">
           <a href="/setup/runtime/" id="ai-runtime-cta" class="btn btn-primary ai-runtime-cta">${escapeHtml(t.runtimeBannerCta)}</a>
+        </div>
+      </div>
+      <!-- AI Runtime chip (shown when configured, hides banner) -->
+      <div id="ai-runtime-chip" class="ai-runtime-chip" hidden>
+        <button type="button" class="ai-runtime-chip-btn" id="ai-runtime-chip-btn" aria-expanded="false" aria-controls="ai-runtime-chip-panel">
+          <span class="ai-runtime-chip-dot"></span>
+          <span class="ai-runtime-chip-label">${escapeHtml(t.runtimeBannerTitle)} · <span id="ai-runtime-chip-provider"></span></span>
+          <span class="ai-runtime-chip-arrow">▾</span>
+        </button>
+        <div id="ai-runtime-chip-panel" class="ai-runtime-chip-panel" hidden>
+          <div class="ai-runtime-chip-panel-row">
+            <span id="ai-runtime-chip-panel-status"></span>
+          </div>
+          <a href="/setup/runtime/" class="btn ai-runtime-chip-settings">${escapeHtml(t.runtimeBannerChange)}</a>
         </div>
       </div>
 
@@ -1113,8 +1127,7 @@ function renderProjectPage(projectSlug) {
         <button class="btn btn-primary" id="project-new-task" type="button">${fr ? "+ Tâche" : "+ New task"}</button>
         <span class="project-toolbar-spacer"></span>
         <button class="btn" id="project-preview-btn" type="button">${fr ? "Aperçu Brain" : "Brain preview"}</button>
-        <button class="btn" id="project-dev-btn" type="button">${fr ? "Copier : lancer en local" : "Copy: run locally"}</button>
-        <a class="btn" id="project-serve-link" href="#" target="_blank" rel="noopener" hidden>${fr ? "↗ Voir l'app" : "↗ View app"}</a>
+        <a class="btn btn-launch" id="project-launch-btn" href="#" target="_blank" rel="noopener" hidden>${fr ? "▶ Lancer le projet" : "▶ Launch project"}</a>
         <button class="btn" id="archive-project-btn" type="button">${fr ? "Archiver le projet" : "Archive project"}</button>
         <button class="btn" id="delete-project-btn" type="button" style="border-color:#ef4444;color:#ef4444;">${fr ? "Supprimer le projet" : "Delete project"}</button>
       </div>
@@ -1723,18 +1736,20 @@ async function wireProjectPage() {
     project.name || slug;
 
   // Endpoint bar — show repo_path + run command
-  // Check if project has a served app at /apps/<slug>/
-  const serveLink = document.getElementById("project-serve-link");
-  try {
-    const serveCheck = await fetch(`/apps/${encodeURIComponent(slug)}/`, {
-      method: "HEAD",
-      signal: AbortSignal.timeout(2000),
-    });
-    if (serveCheck.ok && serveLink) {
-      serveLink.href = `/apps/${encodeURIComponent(slug)}/`;
-      serveLink.hidden = false;
+  // Check if project has a served app at /apps/<slug>/ and show launch button
+  const launchBtn = document.getElementById("project-launch-btn");
+  if (launchBtn) {
+    launchBtn.href = `/apps/${encodeURIComponent(slug)}/`;
+    try {
+      const serveCheck = await fetch(`/apps/${encodeURIComponent(slug)}/`, {
+        method: "HEAD",
+        signal: AbortSignal.timeout(2000),
+      });
+      launchBtn.hidden = !serveCheck.ok;
+    } catch (_) {
+      launchBtn.hidden = true;
     }
-  } catch (_) {}
+  }
 
   const endpointBar = document.getElementById("project-endpoint-bar");
   if (endpointBar && project.repo_path) {
@@ -2680,34 +2695,57 @@ function wireSystemStatus() {
     const configured = localConfigured || backendConfigured;
     const activeProvider = localConfigured ? provider : backendProvider;
     const banner = document.getElementById("ai-runtime-banner");
+    const chip = document.getElementById("ai-runtime-chip");
+    const chipProvider = document.getElementById("ai-runtime-chip-provider");
+    const chipPanelStatus = document.getElementById(
+      "ai-runtime-chip-panel-status",
+    );
+    const labels = {
+      claude: "Claude",
+      mistral: "Mistral",
+      openclaw: "OpenClaw",
+    };
     if (configured) {
-      statusEl.className = "ai-runtime-status-badge ok";
-      statusEl.textContent = t.runtimeBannerConfigured;
-      const labels = {
-        claude: "Claude",
-        mistral: "Mistral",
-        openclaw: "OpenClaw",
-      };
-      if (labelEl)
-        labelEl.textContent = labels[activeProvider] || activeProvider || "";
-      if (ctaEl) ctaEl.textContent = t.runtimeBannerChange;
-      if (banner) {
-        banner.classList.remove("runtime-unconfigured");
-        banner.classList.add("runtime-configured");
-      }
+      // Hide full banner, show compact chip
+      if (banner) banner.hidden = true;
+      if (chip) chip.hidden = false;
+      const providerLabel = labels[activeProvider] || activeProvider || "IA";
+      if (chipProvider) chipProvider.textContent = providerLabel;
+      if (chipPanelStatus)
+        chipPanelStatus.textContent = `${t.runtimeBannerConfigured} · ${providerLabel}`;
     } else {
+      // Show full banner, hide chip
+      if (banner) banner.hidden = false;
+      if (chip) chip.hidden = true;
       statusEl.className = "ai-runtime-status-badge warn";
       statusEl.textContent = t.runtimeBannerNotConfigured;
       if (labelEl) labelEl.textContent = "";
       if (ctaEl) ctaEl.textContent = t.runtimeBannerCta;
-      if (banner) {
-        banner.classList.add("runtime-unconfigured");
-        banner.classList.remove("runtime-configured");
-      }
     }
   }
   refreshRuntimeBanner();
   window.addEventListener("storage", refreshRuntimeBanner);
+
+  // Wire chip toggle
+  const chipBtn = document.getElementById("ai-runtime-chip-btn");
+  const chipPanel = document.getElementById("ai-runtime-chip-panel");
+  if (chipBtn && chipPanel) {
+    chipBtn.addEventListener("click", () => {
+      const open = chipPanel.hidden;
+      chipPanel.hidden = !open;
+      chipBtn.setAttribute("aria-expanded", String(open));
+      chipBtn.querySelector(".ai-runtime-chip-arrow").textContent = open
+        ? "▴"
+        : "▾";
+    });
+    document.addEventListener("click", (e) => {
+      if (!chipBtn.contains(e.target) && !chipPanel.contains(e.target)) {
+        chipPanel.hidden = true;
+        chipBtn.setAttribute("aria-expanded", "false");
+        chipBtn.querySelector(".ai-runtime-chip-arrow").textContent = "▾";
+      }
+    });
+  }
 
   async function loadStats() {
     try {

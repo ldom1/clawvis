@@ -148,43 +148,17 @@ body {
   }
 }
 
-/* AI Runtime banner */
+/* AI Runtime banner (unconfigured state) */
 .ai-runtime-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.5);
   border-radius: 14px;
   padding: 10px 16px;
   margin-bottom: 10px;
-  transition:
-    border-color 0.2s,
-    padding 0.2s,
-    border-radius 0.2s;
-}
-.ai-runtime-banner.runtime-unconfigured {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: rgba(245, 158, 11, 0.06);
-}
-/* Compact pill when provider is configured */
-.ai-runtime-banner.runtime-configured {
-  padding: 5px 12px;
-  border-radius: 999px;
-  margin-bottom: 8px;
-}
-.ai-runtime-banner.runtime-configured .ai-runtime-banner-icon {
-  display: none;
-}
-.ai-runtime-banner.runtime-configured .ai-runtime-banner-title {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-.ai-runtime-banner.runtime-configured .ai-runtime-cta {
-  font-size: 11px;
-  padding: 2px 8px;
 }
 .ai-runtime-banner-left {
   display: flex;
@@ -241,6 +215,67 @@ body {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+}
+
+/* AI Runtime chip (configured state — compact collapsible) */
+.ai-runtime-chip {
+  position: relative;
+  display: inline-flex;
+  margin-bottom: 10px;
+}
+.ai-runtime-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 999px;
+  padding: 4px 12px 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #22c55e;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.ai-runtime-chip-btn:hover {
+  background: rgba(34, 197, 94, 0.14);
+}
+.ai-runtime-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+.ai-runtime-chip-label {
+  color: var(--text);
+  font-weight: 500;
+}
+.ai-runtime-chip-arrow {
+  color: var(--muted);
+  font-size: 10px;
+}
+.ai-runtime-chip-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 200px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.ai-runtime-chip-panel-row {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.ai-runtime-chip-settings {
+  font-size: 12px;
+  padding: 3px 10px;
 }
 
 .system-card {
@@ -561,6 +596,17 @@ body {
   font-size: 13px;
   flex-shrink: 0;
   margin-left: auto;
+}
+.btn-launch {
+  background: #22c55e;
+  color: #fff;
+  border-color: #22c55e;
+  font-weight: 600;
+}
+.btn-launch:hover {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
 }
 .project-hero-simple {
   text-align: left;

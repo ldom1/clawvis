@@ -21,6 +21,15 @@ services: {}
 #     volumes:
 #       - ./instances/<your-name>/public:/usr/share/nginx/html/instance:ro
 
+# Enable nginx route cleanup on project delete (requires projects.d dir mounted):
+# services:
+#   kanban-api:
+#     volumes:
+#       - /path/to/nginx/projects.d:/nginx/projects.d
+#     environment:
+#       - NGINX_PROJECTS_D=/nginx/projects.d
+#       - NGINX_PID=/path/to/nginx.pid
+
 # Add a reverse proxy (Traefik, Caddy…):
 # services:
 #   caddy:

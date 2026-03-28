@@ -1347,6 +1347,26 @@ def archive_project(project_slug: str) -> dict:
     }
 
 
+def _cleanup_nginx_route(slug: str) -> bool:
+    """Remove projects.d/<slug>.conf and reload nginx if NGINX_PROJECTS_D is set."""
+    projects_d = os.environ.get("NGINX_PROJECTS_D", "")
+    nginx_pid = os.environ.get("NGINX_PID", "")
+    if not projects_d:
+        return False
+    conf = Path(projects_d) / f"{slug}.conf"
+    if conf.exists():
+        conf.unlink()
+    else:
+        return False
+    if nginx_pid and Path(nginx_pid).exists():
+        try:
+            pid = Path(nginx_pid).read_text().strip()
+            subprocess.run(["kill", "-HUP", pid], check=False, timeout=5)
+        except Exception:
+            pass
+    return True
+
+
 def delete_project(project_slug: str) -> dict:
     project = _find_project_or_raise(project_slug)
     repo_dir = Path(project["repo_path"]).expanduser()
@@ -1356,13 +1376,23 @@ def delete_project(project_slug: str) -> dict:
     if memory_file.exists():
         memory_file.unlink()
     deleted_tasks = _delete_project_tasks(project_slug)
+    nginx_cleaned = _cleanup_nginx_route(project_slug)
     _log(
         "INFO",
         "project:delete",
         f"Deleted project '{project_slug}'",
-        {"slug": project_slug, "tasks_deleted": deleted_tasks},
+        {
+            "slug": project_slug,
+            "tasks_deleted": deleted_tasks,
+            "nginx_route_removed": nginx_cleaned,
+        },
     )
-    return {"ok": True, "slug": project_slug, "tasks_deleted": deleted_tasks}
+    return {
+        "ok": True,
+        "slug": project_slug,
+        "tasks_deleted": deleted_tasks,
+        "nginx_route_removed": nginx_cleaned,
+    }
 
 
 def list_memory_project_files() -> dict:
