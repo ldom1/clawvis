@@ -4,6 +4,12 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from .openclaw_runner import (
+    list_sessions,
+    openclaw_available,
+    restart_gateway,
+    run_agent_session,
+)
 from .persona import load_persona
 from .provider import load_provider_config
 from .streaming import stream_anthropic, stream_openai_compat
@@ -54,3 +60,38 @@ async def chat(req: ChatRequest):
             yield f"[Error: {type(exc).__name__}: {exc}]"
 
     return StreamingResponse(generate(), media_type="text/plain; charset=utf-8")
+
+
+class SessionRequest(BaseModel):
+    message: str
+    session_id: str | None = None
+
+
+@router.post("/session")
+def start_session(req: SessionRequest):
+    if not openclaw_available():
+        raise HTTPException(status_code=503, detail="OpenClaw not available")
+    result = run_agent_session(req.message, req.session_id)
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error)
+    return result.output
+
+
+@router.get("/sessions")
+def get_sessions():
+    if not openclaw_available():
+        raise HTTPException(status_code=503, detail="OpenClaw not available")
+    result = list_sessions()
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error)
+    return result.output
+
+
+@router.post("/restart")
+def restart():
+    if not openclaw_available():
+        raise HTTPException(status_code=503, detail="OpenClaw not available")
+    result = restart_gateway()
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error)
+    return {"status": "restarted"}
