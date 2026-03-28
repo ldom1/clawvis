@@ -94,11 +94,13 @@ async def chat(req: ChatRequest):
                 )
                 if result.success:
                     output = result.output
-                    text = (
-                        output.get("message", {}).get("content", "")
-                        if isinstance(output, dict)
-                        else str(output)
-                    )
+                    if isinstance(output, dict):
+                        payloads = output.get("payloads") or []
+                        text = " ".join(p.get("text", "") for p in payloads if p.get("text"))
+                        if not text:
+                            text = output.get("message", {}).get("content", "") or str(output)
+                    else:
+                        text = str(output)
                     yield text or "[OpenClaw: empty response]"
                 else:
                     yield f"[OpenClaw error: {result.error}]"
