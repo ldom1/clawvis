@@ -3132,7 +3132,7 @@ async function wireChat() {
 
   // Fetch provider status from backend
   try {
-    const res = await fetch("/api/hub/chat/status");
+    const res = await fetch("/api/hub/agent/status");
     if (res.ok) {
       const s = await res.json();
       const configured =
@@ -3185,7 +3185,7 @@ async function wireChat() {
     let full = "";
 
     try {
-      const res = await fetch("/api/hub/chat", {
+      const res = await fetch("/api/hub/agent/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg, history: history.slice(0, -1) }),
@@ -3633,7 +3633,7 @@ async function wireSetupRuntime() {
         // reachable and its env has a working key — it does not validate the wizard-entered key.
         // Future improvement: pass the key in a request header that chat_runtime reads
         // preferentially over the env.
-        const res = await fetch("/api/hub/chat", {
+        const res = await fetch("/api/hub/agent/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -3698,7 +3698,7 @@ async function wireSetupRuntime() {
     const el = addSetupBubble("assistant", "…", true);
     let full = "";
     try {
-      const res = await fetch("/api/hub/chat", {
+      const res = await fetch("/api/hub/agent/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
