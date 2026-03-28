@@ -2588,27 +2588,39 @@ function wireSystemStatus() {
   const loc = settingsLocale();
   const t = SETTINGS_TEXT[loc];
 
-  // AI Runtime banner
-  function refreshRuntimeBanner() {
+  // AI Runtime banner — checks localStorage AND backend agent config
+  async function refreshRuntimeBanner() {
     const statusEl = document.getElementById("ai-runtime-status");
     const labelEl = document.getElementById("ai-runtime-provider-label");
     const ctaEl = document.getElementById("ai-runtime-cta");
     if (!statusEl) return;
     const provider = localStorage.getItem("ai-provider") || "claude";
-    const configured =
+    const localConfigured =
       (provider === "claude" && !!localStorage.getItem("ai-claude-key")) ||
       (provider === "mistral" && !!localStorage.getItem("ai-mistral-key")) ||
       (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"));
+
+    // Also check if backend has a working provider (anthropic, mammouth, or openclaw)
+    let backendConfigured = false;
+    let backendProvider = null;
+    try {
+      const r = await fetch("/api/hub/agent/config", { signal: AbortSignal.timeout(3000) });
+      if (r.ok) {
+        const cfg = await r.json();
+        if (cfg.anthropic_available) { backendConfigured = true; backendProvider = "claude"; }
+        else if (cfg.mammouth_available) { backendConfigured = true; backendProvider = "mistral"; }
+        else if (cfg.openclaw_available) { backendConfigured = true; backendProvider = "openclaw"; }
+      }
+    } catch (_) {}
+
+    const configured = localConfigured || backendConfigured;
+    const activeProvider = localConfigured ? provider : backendProvider;
     const banner = document.getElementById("ai-runtime-banner");
     if (configured) {
       statusEl.className = "ai-runtime-status-badge ok";
       statusEl.textContent = t.runtimeBannerConfigured;
-      const labels = {
-        claude: "Claude",
-        mistral: "Mistral",
-        openclaw: "OpenClaw",
-      };
-      if (labelEl) labelEl.textContent = labels[provider] || provider;
+      const labels = { claude: "Claude", mistral: "Mistral", openclaw: "OpenClaw" };
+      if (labelEl) labelEl.textContent = labels[activeProvider] || activeProvider || "";
       if (ctaEl) ctaEl.textContent = t.runtimeBannerChange;
       if (banner) banner.classList.remove("runtime-unconfigured");
     } else {

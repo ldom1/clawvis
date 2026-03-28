@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -76,21 +77,38 @@ async def chat(req: ChatRequest):
     anthropic_model = conf.get("anthropic_model", "claude-haiku-4-5")
     mammouth_model = conf.get("mammouth_model", "mistral-small-3.2-24b-instruct")
 
-    use_anthropic = (
+    use_openclaw = preferred == "openclaw" and openclaw_available()
+    use_anthropic = not use_openclaw and (
         (preferred == "anthropic" and bool(cfg.anthropic_token))
         or (preferred is None and bool(cfg.anthropic_token))
         or (preferred == "mammouth" and not cfg.mammouth_token and bool(cfg.anthropic_token))
     )
+    use_mammouth = not use_openclaw and not use_anthropic and bool(cfg.mammouth_token)
 
     async def generate():
         try:
-            if use_anthropic and cfg.anthropic_token:
+            if use_openclaw:
+                loop = asyncio.get_event_loop()
+                result = await loop.run_in_executor(
+                    None, lambda: run_agent_session(req.message, local=True)
+                )
+                if result.success:
+                    output = result.output
+                    text = (
+                        output.get("message", {}).get("content", "")
+                        if isinstance(output, dict)
+                        else str(output)
+                    )
+                    yield text or "[OpenClaw: empty response]"
+                else:
+                    yield f"[OpenClaw error: {result.error}]"
+            elif use_anthropic and cfg.anthropic_token:
                 async for chunk in stream_anthropic(
                     req.message, req.history, system, cfg.anthropic_token,
                     model=anthropic_model,
                 ):
                     yield chunk
-            elif cfg.mammouth_token:
+            elif use_mammouth and cfg.mammouth_token:
                 async for chunk in stream_openai_compat(
                     req.message, req.history, system,
                     cfg.mammouth_token, cfg.mammouth_base_url,
