@@ -278,6 +278,62 @@ body {
   padding: 3px 10px;
 }
 
+/* Settings — active instance strip */
+.settings-instance-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 14px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+.settings-instance-strip-label {
+  color: var(--muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.settings-instance-strip-sep {
+  color: var(--muted);
+}
+.settings-instance-strip-path {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 5px;
+  padding: 1px 7px;
+  font-size: 11px;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cron table */
+.cron-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.cron-th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.cron-td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.cron-td-muted {
+  color: var(--muted);
+}
+
 .system-card {
   background: var(--surface);
   border: 1px solid var(--border);

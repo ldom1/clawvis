@@ -948,6 +948,15 @@ function renderSettings() {
         </div>
       </header>
 
+      <!-- Active instance info strip -->
+      <div class="settings-instance-strip" id="settings-instance-strip">
+        <span class="settings-instance-strip-label">${isFr ? "Instance active" : "Active instance"}</span>
+        <code class="settings-instance-strip-path" id="settings-active-instance">—</code>
+        <span class="settings-instance-strip-sep">·</span>
+        <span class="settings-instance-strip-label">${isFr ? "Projets" : "Projects"}</span>
+        <code class="settings-instance-strip-path" id="settings-active-projects-root">—</code>
+      </div>
+
       <!-- Health banner centré -->
       <div class="settings-health-banner">
         <div class="settings-health-banner-title">${isFr ? "État du royaume" : "Kingdom status"}</div>
@@ -1065,6 +1074,16 @@ function renderSettings() {
           </div>
           <select id="instances-multi" class="instances-multiselect" multiple size="10" aria-label="${escapeHtml(t.instancesTitle)}"></select>
           <p class="hint instances-multi-hint">${escapeHtml(t.instancesMultiHint)}</p>
+        </section>
+
+        <section class="card settings-card settings-section" id="cron-section">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">${isFr ? "Cron OpenClaw" : "OpenClaw Cron"}</h2>
+            <span id="cron-status" class="ai-runtime-status-badge warn">${isFr ? "Chargement…" : "Loading…"}</span>
+            <button id="refresh-cron" class="btn" type="button" style="margin-left:auto">${isFr ? "Actualiser" : "Refresh"}</button>
+          </div>
+          <div class="card-desc">${isFr ? "Tâches planifiées OpenClaw — ~/.openclaw/cron/jobs.json" : "Scheduled OpenClaw jobs — ~/.openclaw/cron/jobs.json"}</div>
+          <div id="cron-table-wrap"></div>
         </section>
 
         <section class="card settings-card settings-section settings-appearance-card">
@@ -2897,6 +2916,17 @@ async function wireSettings() {
     document.getElementById("projects-root").value = data.projects_root || "";
     document.getElementById("instances-external-root").value =
       data.instances_external_root || "";
+    // Populate active instance strip
+    const activeInstanceEl = document.getElementById(
+      "settings-active-instance",
+    );
+    const activeProjectsEl = document.getElementById(
+      "settings-active-projects-root",
+    );
+    if (activeInstanceEl)
+      activeInstanceEl.textContent = data.active_brain_memory || "—";
+    if (activeProjectsEl)
+      activeProjectsEl.textContent = data.projects_root || "—";
     refreshWorkspaceHealth();
   }
   document
@@ -3173,6 +3203,81 @@ async function wireSettings() {
     });
 
   await loadAgentConfig();
+
+  // --- Cron section ---
+  async function loadCronJobs() {
+    const wrap = document.getElementById("cron-table-wrap");
+    const status = document.getElementById("cron-status");
+    if (!wrap) return;
+    try {
+      const r = await fetch("/api/hub/agent/cron", {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!r.ok) {
+        if (status) {
+          status.className = "ai-runtime-status-badge warn";
+          status.textContent = isFr ? "Indisponible" : "Unavailable";
+        }
+        wrap.innerHTML = `<p class="muted" style="font-size:12px">${isFr ? "Agent service inaccessible" : "Agent service unreachable"}</p>`;
+        return;
+      }
+      const data = await r.json();
+      const jobs = data.jobs || [];
+      if (status) {
+        status.className = `ai-runtime-status-badge ${jobs.length ? "ok" : "warn"}`;
+        status.textContent = `${jobs.length} ${isFr ? "job(s)" : "job(s)"}`;
+      }
+      if (!jobs.length) {
+        wrap.innerHTML = `<p class="muted" style="font-size:12px">${isFr ? "Aucune tâche planifiée" : "No scheduled jobs"} — <code>${escapeHtml(data.path || "")}</code></p>`;
+        return;
+      }
+      const rows = jobs
+        .map((j) => {
+          const name = escapeHtml(j.name || j.id || "—");
+          const schedule = escapeHtml(j.schedule || "—");
+          const enabled = j.enabled !== false;
+          const lastRun = j.lastRun
+            ? escapeHtml(new Date(j.lastRun).toLocaleString())
+            : "—";
+          const errors = j.consecutiveErrors || 0;
+          const errBadge =
+            errors > 0
+              ? `<span class="ai-runtime-status-badge warn">${errors} err</span>`
+              : "";
+          const statusBadge = enabled
+            ? `<span class="ai-runtime-status-badge ok">${isFr ? "actif" : "active"}</span>`
+            : `<span class="ai-runtime-status-badge warn">${isFr ? "désactivé" : "disabled"}</span>`;
+          return `<tr>
+            <td class="cron-td">${name}</td>
+            <td class="cron-td"><code>${schedule}</code></td>
+            <td class="cron-td">${statusBadge} ${errBadge}</td>
+            <td class="cron-td cron-td-muted">${lastRun}</td>
+          </tr>`;
+        })
+        .join("");
+      wrap.innerHTML = `
+        <table class="cron-table">
+          <thead><tr>
+            <th class="cron-th">${isFr ? "Nom" : "Name"}</th>
+            <th class="cron-th">Schedule</th>
+            <th class="cron-th">Status</th>
+            <th class="cron-th">${isFr ? "Dernier run" : "Last run"}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    } catch (_) {
+      if (status) {
+        status.className = "ai-runtime-status-badge warn";
+        status.textContent = isFr ? "Erreur" : "Error";
+      }
+      wrap.innerHTML = `<p class="muted" style="font-size:12px">${isFr ? "Erreur de chargement" : "Load error"}</p>`;
+    }
+  }
+
+  document
+    .getElementById("refresh-cron")
+    ?.addEventListener("click", loadCronJobs);
+  await loadCronJobs();
 }
 
 async function refreshBrainSourceHint() {

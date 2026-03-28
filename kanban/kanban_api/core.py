@@ -530,6 +530,8 @@ def _default_hub_settings() -> dict:
 
 def get_hub_settings() -> dict:
     defaults = _default_hub_settings()
+    # PROJECTS_ROOT env var always wins — prevents reset after container restart
+    env_projects_root = os.environ.get("PROJECTS_ROOT", "").strip()
     if HUB_SETTINGS_FILE.exists():
         try:
             current = json.loads(HUB_SETTINGS_FILE.read_text(encoding="utf-8"))
@@ -542,7 +544,8 @@ def get_hub_settings() -> dict:
         linked = []
     linked = [str(p) for p in linked if str(p).strip()]
     out = {
-        "projects_root": str(current.get("projects_root") or defaults["projects_root"]),
+        "projects_root": env_projects_root
+        or str(current.get("projects_root") or defaults["projects_root"]),
         "instances_external_root": str(
             current.get("instances_external_root")
             or defaults["instances_external_root"]

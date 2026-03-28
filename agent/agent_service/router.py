@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import os
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -162,3 +165,21 @@ def restart():
     if not result.success:
         raise HTTPException(status_code=500, detail=result.error)
     return {"status": "restarted"}
+
+
+@router.get("/cron")
+def get_cron_jobs():
+    """Return OpenClaw cron jobs from $OPENCLAW_STATE_DIR/cron/jobs.json."""
+    state_dir = os.environ.get("OPENCLAW_STATE_DIR", "")
+    if not state_dir:
+        home = Path(os.environ.get("HOME", Path.home()))
+        state_dir = str(home / ".openclaw")
+    jobs_file = Path(state_dir) / "cron" / "jobs.json"
+    if not jobs_file.exists():
+        return {"jobs": [], "path": str(jobs_file), "found": False}
+    try:
+        data = json.loads(jobs_file.read_text(encoding="utf-8"))
+        jobs = data if isinstance(data, list) else data.get("jobs", [])
+        return {"jobs": jobs, "path": str(jobs_file), "found": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
