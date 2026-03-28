@@ -3099,3 +3099,71 @@ body {
   align-items: center;
   margin-top: 1.5rem;
 }
+
+/* Agent config section */
+.agent-providers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+@media (max-width: 640px) {
+  .agent-providers-grid { grid-template-columns: 1fr; }
+}
+.agent-provider-card {
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  transition: border-color 0.15s;
+  cursor: pointer;
+}
+.agent-provider-card.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+}
+.agent-provider-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+.agent-provider-name { flex: 1; }
+.agent-availability-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+.agent-availability-badge.ok {
+  background: color-mix(in srgb, var(--ok) 15%, var(--surface));
+  color: var(--ok);
+}
+.agent-availability-badge.warn {
+  background: color-mix(in srgb, var(--warn) 15%, var(--surface));
+  color: var(--warn);
+}
+.agent-model-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.agent-model-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.agent-model-select {
+  flex: 1;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+.chat-status-bar.ok { background: color-mix(in srgb, var(--ok) 10%, var(--surface)); }
+.chat-status-dot.ok { background: var(--ok); }

@@ -198,6 +198,29 @@ const SETTINGS_TEXT = {
       "Le choix est enregistré localement et appliqué immédiatement.",
     languageFr: "Français",
     languageEn: "English",
+    agentTitle: "Agent IA",
+    agentDesc: "Choisis quel modèle Dombot utilise pour répondre dans le chat.",
+    agentProviderLabel: "Provider actif",
+    agentModelLabel: "Modèle",
+    agentSave: "Sauvegarder",
+    agentSaved: "Agent sauvegardé",
+    agentSaveFailed: "Échec sauvegarde agent",
+    agentAvailable: "Disponible",
+    agentUnavailable: "Non configuré",
+    agentAuto: "Auto",
+    agentAnthropicName: "Claude (Anthropic)",
+    agentMammouthName: "Mammouth (Mistral)",
+    agentModels: {
+      anthropic: [
+        { value: "claude-haiku-4-5", label: "Haiku 4.5 — rapide" },
+        { value: "claude-sonnet-4-6", label: "Sonnet 4.6 — équilibré" },
+        { value: "claude-opus-4-6", label: "Opus 4.6 — puissant" },
+      ],
+      mammouth: [
+        { value: "mistral-small-3.2-24b-instruct", label: "Mistral Small 3.2 — rapide" },
+        { value: "mistral-medium-3", label: "Mistral Medium 3 — équilibré" },
+      ],
+    },
   },
   en: {
     title: "Settings",
@@ -281,6 +304,29 @@ const SETTINGS_TEXT = {
     languageInfo: "Your choice is stored locally and applied immediately.",
     languageFr: "Français",
     languageEn: "English",
+    agentTitle: "AI Agent",
+    agentDesc: "Choose which model the agent uses when responding in chat.",
+    agentProviderLabel: "Active provider",
+    agentModelLabel: "Model",
+    agentSave: "Save",
+    agentSaved: "Agent saved",
+    agentSaveFailed: "Failed to save agent config",
+    agentAvailable: "Available",
+    agentUnavailable: "Not configured",
+    agentAuto: "Auto",
+    agentAnthropicName: "Claude (Anthropic)",
+    agentMammouthName: "Mammouth (Mistral)",
+    agentModels: {
+      anthropic: [
+        { value: "claude-haiku-4-5", label: "Haiku 4.5 — fast" },
+        { value: "claude-sonnet-4-6", label: "Sonnet 4.6 — balanced" },
+        { value: "claude-opus-4-6", label: "Opus 4.6 — powerful" },
+      ],
+      mammouth: [
+        { value: "mistral-small-3.2-24b-instruct", label: "Mistral Small 3.2 — fast" },
+        { value: "mistral-medium-3", label: "Mistral Medium 3 — balanced" },
+      ],
+    },
   },
 };
 
@@ -920,6 +966,46 @@ function renderSettings() {
             <a href="/setup/runtime/" class="btn btn-primary">${t.configureRuntime}</a>
           </div>
           <span id="provider-save-feedback" class="test-result"></span>
+        </section>
+
+        <section class="card settings-card settings-section" id="agent-config-section">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">${t.agentTitle}</h2>
+            <span id="agent-config-status" class="ai-runtime-status-badge warn">${t.notConfigured}</span>
+          </div>
+          <div class="card-desc">${t.agentDesc}</div>
+          <div class="agent-providers-grid" id="agent-providers-grid">
+            <div class="agent-provider-card" id="agent-card-anthropic">
+              <label class="agent-provider-label">
+                <input type="radio" name="agent-provider" value="anthropic" id="ap-anthropic" />
+                <span class="agent-provider-name">${t.agentAnthropicName}</span>
+                <span class="agent-availability-badge" id="agent-badge-anthropic">${t.agentUnavailable}</span>
+              </label>
+              <div class="agent-model-row" id="agent-model-row-anthropic">
+                <label for="anthropic-model-select" class="agent-model-label">${t.agentModelLabel}</label>
+                <select id="anthropic-model-select" class="agent-model-select">
+                  ${t.agentModels.anthropic.map((m) => `<option value="${m.value}">${escapeHtml(m.label)}</option>`).join("")}
+                </select>
+              </div>
+            </div>
+            <div class="agent-provider-card" id="agent-card-mammouth">
+              <label class="agent-provider-label">
+                <input type="radio" name="agent-provider" value="mammouth" id="ap-mammouth" />
+                <span class="agent-provider-name">${t.agentMammouthName}</span>
+                <span class="agent-availability-badge" id="agent-badge-mammouth">${t.agentUnavailable}</span>
+              </label>
+              <div class="agent-model-row" id="agent-model-row-mammouth">
+                <label for="mammouth-model-select" class="agent-model-label">${t.agentModelLabel}</label>
+                <select id="mammouth-model-select" class="agent-model-select">
+                  ${t.agentModels.mammouth.map((m) => `<option value="${m.value}">${escapeHtml(m.label)}</option>`).join("")}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="settings-actions">
+            <button id="save-agent-config" class="btn btn-primary" type="button">${t.agentSave}</button>
+            <span id="agent-save-feedback" class="test-result"></span>
+          </div>
         </section>
 
         <section class="card settings-card settings-section">
@@ -2855,6 +2941,88 @@ async function wireSettings() {
   refreshRuntimeHealth();
   refreshWorkspaceHealth();
   await loadInstances();
+
+  // --- Agent config section ---
+  async function loadAgentConfig() {
+    try {
+      const r = await fetch("/api/hub/agent/config");
+      if (!r.ok) return;
+      const cfg = await r.json();
+
+      const statusBadge = document.getElementById("agent-config-status");
+      const anyAvailable = cfg.anthropic_available || cfg.mammouth_available;
+      if (statusBadge) {
+        statusBadge.className = `ai-runtime-status-badge ${anyAvailable ? "ok" : "warn"}`;
+        statusBadge.textContent = anyAvailable ? t.configured : t.notConfigured;
+      }
+
+      const badgeAnthropicEl = document.getElementById("agent-badge-anthropic");
+      if (badgeAnthropicEl) {
+        badgeAnthropicEl.textContent = cfg.anthropic_available ? t.agentAvailable : t.agentUnavailable;
+        badgeAnthropicEl.className = `agent-availability-badge ${cfg.anthropic_available ? "ok" : "warn"}`;
+      }
+      const badgeMammouthEl = document.getElementById("agent-badge-mammouth");
+      if (badgeMammouthEl) {
+        badgeMammouthEl.textContent = cfg.mammouth_available ? t.agentAvailable : t.agentUnavailable;
+        badgeMammouthEl.className = `agent-availability-badge ${cfg.mammouth_available ? "ok" : "warn"}`;
+      }
+
+      const preferred = cfg.preferred_provider || (cfg.anthropic_available ? "anthropic" : "mammouth");
+      const radioEl = document.getElementById(`ap-${preferred}`);
+      if (radioEl) radioEl.checked = true;
+
+      const anthropicSelect = document.getElementById("anthropic-model-select");
+      if (anthropicSelect && cfg.anthropic_model) anthropicSelect.value = cfg.anthropic_model;
+      const mammouthSelect = document.getElementById("mammouth-model-select");
+      if (mammouthSelect && cfg.mammouth_model) mammouthSelect.value = cfg.mammouth_model;
+
+      updateAgentCardHighlight(preferred);
+    } catch {
+      // agent service unavailable — section stays disabled-looking
+    }
+  }
+
+  function updateAgentCardHighlight(provider) {
+    ["anthropic", "mammouth"].forEach((p) => {
+      const card = document.getElementById(`agent-card-${p}`);
+      if (card) card.classList.toggle("active", p === provider);
+    });
+  }
+
+  document.querySelectorAll('[name="agent-provider"]').forEach((radio) => {
+    radio.addEventListener("change", () => updateAgentCardHighlight(radio.value));
+  });
+
+  document.getElementById("save-agent-config")?.addEventListener("click", async () => {
+    const feedback = document.getElementById("agent-save-feedback");
+    const selected = document.querySelector('[name="agent-provider"]:checked')?.value;
+    const anthropicModel = document.getElementById("anthropic-model-select")?.value;
+    const mammouthModel = document.getElementById("mammouth-model-select")?.value;
+    const body = {};
+    if (selected) body.preferred_provider = selected;
+    if (anthropicModel) body.anthropic_model = anthropicModel;
+    if (mammouthModel) body.mammouth_model = mammouthModel;
+    try {
+      const r = await fetch("/api/hub/agent/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (feedback) {
+        feedback.className = r.ok ? "test-result ok" : "test-result fail";
+        feedback.textContent = r.ok ? t.agentSaved : t.agentSaveFailed;
+        feedback.style.display = "inline-block";
+      }
+    } catch {
+      if (feedback) {
+        feedback.className = "test-result fail";
+        feedback.textContent = t.agentSaveFailed;
+        feedback.style.display = "inline-block";
+      }
+    }
+  });
+
+  await loadAgentConfig();
 }
 
 async function refreshBrainSourceHint() {
@@ -3130,25 +3298,29 @@ async function wireChat() {
   const input = document.getElementById("chat-input");
   const sendBtn = document.getElementById("chat-send");
 
-  // Fetch provider status from backend
+  // Fetch agent config + status from backend
   try {
-    const res = await fetch("/api/hub/agent/status");
-    if (res.ok) {
-      const s = await res.json();
-      const configured =
-        (s.provider === "claude" && s.claude_configured) ||
-        (s.provider === "mistral" && s.mistral_configured) ||
-        (s.provider === "openclaw" && s.openclaw_configured);
-      const labels = {
-        claude: "Claude (Anthropic)",
-        mistral: "Mistral AI",
-        openclaw: "OpenClaw",
+    const [statusRes, configRes] = await Promise.all([
+      fetch("/api/hub/agent/status"),
+      fetch("/api/hub/agent/config"),
+    ]);
+    if (statusRes.ok && configRes.ok) {
+      const s = await statusRes.json();
+      const cfg = await configRes.json();
+      const configured = s.anthropic_configured || s.mammouth_configured;
+      const providerLabels = {
+        anthropic: "Claude (Anthropic)",
+        mammouth: "Mammouth (Mistral)",
       };
+      const modelLabel = s.provider === "anthropic"
+        ? cfg.anthropic_model || "claude-haiku-4-5"
+        : cfg.mammouth_model || "mistral-small-3.2-24b-instruct";
+      const changeLink = `<a href="/settings" class="chat-setup-link">${fr ? "Changer →" : "Change →"}</a>`;
       if (statusBar) {
-        statusBar.className = "chat-status-bar warn";
+        statusBar.className = `chat-status-bar ${configured ? "ok" : "warn"}`;
         statusBar.innerHTML = configured
-          ? `<span class="chat-status-dot warn"></span><strong>${labels[s.provider] || s.provider}</strong> — ${fr ? "Variable serveur détectée (non vérifiée). Un envoi réel teste la clé." : "Server credential present (not verified). Sending a message tests the key."}`
-          : `<span class="chat-status-dot warn"></span>${fr ? "Runtime IA non configuré. " : "AI Runtime not configured. "}<a href="/setup/runtime/" class="chat-setup-link">${fr ? "Configurer le runtime →" : "Setup runtime →"}</a>`;
+          ? `<span class="chat-status-dot ok"></span><strong>${providerLabels[s.provider] || s.provider}</strong> · <code>${modelLabel}</code> ${changeLink}`
+          : `<span class="chat-status-dot warn"></span>${fr ? "Aucun provider configuré. " : "No provider configured. "}<a href="/settings" class="chat-setup-link">${fr ? "Configurer →" : "Configure →"}</a>`;
       }
     }
   } catch {

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from .config_store import load_config, save_config
 from .openclaw_runner import (
     list_sessions,
     openclaw_available,
@@ -25,30 +28,73 @@ class ChatRequest(BaseModel):
 @router.get("/status")
 def status():
     cfg = load_provider_config()
+    conf = load_config()
     return {
-        "provider": cfg.provider,
+        "provider": conf.get("preferred_provider") or cfg.provider,
         "anthropic_configured": bool(cfg.anthropic_token),
         "mammouth_configured": bool(cfg.mammouth_token),
         "openclaw_available": cfg.openclaw_available,
     }
 
 
+@router.get("/config")
+def get_config():
+    cfg = load_provider_config()
+    conf = load_config()
+    return {
+        **conf,
+        "anthropic_available": bool(cfg.anthropic_token),
+        "mammouth_available": bool(cfg.mammouth_token),
+        "openclaw_available": cfg.openclaw_available,
+    }
+
+
+class AgentConfigUpdate(BaseModel):
+    preferred_provider: str | None = None
+    anthropic_model: str | None = None
+    mammouth_model: str | None = None
+
+
+@router.patch("/config")
+def update_config(body: AgentConfigUpdate):
+    updates: dict[str, Any] = {
+        k: v for k, v in body.model_dump().items() if v is not None
+    }
+    # Allow explicitly setting preferred_provider to null via a separate mechanism;
+    # for now a patch with None values is a no-op (fields not provided)
+    saved = save_config(updates)
+    return {"ok": True, "config": saved}
+
+
 @router.post("/chat")
 async def chat(req: ChatRequest):
     cfg = load_provider_config()
+    conf = load_config()
     system = load_persona(cfg.openclaw_state_dir)
+
+    preferred = conf.get("preferred_provider")
+    anthropic_model = conf.get("anthropic_model", "claude-haiku-4-5")
+    mammouth_model = conf.get("mammouth_model", "mistral-small-3.2-24b-instruct")
+
+    use_anthropic = (
+        (preferred == "anthropic" and bool(cfg.anthropic_token))
+        or (preferred is None and bool(cfg.anthropic_token))
+        or (preferred == "mammouth" and not cfg.mammouth_token and bool(cfg.anthropic_token))
+    )
 
     async def generate():
         try:
-            if cfg.provider == "anthropic" and cfg.anthropic_token:
+            if use_anthropic and cfg.anthropic_token:
                 async for chunk in stream_anthropic(
-                    req.message, req.history, system, cfg.anthropic_token
+                    req.message, req.history, system, cfg.anthropic_token,
+                    model=anthropic_model,
                 ):
                     yield chunk
             elif cfg.mammouth_token:
                 async for chunk in stream_openai_compat(
                     req.message, req.history, system,
                     cfg.mammouth_token, cfg.mammouth_base_url,
+                    model=mammouth_model,
                 ):
                     yield chunk
             else:
