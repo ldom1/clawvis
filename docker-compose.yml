@@ -68,6 +68,23 @@ services:
         "8091",
       ]
 
+  agent-service:
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
+    ports:
+      - "127.0.0.1:${AGENT_PORT:-8092}:8092"
+    env_file: .env
+    volumes:
+      - ./instances:/app/instances
+    environment:
+      - OPENCLAW_AVAILABLE=false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    labels:
+      - "app=clawvis"
+
   memory:
     image: ghcr.io/logseq/logseq-webapp:latest
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
