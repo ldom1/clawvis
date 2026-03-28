@@ -1117,6 +1117,7 @@ function renderProjectPage(projectSlug) {
         <button class="btn" id="archive-project-btn" type="button">${fr ? "Archiver le projet" : "Archive project"}</button>
         <button class="btn" id="delete-project-btn" type="button" style="border-color:#ef4444;color:#ef4444;">${fr ? "Supprimer le projet" : "Delete project"}</button>
       </div>
+      <div id="project-endpoint-bar" class="project-endpoint-bar" hidden></div>
       <div class="project-header-block" id="project-header-block">
         <div class="project-header-collapsible" id="project-header-collapsible">
           <div class="project-sheet-card tile project-sheet-top">
@@ -1645,13 +1646,22 @@ async function loadProjects() {
     const card = document.createElement("a");
     card.href = `/project/${encodeURIComponent(project.slug)}`;
     card.className = "card card-project";
-    const tags = (project.tags || [])
-      .map((t) => `<span class="chip">${t}</span>`)
-      .join("");
+    const hue = projectAvatarHue(project.slug);
     const logoBlock = project.has_logo
       ? `<div class="card-project-logo"><img src="/api/hub/kanban/hub/projects/${encodeURIComponent(project.slug)}/logo?v=${v}" alt="" loading="lazy" /></div>`
-      : "";
-    const main = `<div class="card-project-main"><div class="title">${escapeHtml(project.name)} · ${escapeHtml(project.stage || "PoC")}</div><div class="desc">${escapeHtml(project.description || "")}</div>${tags ? `<div class="chips">${tags}</div>` : ""}</div>`;
+      : `<div class="card-project-logo" style="padding:0"><div class="card-project-logo-initials" style="--avatar-h:${hue}">${escapeHtml(projectInitials(project.name))}</div></div>`;
+    const stage = project.stage || "PoC";
+    const tmpl = (project.template || "").toLowerCase();
+    const typeChip =
+      tmpl && tmpl !== "empty"
+        ? `<span class="card-project-type-chip">${escapeHtml(tmpl)}</span>`
+        : "";
+    const stageChip = `<span class="chip">${escapeHtml(stage)}</span>`;
+    const userTags = (project.tags || [])
+      .map((t) => `<span class="chip">${escapeHtml(t)}</span>`)
+      .join("");
+    const chipsRow = [typeChip, stageChip, userTags].filter(Boolean).join("");
+    const main = `<div class="card-project-main"><div class="title">${escapeHtml(project.name)}</div><div class="desc">${escapeHtml(project.description || "")}</div><div class="chips" style="margin-top:6px">${chipsRow}</div></div>`;
     card.innerHTML = `<div class="card-project-row">${logoBlock}${main}</div>`;
     grid.appendChild(card);
   });
@@ -1710,6 +1720,31 @@ async function wireProjectPage() {
   }
   document.getElementById("project-subtitle").textContent =
     project.name || slug;
+
+  // Endpoint bar — show repo_path + run command
+  const endpointBar = document.getElementById("project-endpoint-bar");
+  if (endpointBar && project.repo_path) {
+    const cmd = projectDevRunCommand(project.template, project.repo_path);
+    endpointBar.hidden = false;
+    endpointBar.innerHTML = `
+      <span class="project-endpoint-label">${fr ? "Chemin" : "Path"}</span>
+      <code class="project-endpoint-path">${escapeHtml(project.repo_path)}</code>
+      <span class="project-endpoint-sep">·</span>
+      <span class="project-endpoint-label">${fr ? "Lancer" : "Run"}</span>
+      <code class="project-endpoint-cmd">${escapeHtml(cmd)}</code>
+      <button class="btn project-endpoint-copy" type="button" title="${fr ? "Copier la commande" : "Copy run command"}" data-cmd="${escapeHtml(cmd)}">⎘</button>
+    `;
+    endpointBar
+      .querySelector(".project-endpoint-copy")
+      ?.addEventListener("click", (e) => {
+        const c = e.currentTarget.dataset.cmd;
+        navigator.clipboard?.writeText(c);
+        e.currentTarget.textContent = "✓";
+        setTimeout(() => {
+          e.currentTarget.textContent = "⎘";
+        }, 1500);
+      });
+  }
   const major = payload.major || {};
   const descEl = document.getElementById("pm-description");
   const stratEl = document.getElementById("pm-strategy");
@@ -2642,13 +2677,19 @@ function wireSystemStatus() {
       if (labelEl)
         labelEl.textContent = labels[activeProvider] || activeProvider || "";
       if (ctaEl) ctaEl.textContent = t.runtimeBannerChange;
-      if (banner) banner.classList.remove("runtime-unconfigured");
+      if (banner) {
+        banner.classList.remove("runtime-unconfigured");
+        banner.classList.add("runtime-configured");
+      }
     } else {
       statusEl.className = "ai-runtime-status-badge warn";
       statusEl.textContent = t.runtimeBannerNotConfigured;
       if (labelEl) labelEl.textContent = "";
       if (ctaEl) ctaEl.textContent = t.runtimeBannerCta;
-      if (banner) banner.classList.add("runtime-unconfigured");
+      if (banner) {
+        banner.classList.add("runtime-unconfigured");
+        banner.classList.remove("runtime-configured");
+      }
     }
   }
   refreshRuntimeBanner();
