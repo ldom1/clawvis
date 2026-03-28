@@ -111,13 +111,14 @@ async def chat(req: ChatRequest):
 class SessionRequest(BaseModel):
     message: str
     session_id: str | None = None
+    local: bool = True
 
 
 @router.post("/session")
 def start_session(req: SessionRequest):
     if not openclaw_available():
         raise HTTPException(status_code=503, detail="OpenClaw not available")
-    result = run_agent_session(req.message, req.session_id)
+    result = run_agent_session(req.message, req.session_id, local=req.local)
     if not result.success:
         raise HTTPException(status_code=500, detail=result.error)
     return result.output

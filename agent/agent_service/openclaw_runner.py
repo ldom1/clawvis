@@ -58,10 +58,27 @@ def _run(args: list[str], timeout: int = 30) -> OpenClawResult:
         return OpenClawResult(success=False, output={}, error=str(exc))
 
 
-def run_agent_session(message: str, session_id: str | None = None) -> OpenClawResult:
+def run_agent_session(
+    message: str,
+    session_id: str | None = None,
+    local: bool = True,
+) -> OpenClawResult:
+    """Run an agent turn via openclaw CLI.
+
+    ``local=True`` (default) uses ``--local`` (embedded, no gateway required).
+    ``local=False`` routes through the OpenClaw gateway; requires a session-id.
+    """
     args = ["agent", "--message", message, "--json"]
-    if session_id:
+    if local:
+        args.append("--local")
+    elif session_id:
         args += ["--session-id", session_id]
+    else:
+        return OpenClawResult(
+            success=False,
+            output={},
+            error="gateway mode requires a session-id",
+        )
     return _run(args, timeout=120)
 
 
