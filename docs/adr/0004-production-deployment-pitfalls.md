@@ -124,9 +124,90 @@ docker compose -f docker-compose.yml -f instances/ldom/docker-compose.override.y
 
 ---
 
+---
+
+## Pitfall 6 — `Path.home()` returns `/` in container (HOME not set)
+
+### Problem
+`logs_api.py` uses `Path.home() / ".openclaw" / "logs" / "dombot.jsonl"` to find the log file. Inside Docker, if `HOME` is not set in the container environment, `Path.home()` returns `/` — the log path becomes `/.openclaw/logs/dombot.jsonl` which doesn't exist. Result: the Logs view always shows "0 logs found".
+
+### Fix
+In `instances/ldom/docker-compose.override.yml`, add to kanban-api:
+
+```yaml
+kanban-api:
+  volumes:
+    - /home/lgiron/.openclaw/logs:/home/lgiron/.openclaw/logs:ro
+  environment:
+    - HOME=/home/lgiron
+```
+
+### Rule
+**Any container that uses `Path.home()` or reads host user files MUST have `HOME` explicitly set in its environment and the relevant host paths mounted.**
+
+---
+
+## Pitfall 7 — `hub_settings.json projects_root` points to non-existent container path
+
+### Problem
+`hub_settings.json` contained `"projects_root": "/clawvis/instances/ldom/projects"` — a path inside the container that was never created. `list_projects()` silently returns `[]` when `projects_root` doesn't exist. Result: the Hub Projects view shows 0 projects even though real project directories exist on the host.
+
+On Dombot, the actual project directories live at `/home/lgiron/Lab/project/` (brain-pulse, debate-arena, messidor, optimizer-arena, plume, real-estate, techspend).
+
+### Fix
+Update `instances/ldom/memory/kanban/hub_settings.json` with the real host path, and mount it in the kanban-api container:
+
+```json
+{"projects_root": "/home/lgiron/Lab/project", "instances_external_root": "", "linked_instances": []}
+```
+
+```yaml
+kanban-api:
+  volumes:
+    - /home/lgiron/Lab/project:/home/lgiron/Lab/project:ro
+```
+
+### Rule
+**After any `clawvis install`, verify `hub_settings.json projects_root` points to a real path accessible inside the container. Default value (`/clawvis/instances/ldom/projects`) is a placeholder — update it during instance setup.**
+
+---
+
+## Pitfall 8 — Direct URL access to Hub SPA sub-paths returns nginx 404
+
+### Problem
+The Hub SPA routes internally via hash (`/hub/#/chat`, `/hub/#/logs`, etc.). Users or external links hitting `https://lab.dombot.tech/chat/` directly get a nginx 404 because no location block exists for `/chat/`. This is a common surprise after a successful deployment — everything works from the Hub home, but direct URLs fail.
+
+### Fix
+Add redirect location blocks in the nginx template for each SPA sub-path that might be accessed directly:
+
+```nginx
+location = /chat  { return 301 /hub/#/chat; }
+location = /chat/ { return 301 /hub/#/chat; }
+```
+
+### Rule
+**For every SPA route that may be linked externally, add a nginx redirect to the Hub hash route. Add them to the nginx template at deploy time, not reactively.**
+
+---
+
 ## Consequences
 
 - `instances/ldom/docker-compose.override.yml` now contains explicit volume mounts for kanban-api and hub-memory-api
-- nginx template has location blocks for `/assets/` and root static files
+- kanban-api has `HOME=/home/lgiron` + openclaw logs + project dir mounts
+- nginx template has location blocks for `/assets/`, root static files, and `/chat/` redirect
+- `hub_settings.json projects_root` must be set to real host path during instance setup
 - `envsubst` usage in all scripts must use `export` + explicit variable list
 - Deploy checklist (see `docs/guides/deploy-checklist.md`) must include a rebuild step
+
+## Summary table (all pitfalls)
+
+| # | Symptom | Cause | Fix |
+|---|---------|-------|-----|
+| 1 | 500 Kanban/Memory | Broken Docker symlink | Volume override direct mount |
+| 2 | Black page | Vite `/assets/` not routed by nginx | `location /assets/` before `/hub/` |
+| 3 | Logo 404 | `hub/public/` root files not routed | nginx regex location for root statics |
+| 4 | nginx HUP silent fail | envsubst without export + without scope | `export` + scoped envsubst |
+| 5 | Black page (again) | Container not rebuilt after JS changes | `build` + `up --force-recreate` |
+| 6 | 0 logs | `Path.home()` = `/` in container | `HOME=/home/lgiron` + openclaw logs mount |
+| 7 | 0 projects | `projects_root` path doesn't exist | Update `hub_settings.json` + mount real dir |
+| 8 | `/chat/` 404 | No nginx location for SPA sub-paths | nginx redirect `location /chat/ → /hub/#/chat` |
