@@ -7,7 +7,8 @@ services:
   hub:
     build: ./hub
     ports:
-      - "127.0.0.1:${HUB_PORT:-8088}:80"
+      # HUB_HOST=127.0.0.1 (default) = localhost-only; HUB_HOST=0.0.0.0 = LAN/Tailscale without host nginx
+      - "${HUB_HOST:-127.0.0.1}:${HUB_PORT:-8088}:80"
     env_file: .env
     tmpfs:
       - /tmp

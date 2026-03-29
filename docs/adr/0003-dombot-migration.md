@@ -1,7 +1,7 @@
 # ADR-0003 — Migration Dombot : Clawpilot → Clawvis
 
 **Date :** 2026-03-27
-**Statut :** En cours — pré-migration snapshot
+**Statut :** Pré-migration snapshot (historique) — pour le routage public actuel (**`lab.dombot.tech`** vs landing **`clawvis.fr`**) et **`HUB_HOST`**, voir **[guides/dombot-edge-routing.md](../guides/dombot-edge-routing.md)**.
 **Auteur :** audit automatisé Phase 1.5.1
 
 ## Contexte

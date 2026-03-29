@@ -44,3 +44,14 @@ Active brain memory root is resolved by `hub_core.brain_memory.active_brain_memo
 Priority: instance whose `memory/` dir matches `MEMORY_ROOT` → first instance alphabetically → fallback to `MEMORY_ROOT`.
 
 Quartz build output (`quartz/public/`) is served via `/api/hub/memory/quartz-static/{path}` with `<base>` tag injection for correct relative asset resolution.
+
+## Public edge (Dombot-style): `lab.dombot.tech` vs marketing
+
+Production homelab setups may put **one host nginx** on **`0.0.0.0:8088`** (generated from **`instances/<instance>/nginx/nginx.conf`**) in front of the **Docker Hub** bound to **`127.0.0.1`** on a **different** port (e.g. **8089**). That splits:
+
+- **`www.clawvis.fr`** → static **clawvis-landing** (`dist/`)
+- **`lab.dombot.tech`** → Hub SPA + APIs + **Authelia**
+
+This path is **not** `clawvis start` (host Vite dev). See **[guides/dombot-edge-routing.md](./guides/dombot-edge-routing.md)**.
+
+Docker publish: **`HUB_HOST`** + **`HUB_PORT`** in root **`docker-compose.yml`** (see **`.env.example`**).
