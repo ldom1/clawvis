@@ -46,6 +46,16 @@ Copy **`HUB_HOST`** from **`.env.example`**. Default **`127.0.0.1`** is safe for
 - After reboot, **regenerate** `nginx-active.conf` and start host nginx if you rely on it (user-run master is common); **`lab-authelia`** can use Docker **`restart: unless-stopped`**.
 - Front proxy must send **`X-Forwarded-Proto: https`** when Authelia issues redirects, or login redirects may show `http://` links.
 
+## Instance nginx: `projects.d` includes
+
+The lab `server` block may contain:
+
+```nginx
+include .../instances/<instance>/nginx/projects.d/*.conf;
+```
+
+If that directory has **no** `*.conf` files, nginx can **fail to start** (empty glob). Keep at least one valid snippet (e.g. a tiny `location` in `00-placeholder.conf`) until `project-launch.sh` generates real routes.
+
 ## See also
 
 - [ADR 0003](../adr/0003-dombot-migration.md) — historical pre-migration snapshot (ports/routes evolved).
