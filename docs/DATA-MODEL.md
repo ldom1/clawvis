@@ -2,7 +2,7 @@
 
 > Modèle de données de référence Clawvis. Formalise les états, cycles de vie et paramètres configurables.
 > Toute implémentation doit s'y conformer.
-> Pour les workflows qui utilisent ces états → `docs/GOAL.md`
+> Pour les workflows qui utilisent ces états → `GOAL.md`
 
 ---
 
