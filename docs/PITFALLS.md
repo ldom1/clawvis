@@ -1,0 +1,96 @@
+# docs/PITFALLS.md
+
+> Bugs connus, dettes techniques et points de friction documentés.
+> Mis à jour à chaque session de debug significative.
+> Pour l'architecture → `docs/ARCHITECTURE.md`
+
+---
+
+## Pitfalls production (ADR 0004)
+
+| # | Symptôme | Cause | Fix |
+|---|----------|-------|-----|
+| 1 | 500 Kanban/Memory | Symlink Docker cassé | Volume override explicit dans `docker-compose.override.yml` |
+| 2 | Page noire | Vite `/assets/` non routé par nginx | Bloc `location /assets/` AVANT `/hub/` |
+| 3 | Logo 404 | `hub/public/` fichiers root non routés | nginx regex location pour root statics |
+| 4 | nginx HUP silencieux | `envsubst` sans export + sans scope | `export` + scope explicite |
+| 5 | Page noire (encore) | Container non rebuild après JS changes | `build` + `up --force-recreate` |
+| 6 | 0 logs | `Path.home()` = `/` si `HOME` absent | `HOME=/home/lgiron` + volume logs openclaw |
+| 7 | 0 projets | `projects_root` = chemin inexistant | Corriger le chemin + volume mount |
+| 8 | `/chat/` inaccessible | Hash routing vs pathname SPA | Proxy `location /chat/` → clawvis_hub |
+| 9 | OpenClaw Node v22+ | `setup_20.x` non supporté | `setup_22.x` dans Dockerfile |
+| 10 | EACCES UID 1000 | State files hôte | `user: root` + mount identique |
+| 11 | Port 8092 conflit | `spendlens_api` sur 8092 | `AGENT_PORT=8093` dans `.env` |
+| 12 | Chat `[CLAWVIS:AUTH]` | Tokens OAuth, pas API keys | `preferred_provider=openclaw` dans agent-config.json |
+| 13 | `/project/<slug>` 404 | `location /project/` manquant nginx | Ajouté dans template 2026-03-28 |
+| 14 | Containers sans override | `docker compose up` sans override → symlink cassé | Toujours lancer avec `-f instances/ldom/docker-compose.override.yml` |
+| 15 | Cron `Channel is required` | Pas de canal par défaut | `"channel": "telegram"` dans delivery des jobs |
+| 16 | Runtime banner toujours visible | SPA ignorait l'état backend | Chip collapsible vert quand configuré |
+| 17 | Nginx route orpheline après delete projet | `_cleanup_nginx_route()` inactif sans env var | Actif si `NGINX_PROJECTS_D` défini |
+
+---
+
+## Bugs corrigés — session 2026-03-28
+
+1. **hub-core pylint E0211** : `setup_runtime.py:21` — `get_providers()` manquait `@staticmethod` → corrigé
+2. **Hub Prettier** : `src/main.js`, `src/style.css`, `vite.config.js` non formatés → corrigé (`yarn --cwd hub format`)
+3. **install.sh — `rg` non-standard** : `migrate_memory_if_needed` utilisait `rg` → remplacé par `find`
+4. **install.sh — Docker sans message utile** : Erreur vague → message clair avec lien install + `docker info`
+5. **install.sh — Node version** : Aucune vérification → guard Node >= 18 ajouté
+6. **install.sh — yarn absent en dev mode** : Pas de fallback → `corepack enable` automatique
+7. **docker-compose.yml — label obsolète** : `app=clawpilot` → `app=clawvis`
+8. **hub/src/main.js — compteur services** : `/openclaw/` comptabilisé "down" → marqué `optional: true`
+9. **hub/src/main.js — i18n FR accents** : `"Parametres"` → `"Paramètres"`, `"A configurer"` → `"À configurer"`, etc.
+
+---
+
+## Points de friction non résolus (priorité)
+
+### Critique — bloque le mode Franc
+
+**Kanban API absent du docker-compose**
+En mode `docker` (mode Franc), le tableau Kanban est inutilisable : tous les appels `/api/kanban/*` retournent 404.
+→ Fix : ajouter service `kanban-api` basé sur `hub-core` au docker-compose + proxy nginx dans conteneur hub.
+
+### Important
+
+**Quartz Brain build**
+`scripts/build-quartz.sh` dépend d'un submodule optionnel. Si absent, le Brain n'affiche rien sans message d'erreur clair.
+→ Fix : dégradation gracieuse — afficher le renderer Python léger si Quartz absent.
+
+**`clawvis setup provider` non implémenté**
+Commande CLI post-install pour configurer le provider depuis le terminal. Mentionnée dans CLAUDE.md mais inexistante.
+→ Fix : implémenter dans `clawvis-cli/` comme commande post-install.
+
+### Mineur
+
+**`clawvis skills sync` (Phase 2A.7)**
+Symlinks skills OpenClaw non synchronisés automatiquement. Doit rendre les skills disponibles dans le chat.
+→ Prochaine étape avant Phase 2B.
+
+---
+
+## Audit technique — 2026-03-24
+
+> Extrait des findings techniques sur la dette d'architecture.
+
+**Gap architecture réelle du stack :**
+- Dev mode : Vite sur `HUB_PORT`, proxy Vite `/api/kanban/*` → Kanban API uvicorn (8090)
+- Docker mode : nginx sert `hub/dist/`. **Kanban API non présente dans docker-compose** — gap critique
+- Brain = Logseq web app (`ghcr.io/logseq/logseq-webapp`) sur `MEMORY_PORT` — embed iframe
+
+**Règles d'outillage à ne pas oublier :**
+- Hub → Yarn Berry 4 uniquement (`yarn --cwd hub`) — jamais npm
+- CLI → npm (`npm ci`)
+- Kanban API + hub-core → uv uniquement — jamais pip
+- CI gate → `bash tests/ci-all.sh` retourne 0 avant tout merge
+
+---
+
+## Template : ajouter un pitfall
+
+```markdown
+| N | <symptôme observable> | <cause racine> | <fix appliqué ou à appliquer> |
+```
+
+Règle : un pitfall documenté = symptôme + cause + fix. Pas de "à investiguer" sans au moins la cause suspectée.
