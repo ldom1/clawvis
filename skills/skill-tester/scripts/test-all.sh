@@ -13,6 +13,8 @@
 # Logger (dombot-log): LOGGER_CORE_OVERRIDE or first existing .../logger/core under roots / Lab / .openclaw
 set -uo pipefail
 
+export PATH="${HOME}/.local/bin:${HOME}/.cargo/bin:${HOME}/bin:${HOME}/.npm-global/bin:${PATH}"
+
 SKILL_FILTER="${1:-}"
 PASS=0
 FAIL=0
@@ -172,23 +174,25 @@ done
 
 echo
 bold "── Slack connectivity ──────────────────"
-slack_found=0
+discord_found=0
 for SK_ROOT in "${SKILL_ROOTS_ARR[@]}"; do
-  if [[ -f "${SK_ROOT}/logger/scripts/slack-check.sh" ]]; then
-    slack_found=1
-    output=$(bash "${SK_ROOT}/logger/scripts/slack-check.sh" 2>&1)
-    if echo "$output" | grep -q "OK\|configured"; then
-      green "✅ Slack config OK"
-      REPORT+=("✅ Slack config OK")
+  for check in discord-check.sh slack-check.sh; do
+    p="${SK_ROOT}/logger/scripts/${check}"
+    [[ -f "$p" ]] || continue
+    discord_found=1
+    output=$(bash "$p" 2>&1)
+    if echo "$output" | grep -qiE "ok|configured|token =|set\)"; then
+      green "✅ Logger / Discord check (${check})"
+      REPORT+=("✅ Logger discord-check")
     else
-      yellow "⚠️  Slack: $(echo "$output" | head -2)"
-      REPORT+=("⚠️  Slack not fully configured")
+      yellow "⚠️  Logger: $(echo "$output" | head -2)"
+      REPORT+=("⚠️  Logger check inconclusive")
     fi
-    break
-  fi
+    break 2
+  done
 done
-if [[ "$slack_found" -eq 0 ]]; then
-  yellow "⚠️  logger skill not found under roots"
+if [[ "$discord_found" -eq 0 ]]; then
+  yellow "⚠️  logger/scripts/discord-check.sh not found under roots"
 fi
 
 # ── Summary ────────────────────────────────────────────────────────────────

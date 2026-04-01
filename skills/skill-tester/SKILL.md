@@ -29,7 +29,7 @@ bash …/test-all.sh --list
 | Vérification | Comment |
 |---|---|
 | Tests unitaires Python | `uv run pytest tests/ -q` dans chaque `core/` |
-| Connectivité Slack | `logger/scripts/slack-check.sh` |
+| Connectivité Discord (logger) | `logger/scripts/discord-check.sh` (ou `slack-check.sh` si présent) |
 
 ### Skills avec tests actifs
 
