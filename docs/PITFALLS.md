@@ -34,6 +34,7 @@
 | 22 | `collect.sh` / crons skills : *Commande non autorisée* (OpenClaw) | Politique d’exécution / allowlist des **tools** ou du **shell** côté passerelle qui bloque `uv`, `curl`, `bash`, chemins hors liste | Vérifier `openclaw doctor` et la config cron **tools** (OpenClaw 2026.x) ; préférer jobs **`exec`** / script shell direct sur la machine plutôt que tout passer par un tour agent si la policy est stricte |
 | 23 | `skill-tester` : 0 tests, `~/.openclaw/skills` vide | Après **`clawvis skills sync`** (extraDirs), il n’y a plus de copies/symlinks sous `~/.openclaw/skills` | Lancer avec **`CLAWVIS_ROOT=$HOME/Lab/clawvis INSTANCE_NAME=dombot`** (ou **`SKILL_TEST_ROOTS="…/skills …/instances/dombot/skills"`**) : `bash skills/skill-tester/scripts/test-all.sh` |
 | 24 | **500** sur tout le lab (`lab.dombot.tech` / `:8088`) | **`auth_request` Authelia → 400** : `X-Original-URL` en **`http://`** alors que le TLS est au reverse proxy (nginx local voit `$scheme` = http) | Template `instances/dombot/nginx/nginx.conf` : **`https`** forcé pour Authelia + **`map`** `lab_x_forwarded_proto` vers le Hub ; `render-nginx.sh --reload` |
+| 25 | **500** après correctif #24 ; logs Authelia **« authelia url lookup failed »** | **AuthRequest** ne déduit plus l’URL du portail si **`session.cookies[]` + `authelia_url`** manquent (upgrade 4.38+) | **`configuration.yml`** : `session.cookies` avec `authelia_url: https://lab.dombot.tech/authelia/` ; **ou** nginx : `proxy_pass …/auth-request?authelia_url=https://$host/authelia/;` (déjà dans le template) |
 
 ---
 

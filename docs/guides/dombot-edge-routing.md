@@ -50,6 +50,7 @@ Copy **`HUB_HOST`** from **`.env.example`**. Default **`127.0.0.1`** is safe for
 - After reboot, **regenerate** `nginx-active.conf` and start host nginx if you rely on it (user-run master is common); **`lab-authelia`** can use Docker **`restart: unless-stopped`**.
 - Front proxy must send **`X-Forwarded-Proto: https`** when Authelia issues redirects, or login redirects may show `http://` links.
 - **Authelia ≥4.39** rejects **`X-Original-URL`** with scheme **`http://`** (auth subrequest returns **400** → nginx **500**). The Dombot template forces **`https`** for that header on `lab.dombot.tech` (TLS at edge; local `:8088` is plain HTTP) and maps **`X-Forwarded-Proto`** for the Hub.
+- **Authelia ≥4.38** expects **`session.cookies[]`** with **`authelia_url`** for forward auth metadata. Without it, **`auth-request`** can log **« authelia url lookup failed »** and nginx returns **500**. The edge template appends **`?authelia_url=https://$host/authelia/`** to the Authelia subrequest so the portal URL is known even if the YAML still uses deprecated **`session.domain`** only.
 
 ## Instance nginx: `projects.d` includes
 
