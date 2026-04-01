@@ -567,7 +567,7 @@ const skillsCmd = program
 skillsCmd
   .command("sync")
   .description(
-    "Merge paths into ~/.openclaw/openclaw.json, drop managed symlinks, systemctl restart user gateway",
+    "Patch openclaw.json extraDirs (jq), drop managed symlinks, openclaw gateway restart + skills list + doctor",
   )
   .action(() => runLegacy(["skills", "sync"]));
 

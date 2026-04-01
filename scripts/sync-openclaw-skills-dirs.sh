@@ -1,55 +1,39 @@
 #!/usr/bin/env bash
 # Wire Clawvis skill trees into OpenClaw via skills.load.extraDirs (no symlinks under ~/.openclaw/skills).
-# Env: ROOT_DIR (clawvis repo), INSTANCE_NAME (optional), OPENCLAW_CONFIG (optional), NO_RESTART=1 to skip systemd.
+# Env: ROOT_DIR, INSTANCE_NAME (optional), OPENCLAW_CONFIG (optional), NO_RESTART=1 to skip gateway/doctor.
+# Needs: jq (merge JSON). openclaw on PATH or ~/.npm-global/bin.
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:?ROOT_DIR required}"
 INSTANCE_NAME="${INSTANCE_NAME:-example}"
-export ROOT_DIR INSTANCE_NAME
 OPENCLAW_CONFIG="${OPENCLAW_CONFIG:-${HOME}/.openclaw/openclaw.json}"
-export OPENCLAW_CONFIG
 MANAGED_SKILLS="${HOME}/.openclaw/skills"
+export PATH="${HOME}/.npm-global/bin:${PATH}"
 
 log() { printf "==> %s\n" "$1"; }
 warn() { printf "[warn] %s\n" "$1"; }
+die() { printf "[error] %s\n" "$1" >&2; exit 1; }
 
 if [[ ! -f "${OPENCLAW_CONFIG}" ]]; then
   log "No OpenClaw config at ${OPENCLAW_CONFIG} — skip (nothing to update)."
   exit 0
 fi
 
-mapfile -t dirs < <(python3 <<'PY'
-import json
-import os
-import sys
-from pathlib import Path
+command -v jq >/dev/null 2>&1 || die "jq is required (e.g. apt install jq / brew install jq) to patch openclaw.json"
 
-root = Path(os.environ["ROOT_DIR"])
-inst_name = os.environ["INSTANCE_NAME"]
-cfg_path = Path(os.environ["OPENCLAW_CONFIG"])
+declare -a dirs=()
+_core="${ROOT_DIR}/skills"
+_inst="${ROOT_DIR}/instances/${INSTANCE_NAME}/skills"
+[[ -d "${_core}" ]] && dirs+=("$(cd "${_core}" && pwd)")
+[[ -d "${_inst}" ]] && dirs+=("$(cd "${_inst}" && pwd)")
+[[ ${#dirs[@]} -eq 0 ]] && die "No skill dirs: ${_core} or ${_inst}"
 
-out: list[str] = []
-core = root / "skills"
-ins = root / "instances" / inst_name / "skills"
-if core.is_dir():
-    out.append(str(core.resolve()))
-if ins.is_dir():
-    out.append(str(ins.resolve()))
-if not out:
-    sys.stderr.write(
-        "no Clawvis skill directories found (skills/ or instances/<INSTANCE>/skills/)\n"
-    )
-    raise SystemExit(1)
-
-data = json.loads(cfg_path.read_text(encoding="utf-8"))
-skills = data.setdefault("skills", {})
-load = skills.setdefault("load", {})
-load["extraDirs"] = out
-cfg_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-for d in out:
-    print(d)
-PY
-)
+_extra_json="$(jq -n '$ARGS.positional' --args "${dirs[@]}")"
+_tmp="${OPENCLAW_CONFIG}.$$.$RANDOM"
+jq --argjson extra "${_extra_json}" \
+  '.skills = (.skills // {}) | .skills.load = (.skills.load // {}) | .skills.load.extraDirs = $extra' \
+  "${OPENCLAW_CONFIG}" >"${_tmp}"
+mv "${_tmp}" "${OPENCLAW_CONFIG}"
 
 log "Updated ${OPENCLAW_CONFIG} — skills.load.extraDirs:"
 for d in "${dirs[@]}"; do printf '    %s\n' "$d"; done
@@ -65,18 +49,20 @@ if [[ -d "${MANAGED_SKILLS}" ]]; then
 fi
 
 if [[ "${NO_RESTART:-0}" == "1" ]]; then
-  log "NO_RESTART=1 — start OpenClaw gateway yourself if needed."
+  log "NO_RESTART=1 — run: openclaw gateway restart && openclaw skills list && openclaw doctor"
   exit 0
 fi
 
-if command -v systemctl >/dev/null 2>&1 && systemctl --user show openclaw-gateway.service &>/dev/null; then
-  if systemctl --user is-active openclaw-gateway.service &>/dev/null; then
-    log "Restarting openclaw-gateway (user)…"
-    systemctl --user restart openclaw-gateway.service
-  else
-    log "Starting openclaw-gateway (user)…"
-    systemctl --user start openclaw-gateway.service || warn "systemctl start failed"
-  fi
-else
-  warn "No user systemd unit openclaw-gateway.service — restart gateway manually."
+if ! command -v openclaw >/dev/null 2>&1; then
+  warn "openclaw not found (PATH / ~/.npm-global/bin) — run: openclaw gateway restart && openclaw skills list && openclaw doctor"
+  exit 0
 fi
+
+log "openclaw skills list…"
+openclaw skills list || warn "openclaw skills list failed"
+
+log "openclaw doctor…"
+openclaw doctor || warn "openclaw doctor failed"
+
+log "openclaw gateway restart…"
+openclaw gateway restart || warn "openclaw gateway restart failed"
