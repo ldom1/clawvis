@@ -29,6 +29,7 @@
 | 17 | Nginx route orpheline après delete projet | `_cleanup_nginx_route()` inactif sans env var | Actif si `NGINX_PROJECTS_D` défini |
 | 18 | Kanban / Logs / Settings sans changements SPA | `location /kanban/` + `/settings/` en `alias` vers `instances/dombot/public/` | `nginx/nginx.conf` : `proxy_pass` Hub + `include …/snippets/spa-hub-prefixes.conf` (`^~` sur les préfixes SPA, **avant** `projects.d`) ; `scripts/render-nginx.sh` |
 | 19 | `500` sur `/hub/` | Vieux `location /hub/` + `alias` ou chemin invalide ; l’UI est à `/` | `spa-hub-prefixes.conf` + `hub/nginx.conf` : `^~ /hub/` → redirect 301 vers `/` ou `/…` ; supprimer tout `alias` résiduel dans `projects.d` |
+| 20 | Crons OpenClaw (ex. hub-refresh 1h) ne partent pas | **`openclaw-gateway`** en échec (restart en boucle) — config invalide après upgrade CLI | `journalctl --user -u openclaw-gateway.service` ; `PATH=~/.npm-global/bin:$PATH openclaw doctor --fix` ; vérifier `systemctl --user status openclaw-gateway` **active (running)** stable |
 
 ---
 
