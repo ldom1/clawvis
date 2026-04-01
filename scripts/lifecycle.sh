@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# ROOT_DIR may be preset by install.sh / clawvis / ssh+zsh callers before sourcing.
+if [ -z "${ROOT_DIR:-}" ]; then
+  if [ -n "${BASH_SOURCE[0]:-}" ]; then
+    ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  else
+    echo "lifecycle.sh: export ROOT_DIR=<Clawvis repo> before sourcing, or run under bash." >&2
+    exit 1
+  fi
+fi
 ENV_FILE="${ROOT_DIR}/.env"
 
 load_env_file() {
@@ -49,8 +57,21 @@ ensure_yarn() {
   if command -v yarn >/dev/null 2>&1; then
     return 0
   fi
+  # Yarn shim not always on PATH; corepack yarn still works.
+  if corepack yarn --version >/dev/null 2>&1; then
+    return 0
+  fi
   echo "Missing yarn after corepack bootstrap. Try: corepack enable && corepack prepare yarn@$(_hub_yarn_pin) --activate" >&2
   exit 1
+}
+
+# Prefer real yarn when on PATH; else delegate to corepack (after ensure_yarn).
+_clawvis_yarn() {
+  if command -v yarn >/dev/null 2>&1; then
+    command yarn "$@"
+  else
+    corepack yarn "$@"
+  fi
 }
 
 init_instance_memory() {
@@ -61,17 +82,17 @@ init_instance_memory() {
 rebuild_hub_yarn() {
   ensure_yarn
   if [ -n "${CLAWVIS_QUIET_START:-}" ]; then
-    if ! yarn --cwd "${ROOT_DIR}/hub" install --immutable --silent >/dev/null 2>&1; then
+    if ! _clawvis_yarn --cwd "${ROOT_DIR}/hub" install --immutable --silent >/dev/null 2>&1; then
       echo "[clawvis] hub: yarn install a échoué (lance cd hub && yarn install)" >&2
       exit 1
     fi
-    if ! yarn --cwd "${ROOT_DIR}/hub" build >/dev/null 2>&1; then
+    if ! _clawvis_yarn --cwd "${ROOT_DIR}/hub" build >/dev/null 2>&1; then
       echo "[clawvis] hub: vite build a échoué (lance cd hub && yarn build)" >&2
       exit 1
     fi
   else
     echo "Rebuilding hub dependencies and bundle with yarn..."
-    yarn --cwd "${ROOT_DIR}/hub" install --immutable
-    yarn --cwd "${ROOT_DIR}/hub" build
+    _clawvis_yarn --cwd "${ROOT_DIR}/hub" install --immutable
+    _clawvis_yarn --cwd "${ROOT_DIR}/hub" build
   fi
 }
