@@ -2250,9 +2250,8 @@ async function wireLogs() {
     const kd = document.getElementById("kpi-debug");
     if (kd)
       kd.textContent = String(
-        allLogs.filter(
-          (l) => (l.level || "INFO").toUpperCase() === "DEBUG",
-        ).length,
+        allLogs.filter((l) => (l.level || "INFO").toUpperCase() === "DEBUG")
+          .length,
       );
     renderRows(filtered);
   }
