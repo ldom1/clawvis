@@ -27,6 +27,7 @@
 | 15 | Cron `Channel is required` | Pas de canal par défaut | `"channel": "telegram"` dans delivery des jobs |
 | 16 | Runtime banner toujours visible | SPA ignorait l'état backend | Chip collapsible vert quand configuré |
 | 17 | Nginx route orpheline après delete projet | `_cleanup_nginx_route()` inactif sans env var | Actif si `NGINX_PROJECTS_D` défini |
+| 18 | Kanban / Logs sans changements SPA | `location /kanban/` + `/settings/` en `alias` vers `instances/dombot/public/` | Template `instances/dombot/nginx/nginx.conf` : tout en `proxy_pass` vers `clawvis_hub` ; `scripts/render-nginx.sh` |
 
 ---
 

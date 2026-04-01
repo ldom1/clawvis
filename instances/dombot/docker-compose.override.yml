@@ -1,0 +1,6 @@
+# Dombot: Hub on 127.0.0.1:8089 for host nginx upstream `clawvis_hub` (see nginx/nginx.conf).
+# Usage: docker compose -f docker-compose.yml -f instances/dombot/docker-compose.override.yml up -d
+services:
+  hub:
+    ports:
+      - "127.0.0.1:8089:80"
