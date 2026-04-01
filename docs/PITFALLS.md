@@ -30,6 +30,7 @@
 | 18 | Kanban / Logs / Settings sans changements SPA | `location /kanban/` + `/settings/` en `alias` vers `instances/dombot/public/` | `nginx/nginx.conf` : `proxy_pass` Hub + `include …/snippets/spa-hub-prefixes.conf` (`^~` sur les préfixes SPA, **avant** `projects.d`) ; `scripts/render-nginx.sh` |
 | 19 | `500` sur `/hub/` | Vieux `location /hub/` + `alias` ou chemin invalide ; l’UI est à `/` | `spa-hub-prefixes.conf` + `hub/nginx.conf` : `^~ /hub/` → redirect 301 vers `/` ou `/…` ; supprimer tout `alias` résiduel dans `projects.d` |
 | 20 | Crons OpenClaw (ex. hub-refresh 1h) ne partent pas | **`openclaw-gateway`** en échec (restart en boucle) — config invalide après upgrade CLI | `journalctl --user -u openclaw-gateway.service` ; `PATH=~/.npm-global/bin:$PATH openclaw doctor --fix` ; vérifier `systemctl --user status openclaw-gateway` **active (running)** stable |
+| 21 | `doctor` : *Skipping skill path that resolves outside its configured root* (répété) | Symlinks `~/.openclaw/skills/<name>` → `Lab/clawvis/...` : la racine gérée est `~/.openclaw/skills`, OpenClaw ignore les cibles hors racine | Dans `~/.openclaw/openclaw.json` : `skills.load.extraDirs` = `[ "<LAB>/clawvis/skills", "<LAB>/clawvis/instances/dombot/skills" ]` ; **retirer** les symlinks sous `~/.openclaw/skills/` ; mettre à jour **`~/.openclaw/cron/jobs.json`** (messages / chemins) vers les mêmes chemins absolus pour les scripts, sinon les crons cassent |
 
 ---
 

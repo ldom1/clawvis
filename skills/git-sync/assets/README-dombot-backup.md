@@ -9,9 +9,9 @@ Dépôt miroir privé sur GitHub : configuration runtime **OpenClaw** (sans secr
 | `openclaw.json` | Config principale (agents, modèles, canaux). Les secrets sont des références ou absents du dépôt. |
 | `cron/jobs.json` | Crons OpenClaw (git-sync, kanban-implementer, etc.). |
 | `agents/` | État agents/sessions (fichiers volumineux — backup opérationnel). |
-| Skills réels | Vivent sous `~/.openclaw/skills/` (souvent liés au dépôt **Clawvis** via `clawvis skills sync`), pas tous dupliqués ici. |
+| Skills réels | Code source sous **`Lab/clawvis/skills/`** et **`Lab/clawvis/instances/dombot/skills/`**. OpenClaw ≥ 2026.4 : éviter les **symlinks** `~/.openclaw/skills/*` → hors racine (sinon `doctor` spamme *Skipping skill path…*) ; préférer **`skills.load.extraDirs`** dans `openclaw.json` + chemins **absolus** dans `cron/jobs.json`. |
 
-Le script `~/.openclaw/skills/git-sync/scripts/sync.sh` :
+Le script **`Lab/clawvis/skills/git-sync/scripts/sync.sh`** (via extraDirs ou ancien chemin `~/.openclaw/skills/git-sync/...`) :
 
 1. Copie `openclaw.json`, `cron/jobs.json` et `agents/` depuis `~/.openclaw/` vers `~/openclaw-dombot/`.
 2. Commit + push vers `origin` (GitHub CLI ou git).
@@ -38,7 +38,7 @@ Le script `~/.openclaw/skills/git-sync/scripts/sync.sh` :
    - Vérifier les `SecretRef` dans `openclaw.json`.
 
 4. **Skills Clawvis**  
-   - Cloner `Lab/clawvis`, exécuter `clawvis skills sync` (ou équivalent) pour recréer les liens `~/.openclaw/skills/*`.
+   - Cloner `Lab/clawvis`. Soit **`skills.load.extraDirs`** vers `…/clawvis/skills` et `…/clawvis/instances/dombot/skills` + crons avec chemins absolus (recommandé OpenClaw récent), soit symlinks `~/.openclaw/skills/*` (peut déclencher des avertissements `doctor`).
 
 5. **Redémarrer** le service OpenClaw / gateway selon ton installation.
 
