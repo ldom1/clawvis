@@ -53,6 +53,10 @@ sync_into_repo() {
       cp -r "$OPENCLAW/agents" "$REPO_DIR/agents"
     fi
   fi
+
+  if [[ -f "$SKILLS/git-sync/assets/README-dombot-backup.md" ]]; then
+    cp "$SKILLS/git-sync/assets/README-dombot-backup.md" "$REPO_DIR/README.md"
+  fi
 }
 
 do_push() {
@@ -108,7 +112,8 @@ sync_lab() {
 # ═══════════════════════════════════════════════════════════════
 
 sync_openclaw
-sync_lab
+# Lab sync may exit 1 when optional repos fail fetch (private/network); OpenClaw backup already succeeded.
+sync_lab || log "Lab git-sync finished with errors (see /tmp/lab-git-sync.log) — non-fatal"
 log "All done."
 uv run --directory ~/.openclaw/skills/logger/core \
   dombot-log "INFO" "cron:git-sync" "system" "sync:complete" "Git sync finished" 2>/dev/null || true

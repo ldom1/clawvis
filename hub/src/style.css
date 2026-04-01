@@ -1219,6 +1219,24 @@ select {
   background: #a855f7;
   box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.25);
 }
+.logs-summary-item .dot.gray-dot {
+  background: #6b7280;
+  box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.25);
+}
+.logs-summary-item.logs-kpi-filter {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0.12rem 0.4rem;
+  margin: -0.12rem -0.4rem;
+  transition: background 0.15s ease;
+}
+.logs-summary-item.logs-kpi-filter:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.logs-summary-item.logs-kpi-filter:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline-offset: 2px;
+}
 .logs-summary-item strong {
   color: var(--text);
   font-weight: 600;

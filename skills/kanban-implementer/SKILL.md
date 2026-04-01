@@ -85,9 +85,10 @@ La sortie de `select` inclut `IS_AMBIGUOUS=true|false` (heuristique sur titre + 
 ### Étape 2 — Lecture du contexte
 
 Avant de coder :
-1. Lire `~/Lab/PROTOCOL.md` (règles obligatoires du Lab).
-2. Lire le fichier projet (`source_file` affiché par `select`).
-3. Si le repo concerné existe : explorer la structure, lire les tests existants.
+1. Exécuter **`~/.openclaw/skills/implement/scripts/run.sh TASK_ID`** — affiche le JSON tâche et le rappel des étapes (pont agent).
+2. Lire `~/Lab/PROTOCOL.md` (règles obligatoires du Lab).
+3. Lire le fichier projet (`source_file` affiché par `select`).
+4. Si le repo concerné existe : explorer la structure, lire les tests existants.
 
 ### Étape 3 — Marquer "In Progress"
 

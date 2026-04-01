@@ -2,6 +2,8 @@ import "./style.css";
 import { marked } from "marked";
 import { escapeHtml, projectInitials, projectAvatarHue } from "./utils.js";
 
+marked.use({ gfm: true, breaks: true });
+
 const BRAIN_MD_PAGE_CSS = `
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -755,10 +757,11 @@ function renderLogs() {
           </div>
         </div>
         <div class="logs-summary" id="logs-summary">
-          <span class="logs-summary-item"><span class="dot green-dot" aria-hidden="true"></span>INFO<strong id="kpi-info">0</strong></span>
-          <span class="logs-summary-item"><span class="dot amber-dot" aria-hidden="true"></span>WARN<strong id="kpi-warn">0</strong></span>
-          <span class="logs-summary-item"><span class="dot red-dot" aria-hidden="true"></span>ERROR<strong id="kpi-error">0</strong></span>
-          <span class="logs-summary-item"><span class="dot purple-dot" aria-hidden="true"></span>Total<strong id="kpi-total">0</strong></span>
+          <span class="logs-summary-item logs-kpi-filter" data-log-level="INFO" role="button" tabindex="0" title="Filter INFO"><span class="dot green-dot" aria-hidden="true"></span>INFO<strong id="kpi-info">0</strong></span>
+          <span class="logs-summary-item logs-kpi-filter" data-log-level="WARN" role="button" tabindex="0" title="Filter WARN"><span class="dot amber-dot" aria-hidden="true"></span>WARN<strong id="kpi-warn">0</strong></span>
+          <span class="logs-summary-item logs-kpi-filter" data-log-level="ERROR" role="button" tabindex="0" title="Filter ERROR"><span class="dot red-dot" aria-hidden="true"></span>ERROR<strong id="kpi-error">0</strong></span>
+          <span class="logs-summary-item logs-kpi-filter" data-log-level="DEBUG" role="button" tabindex="0" title="Filter DEBUG"><span class="dot purple-dot" aria-hidden="true"></span>DEBUG<strong id="kpi-debug">0</strong></span>
+          <span class="logs-summary-item logs-kpi-filter" data-log-level="" role="button" tabindex="0" title="Show all"><span class="dot gray-dot" aria-hidden="true"></span>Total<strong id="kpi-total">0</strong></span>
         </div>
         <div class="logs-table-wrap">
           <table class="logs-table">
@@ -1394,17 +1397,14 @@ function createKanbanBoard(
       cardsDiv.innerHTML = `<div class="empty-col">${status === "To Start" ? "Add tasks here for AI" : "No tasks"}</div>`;
     }
     colTasks.forEach((task) => {
-      const score = Number(task.confidence ?? 0.5);
-      const level = score >= 0.7 ? "high" : score >= 0.4 ? "mid" : "low";
       const card = document.createElement("div");
       card.className = "kanban-card";
       card.draggable = true;
       card.dataset.taskId = task.id;
       let html = `<div class="kanban-card-title">${escapeHtml(task.title)}</div><div class="kanban-card-meta">`;
-      if (task.project)
+      if (task.project && projectSlug == null)
         html += `<span class="badge badge-project">${escapeHtml(task.project)}</span>`;
       html += `<span class="badge badge-${task.priority || "Medium"}">${escapeHtml(task.priority || "Medium")}</span>`;
-      html += `<span class="badge badge-conf-${level}" title="Confidence">${score.toFixed(2)}</span>`;
       if (task.created_by === "user")
         html += `<span class="badge" style="background:rgba(99,102,241,0.1);color:var(--accent)">you</span>`;
       if (task.effort_hours)
@@ -2247,6 +2247,13 @@ async function wireLogs() {
         return x === "ERROR" || x === "CRITICAL";
       }).length,
     );
+    const kd = document.getElementById("kpi-debug");
+    if (kd)
+      kd.textContent = String(
+        allLogs.filter(
+          (l) => (l.level || "INFO").toUpperCase() === "DEBUG",
+        ).length,
+      );
     renderRows(filtered);
   }
 
@@ -2263,6 +2270,22 @@ async function wireLogs() {
   searchEl?.addEventListener("input", applyFilters);
   levelEl?.addEventListener("change", applyFilters);
   processEl?.addEventListener("change", applyFilters);
+
+  const summaryEl = document.getElementById("logs-summary");
+  summaryEl?.addEventListener("click", (e) => {
+    const row = e.target.closest(".logs-kpi-filter");
+    if (!row || !levelEl) return;
+    levelEl.value = row.dataset.logLevel ?? "";
+    applyFilters();
+  });
+  summaryEl?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const row = e.target.closest(".logs-kpi-filter");
+    if (!row || !levelEl) return;
+    e.preventDefault();
+    levelEl.value = row.dataset.logLevel ?? "";
+    applyFilters();
+  });
 
   syncAutoUi();
   autoBtn?.addEventListener("click", () => {
@@ -3591,8 +3614,8 @@ async function wireChat() {
     bubble.className = `chat-bubble chat-bubble-${role}`;
     if (streaming) bubble.dataset.streaming = "1";
     const inner = document.createElement("div");
-    inner.className = "chat-bubble-inner";
-    inner.textContent = text;
+    inner.className = "chat-bubble-inner markdown-body";
+    inner.innerHTML = marked.parse(text || "");
     bubble.appendChild(inner);
     messagesEl.appendChild(bubble);
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -3633,11 +3656,11 @@ async function wireChat() {
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
         full += chunk;
-        assistantEl.textContent = full;
+        assistantEl.innerHTML = marked.parse(full);
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
       const formatted = formatClawvisChatAssistantText(full, fr);
-      assistantEl.textContent = formatted.text;
+      assistantEl.innerHTML = marked.parse(formatted.text || "");
       history.push({ role: "assistant", content: formatted.text });
       if (formatted.authError && statusBar) {
         statusBar.className = "chat-status-bar err";

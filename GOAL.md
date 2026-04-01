@@ -243,3 +243,21 @@ Avant de créer, `project-init` lit le Brain global pour détecter composants et
 | Vue projet unique | Navigation par projet — pas de kanban global agrégé |
 | Limite `In Progress` | `kanban-implementer` ne monte jamais plus de N tâches (défaut : 2, configurable) |
 | Archivage suggéré | `morning-briefing` propose l'archivage après X jours d'inactivité |
+
+---
+
+## Roadmap exécution (suivi ops / produit)
+
+### [DONE] 2026-04-01 — Stabilisation Dombot & Core skills
+
+- **Cron git-sync** : l’échec venait de `~/Lab/git-sync.sh` (fetch impossible sur certains repos Lab) qui terminait en exit 1 après un push `openclaw-dombot` réussi — le script `git-sync` ne propage plus cet exit (backup OpenClaw prioritaire).
+- **Backup** : `README.md` dans le dépôt `openclaw-dombot` (architecture + DRP + snippet compaction), copié par le skill `git-sync`.
+- **Skills** : `project-init` (init projet via API Kanban), `implement` (pont contexte tâche → agent), documenté dans `kanban-implementer`.
+- **Hub** : `marked` avec `gfm` + `breaks` ; KPI logs (INFO / WARN / ERROR / DEBUG / Total) cliquables ; cartes Kanban moins denses (méta essentielle).
+- **Logger Discord** : filtre anti-spam — erreurs, échecs, init/milestone projet ; pas les `:complete` routiniers.
+- **OpenClaw 2026.4.1** : voir snippet `agents.defaults.compaction.model` dans le README backup (ex. `gpt-4o-mini` / Haiku selon routeur).
+
+### [TODO] Phase 2.5 — laptop-first, wizard
+
+- Parcours d’installation guidé (wizard) sur machine locale.
+- Réduction de friction « premier run » sans SSH devbox.

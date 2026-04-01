@@ -76,24 +76,47 @@ def _write(entry: LogEntry):
 
 
 def _should_skip_discord(entry: LogEntry) -> bool:
-    """Filtre les logs trop verbeux / intermédiaires qui ne valent pas un message Discord."""
+    """Filtre le bruit : Discord = alertes, init projet, jalons — pas chaque INFO."""
     action = (entry.action or "").lower()
+    msg = (entry.message or "").lower()
     level = (entry.level or "").upper()
 
-    # Toujours envoyer les erreurs
     if level in {"ERROR", "CRITICAL"}:
         return False
 
-    # Actions mail trop verboses (mail.read, mail.archive par message)
+    if level == "DEBUG":
+        return True
+
+    # Échecs explicites (même en WARN/INFO)
+    if "fail" in action or "fail" in msg or "panic" in msg:
+        return False
+
+    # Jalons / init produit
+    if "milestone" in action or "milestone" in msg:
+        return False
+    if "project" in action and any(x in action for x in ("init", "create", "archive")):
+        return False
+    if "project-init" in action or "sync:fail" == action:
+        return False
+
+    # Actions mail trop verboses
     if action.startswith("mail."):
         return True
 
-    # hub:refresh = état intermédiaire, hub:complete suffit
     if action == "hub:refresh":
         return True
 
-    # cron:start = trop de bruit; cron:complete suffit pour savoir que ça a tourné
     if action == "cron:start":
+        return True
+
+    # Succès routiniers (backup, crons) — rester dans les fichiers logs Hub
+    if action.endswith(":complete") or action in {"sync:complete"}:
+        return True
+
+    if level == "INFO":
+        return True
+
+    if level == "WARNING":
         return True
 
     return False
