@@ -359,10 +359,9 @@ else
     echo "  Install Node.js (>= 18): https://nodejs.org/"
     exit 1
   fi
-  if ! command -v yarn >/dev/null 2>&1; then
-    info "Enabling corepack for Yarn 4..."
-    corepack enable 2>/dev/null || { echo "Error: yarn not found. Run: corepack enable (or npm i -g yarn)"; exit 1; }
-  fi
+  # shellcheck disable=SC1090
+  . "${ROOT_DIR}/scripts/lifecycle.sh"
+  ensure_yarn
   if ! command -v uv >/dev/null 2>&1; then
     echo "Error: uv is required for local Kanban API."
     echo "  Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
