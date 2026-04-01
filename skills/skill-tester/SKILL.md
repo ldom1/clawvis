@@ -10,15 +10,16 @@ Lance les tests unitaires Python de tous les skills OpenClaw et vérifie la conn
 ## ⚡ Exécution rapide
 
 ```bash
-# Tester tous les skills
+# Depuis le dépôt Clawvis (recommandé si ~/.openclaw/skills est vide — extraDirs)
+export CLAWVIS_ROOT="$HOME/Lab/clawvis" INSTANCE_NAME=dombot
+bash "$CLAWVIS_ROOT/skills/skill-tester/scripts/test-all.sh"
+
+# Ancien mode : symlinks sous ~/.openclaw/skills
 ~/.openclaw/skills/skill-tester/scripts/test-all.sh
 
-# Tester un skill spécifique
-~/.openclaw/skills/skill-tester/scripts/test-all.sh logger
-~/.openclaw/skills/skill-tester/scripts/test-all.sh kanban-implementer
-
-# Lister les skills avec tests
-~/.openclaw/skills/skill-tester/scripts/test-all.sh --list
+# Un skill / liste
+bash …/test-all.sh logger
+bash …/test-all.sh --list
 ```
 
 ---

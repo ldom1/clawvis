@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import re
 import subprocess
 import xml.etree.ElementTree as ET
@@ -13,7 +14,23 @@ from typing import Any
 
 from knowledge_consolidator.logging import log_info, log_warning
 
-DOMBOT_MAIL_CORE = Path.home() / ".openclaw" / "skills" / "dombot-mail" / "core"
+
+def _resolve_dombot_mail_core() -> Path:
+    env = (os.environ.get("DOMBOT_MAIL_CORE") or "").strip()
+    if env:
+        return Path(env).expanduser().resolve()
+    home = Path.home()
+    candidates = [
+        home / ".openclaw" / "skills" / "dombot-mail" / "core",
+        home / "Lab" / "clawvis" / "instances" / "dombot" / "skills" / "dombot-mail" / "core",
+    ]
+    for c in candidates:
+        if (c / "pyproject.toml").is_file():
+            return c
+    return candidates[0]
+
+
+DOMBOT_MAIL_CORE = _resolve_dombot_mail_core()
 
 UA = "Mozilla/5.0 (compatible; DomBot-Curiosity/1.0)"
 WORKSPACE = Path.home() / ".openclaw" / "workspace"
