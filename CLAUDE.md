@@ -59,6 +59,7 @@ Deux couches strictement séparées :
 - DO NOT : patcher les fichiers core root pour des besoins instance-spécifiques
 - DO NOT : stocker des secrets dans des fichiers root trackés
 - DO NOT : lier une instance à `main` si la stabilité compte
+- DO NOT : multiplier les scripts shell sous `instances/<instance>/` — préférer une voie d’installation/release unique ; l’objectif produit est que l’utilisateur final **n’ait pas à cloner le dépôt** pour utiliser Clawvis
 
 ### Layout instance (cible)
 

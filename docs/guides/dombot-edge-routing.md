@@ -1,5 +1,9 @@
 # Dombot-style public routing (landing vs lab)
 
+**Product principle:** Clawvis must stay **easy to run** — **few scripts** in `instances/dombot/`, and the **target** is installs/updates **without requiring a Git clone** (packaged release or single installer path). Technical notes below describe the current homelab layout, not an ideal end-user flow.
+
+---
+
 This documents the **production** pattern used on the homelab host **Dombot**: one reverse proxy entry port on the LAN/Tailscale side (`8088`) with **multiple `server` blocks** by `server_name`.
 
 It is **not** the same as local dev (`clawvis start` / `scripts/start.sh`).

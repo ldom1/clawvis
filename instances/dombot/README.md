@@ -1,5 +1,13 @@
 # Instance `dombot` (lab.dombot.tech)
 
+## Principe produit (prioritaire)
+
+- **Clawvis doit rester simple à utiliser** : le moins de scripts et de chemins « ops » possibles dans cette instance.
+- **Cible** : un utilisateur ne devrait **pas avoir à cloner le dépôt Git** pour installer, mettre à jour ou utiliser le Hub — installation packagée ou release (wizard / image / installeur), pas une collection de `.sh` à maintenir à la main.
+- Ce qui est décrit ci-dessous est du **maintien actuel** (devbox / transition). Tout nouveau script ici est une **dette** à faire disparaître vers ce modèle.
+
+---
+
 ## Obtenir les **nouvelles** pages Hub (Kanban, Logs, Chat markdown, …)
 
 Une commande depuis la racine du dépôt `clawvis` :
