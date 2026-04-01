@@ -559,6 +559,18 @@ program
   .description("Shutdown then start stack (no upgrade)")
   .action(() => runRestart());
 
+const skillsCmd = program
+  .command("skills")
+  .description(
+    "OpenClaw: point skills.load.extraDirs at repo skills/ + instance skills/; restart gateway",
+  );
+skillsCmd
+  .command("sync")
+  .description(
+    "Merge paths into ~/.openclaw/openclaw.json, drop managed symlinks, systemctl restart user gateway",
+  )
+  .action(() => runLegacy(["skills", "sync"]));
+
 const update = program.command("update").description("Upgrade Clawvis release/channel");
 update
   .option("--tag <ref>", "Update to a git ref")

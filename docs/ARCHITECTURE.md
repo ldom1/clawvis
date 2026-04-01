@@ -239,7 +239,7 @@ clawvis/
 
 OpenClaw tourne sur le port 18789. Clawvis s'y branche via `OPENCLAW_BASE_URL`.
 
-Les skills Clawvis sont des crons OpenClaw définis dans `skills/` et synchronisés via `clawvis skills sync`.
+Les skills Clawvis sont des crons OpenClaw définis dans `skills/` (et `instances/<instance>/skills/`) ; **`clawvis skills sync`** met à jour `~/.openclaw/openclaw.json` (`skills.load.extraDirs`) et redémarre la passerelle — sans symlinks sous `~/.openclaw/skills/`.
 
 Configuration channels Discord dans `hub_settings.json` :
 ```json

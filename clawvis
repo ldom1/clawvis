@@ -103,6 +103,7 @@ Usage:
   clawvis doctor
   clawvis shutdown
   clawvis restart
+  clawvis skills sync
 
 Notes:
   - Instance-scoped operations target instances/<INSTANCE_NAME>/ and MEMORY_ROOT.
@@ -336,6 +337,13 @@ cmd_doctor() {
   [ "${ok}" -eq 1 ] || exit 1
 }
 
+cmd_skills_sync() {
+  load_env
+  local sync_script="${ROOT_DIR}/scripts/sync-openclaw-skills-dirs.sh"
+  [ -x "${sync_script}" ] || chmod +x "${sync_script}"
+  ROOT_DIR="${ROOT_DIR}" INSTANCE_NAME="$(instance_name)" bash "${sync_script}"
+}
+
 cmd_restart() {
   load_env
   ensure_tools
@@ -405,6 +413,13 @@ main() {
     doctor) cmd_doctor "$@" ;;
     shutdown) cmd_shutdown "$@" ;;
     restart) cmd_restart "$@" ;;
+    skills)
+      local sub="${1:-}"
+      case "${sub}" in
+        sync) shift; cmd_skills_sync "$@" ;;
+        *) die "Use 'clawvis skills sync'" ;;
+      esac
+      ;;
     *) die "Unknown command: ${cmd}. Use 'clawvis --help'." ;;
   esac
 }

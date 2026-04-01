@@ -38,7 +38,7 @@ Le script **`Lab/clawvis/skills/git-sync/scripts/sync.sh`** (via extraDirs ou an
    - Vérifier les `SecretRef` dans `openclaw.json`.
 
 4. **Skills Clawvis**  
-   - Cloner `Lab/clawvis`. Soit **`skills.load.extraDirs`** vers `…/clawvis/skills` et `…/clawvis/instances/dombot/skills` + crons avec chemins absolus (recommandé OpenClaw récent), soit symlinks `~/.openclaw/skills/*` (peut déclencher des avertissements `doctor`).
+   - Cloner `Lab/clawvis`, puis depuis le dépôt : **`clawvis skills sync`** (écrit `skills.load.extraDirs`, enlève les symlinks managés, redémarre `openclaw-gateway` si unit systemd user présente). Les crons doivent référencer des **chemins absolus** vers `Lab/clawvis/skills/…` / `instances/<instance>/skills/…`.
 
 5. **Redémarrer** le service OpenClaw / gateway selon ton installation.
 
