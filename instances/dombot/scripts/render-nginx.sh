@@ -27,7 +27,19 @@ envsubst '${HUB_ROOT} ${LAB} ${OPENCLAW_GATEWAY_TOKEN}' \
   < "${HUB_ROOT}/nginx/nginx.conf" \
   > "${HUB_ROOT}/logs/nginx-active.conf"
 
-nginx -t -c "${HUB_ROOT}/logs/nginx-active.conf"
+NGINX_BIN="${NGINX_BIN:-}"
+if [ -z "${NGINX_BIN}" ]; then
+  if command -v nginx >/dev/null 2>&1; then
+    NGINX_BIN="$(command -v nginx)"
+  elif [ -x /usr/sbin/nginx ]; then
+    NGINX_BIN=/usr/sbin/nginx
+  else
+    echo "[warn] nginx binaire introuvable — conf générée sans nginx -t : ${HUB_ROOT}/logs/nginx-active.conf" >&2
+    echo "==> wrote ${HUB_ROOT}/logs/nginx-active.conf (skip nginx -t)"
+    exit 0
+  fi
+fi
+"${NGINX_BIN}" -t -c "${HUB_ROOT}/logs/nginx-active.conf"
 echo "==> wrote ${HUB_ROOT}/logs/nginx-active.conf"
 
 if [ "${1:-}" = "--reload" ]; then
