@@ -28,6 +28,7 @@
 | 16 | Runtime banner toujours visible | SPA ignorait l'état backend | Chip collapsible vert quand configuré |
 | 17 | Nginx route orpheline après delete projet | `_cleanup_nginx_route()` inactif sans env var | Actif si `NGINX_PROJECTS_D` défini |
 | 18 | Kanban / Logs / Settings sans changements SPA | `location /kanban/` + `/settings/` en `alias` vers `instances/dombot/public/` | `nginx/nginx.conf` : `proxy_pass` Hub + `include …/snippets/spa-hub-prefixes.conf` (`^~` sur les préfixes SPA, **avant** `projects.d`) ; `scripts/render-nginx.sh` |
+| 19 | `500` sur `/hub/` | Vieux `location /hub/` + `alias` ou chemin invalide ; l’UI est à `/` | `spa-hub-prefixes.conf` + `hub/nginx.conf` : `^~ /hub/` → redirect 301 vers `/` ou `/…` ; supprimer tout `alias` résiduel dans `projects.d` |
 
 ---
 

@@ -30,6 +30,8 @@ Ou démarre nginx une fois avec ce `-c`. Ouvre **`/kanban/`** et **`/logs/`** en
 
 ## Nginx : Kanban / Logs = SPA Docker
 
+L’URL du Hub est **`/`**, pas **`/hub/`** (un vieux `location /hub/` en `alias` peut renvoyer **500** — le template redirige `/hub/…` vers `/…`).
+
 Les routes **`/kanban/`**, **`/logs/`**, **`/settings/`** doivent être servies par le **conteneur Hub** (même upstream que `/`), pas par `alias` vers `public/kanban/` (vieux statique).
 
 - Génération seule : `./instances/dombot/scripts/render-nginx.sh` (idem avec `export LAB=...`).
