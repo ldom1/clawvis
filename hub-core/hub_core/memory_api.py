@@ -156,10 +156,13 @@ def quartz_static_endpoint(path: str):
                 count=1,
                 flags=re.IGNORECASE,
             )
-        html = html.replace(' href="/', f' href="{prefix}')
-        html = html.replace(" href='/", f" href='{prefix}")
-        html = html.replace(' src="/', f' src="{prefix}')
-        html = html.replace(" src='/", f" src='{prefix}")
+        # Prefix root assets, but avoid double-prefixing already rewritten quartz-static URLs.
+        html = re.sub(
+            r'(\s(?:href|src)=["\'])/(?!api/hub/memory/quartz-static/)',
+            rf"\1{prefix}",
+            html,
+            flags=re.IGNORECASE,
+        )
         return HTMLResponse(content=html, media_type="text/html")
 
     return FileResponse(target, media_type=media or "application/octet-stream")

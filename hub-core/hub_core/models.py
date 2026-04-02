@@ -1,5 +1,7 @@
 """Pydantic models for hub_core API outputs. Missing data is represented as \"N/A\"."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Literal
 
@@ -9,11 +11,6 @@ NA = Literal["N/A"]
 NaOrFloat = float | NA
 NaOrStr = str | NA
 NaOrInt = int | NA
-
-
-def token_or_na(value: int) -> int | NA:
-    """Return value or \"N/A\" if token sentinel -1."""
-    return value if value != -1 else "N/A"
 
 
 # --- Providers (providers.json) ---
@@ -35,6 +32,35 @@ class MammouthUsage(BaseModel):
     subscription: NaOrStr = Field(default="N/A")
     additional: NaOrStr = Field(default="N/A")
     last_updated: NaOrStr = Field(default="N/A")
+
+    @classmethod
+    def from_providers_mammouth_block(cls, m: dict) -> MammouthUsage:
+        """Parse ``providers.json`` nested ``mammouth_ai`` object."""
+        if not m:
+            return cls()
+        c = m.get("credits") or {}
+        return cls(
+            credits=MammouthCredits(
+                available=c.get("available", "N/A"),
+                limit=c.get("limit", "N/A"),
+                currency=c.get("currency", "USD"),
+            ),
+            subscription=m.get("subscription", "N/A"),
+            additional=m.get("additional", "N/A"),
+            last_updated=m.get("last_updated", "N/A"),
+        )
+
+    def session_blob(self) -> dict:
+        """Shape for ``session-tokens.json`` under key ``mammouth`` when API is configured."""
+        return {
+            "subscription": self.subscription,
+            "credits": {
+                "available": self.credits.available,
+                "limit": self.credits.limit,
+                "currency": self.credits.currency,
+            },
+            "last_updated": self.last_updated,
+        }
 
 
 class ProvidersResponse(BaseModel):

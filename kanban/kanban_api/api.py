@@ -16,6 +16,7 @@ from .core import (
     create_project,
     create_task,
     delete_task,
+    delete_tasks_bulk,
     delete_comment,
     delete_dependency,
     delete_project,
@@ -185,6 +186,11 @@ def update_task_endpoint(task_id: str, body: TaskUpdate):
         raise HTTPException(409, str(e))
     except KeyError:
         raise HTTPException(404, "Task not found")
+
+
+@router.delete("/tasks/bulk")
+def delete_tasks_bulk_endpoint(project: str | None = None):
+    return delete_tasks_bulk(project=project)
 
 
 @router.delete("/tasks/{task_id}")

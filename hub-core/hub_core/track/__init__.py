@@ -1,6 +1,5 @@
-"""Track tokens, system, and water usage."""
+"""Track tokens and water usage."""
 
-from hub_core.track.system import main as system_main
 from hub_core.track.tokens import main as tokens_main
 
-__all__ = ["system_main", "tokens_main"]
+__all__ = ["tokens_main"]

@@ -27,6 +27,11 @@ hub_core/
 └── main.py          # Entry point: get_hub_state(), get_simple_state()
 ```
 
+### Packaging — workspace and Memory API layering
+
+- **UV workspace**: resolve `hub-core` and `kanban` from the **repo root** (`pyproject.toml` + `uv.lock` there). A `uv sync` only inside `hub-core/` without the workspace is not supported.
+- **Strategy B (current)**: `memory_api` reuses implementation in `kanban_api.core` so Brain settings/projects/Quartz stay in one place. `dombot-hub-core` declares `kanban-api`; both packages are workspace members. **Strategy A** (future) would move Brain helpers fully into `hub-core` and drop this dependency direction.
+
 ---
 
 ## Setup

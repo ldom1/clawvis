@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from kanban_api.server import app
@@ -103,3 +106,56 @@ def test_delete_task_endpoint_not_found(monkeypatch):
     client = TestClient(app)
     res = client.delete("/tasks/missing")
     assert res.status_code == 404
+
+
+def test_delete_tasks_bulk_endpoint(monkeypatch):
+    monkeypatch.setattr(
+        "kanban_api.api.delete_tasks_bulk",
+        lambda project=None: {"ok": True, "deleted": 5 if project else 12},
+    )
+    client = TestClient(app)
+    assert client.delete("/tasks/bulk").json() == {"ok": True, "deleted": 12}
+    assert client.delete("/tasks/bulk?project=demo").json() == {
+        "ok": True,
+        "deleted": 5,
+    }
+
+
+def test_delete_tasks_bulk_endpoint_uses_core(monkeypatch, tmp_path: Path) -> None:
+    tasks_file = tmp_path / "kanban" / "tasks.json"
+    tasks_file.parent.mkdir(parents=True, exist_ok=True)
+    tasks_file.write_text(
+        json.dumps(
+            {
+                "tasks": [
+                    {
+                        "id": "u",
+                        "title": "U",
+                        "status": "To Start",
+                        "project": "demo",
+                    },
+                    {
+                        "id": "v",
+                        "title": "V",
+                        "status": "Backlog",
+                        "project": "other",
+                    },
+                ],
+                "generated": "",
+                "meta": {},
+                "stats": {},
+                "kanban": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("kanban_api.core.TASKS_FILE", tasks_file)
+
+    client = TestClient(app)
+    res = client.delete("/tasks/bulk?project=demo")
+    assert res.status_code == 200
+    assert res.json() == {"ok": True, "deleted": 1}
+
+    data = json.loads(tasks_file.read_text(encoding="utf-8"))
+    assert len(data["tasks"]) == 1
+    assert data["tasks"][0]["id"] == "v"

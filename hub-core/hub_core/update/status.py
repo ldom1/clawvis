@@ -20,22 +20,7 @@ def _read_providers_file():
 def get_mammouth_usage_from_file() -> MammouthUsage:
     """From providers.json."""
     data = _read_providers_file()
-    m = data.get("mammouth_ai", {})
-    if m:
-        from hub_core.models import MammouthCredits
-
-        c = m.get("credits", {})
-        return MammouthUsage(
-            credits=MammouthCredits(
-                available=c.get("available", "N/A"),
-                limit=c.get("limit", "N/A"),
-                currency=c.get("currency", "USD"),
-            ),
-            subscription=m.get("subscription", "N/A"),
-            additional=m.get("additional", "N/A"),
-            last_updated=m.get("last_updated", "N/A"),
-        )
-    return MammouthUsage()
+    return MammouthUsage.from_providers_mammouth_block(data.get("mammouth_ai") or {})
 
 
 def get_status_response(

@@ -24,12 +24,7 @@ if [ -z "${CLAWVIS_SKIP_START_ECHO:-}" ]; then
 fi
 
 init_instance_memory
-if [ -z "${CLAWVIS_SKIP_MEMORY_DOCKER:-}" ]; then
-  if ! docker compose up -d memory >/dev/null 2>&1; then
-    echo "[clawvis] Échec: docker compose up memory (Docker démarré ? lance depuis la racine Clawvis ?)." >&2
-    exit 1
-  fi
-fi
+# Memory API démarre plus bas (uvicorn hub_core.memory_api). Il n’y a pas de service compose nommé « memory ».
 
 uvicorn_extra=()
 if [ -n "${CLAWVIS_QUIET_START:-}" ]; then

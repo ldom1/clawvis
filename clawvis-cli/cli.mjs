@@ -28,6 +28,11 @@ function detectVersion() {
   }
 }
 
+/** Couronne (mérovingien / Clawvis) au-dessus du figlet */
+function clawvisLogoMark() {
+  return chalk.hex("#fbbf24")("                         ♔");
+}
+
 function printHeader() {
   const funLines = [
     "Le roi des agents IA",
@@ -41,6 +46,8 @@ function printHeader() {
   const banner = figlet.textSync("Clawvis", { horizontalLayout: "default" });
   const prettyBanner = gradient.pastel.multiline(banner);
   const content = [
+    clawvisLogoMark(),
+    "",
     prettyBanner,
     "",
     `${chalk.bold("Version")} ${chalk.green(detectVersion())}`,
@@ -324,7 +331,7 @@ async function runInstallInteractive() {
         summaryKanbanApiPort: "kanban_api_port",
         doneTitle: "Hub démarré !",
         doneTitleNoStart: "Instance prête (services non démarrés)",
-        doneNoStartHint: "→ Lancez manuellement : docker compose up -d hub kanban-api hub-memory-api memory",
+        doneNoStartHint: "→ Lancez manuellement : docker compose up -d hub kanban-api hub-memory-api",
         doneHub: "Hub",
         doneBrain: "Brain",
         doneLogs: "Logs",
@@ -360,7 +367,7 @@ async function runInstallInteractive() {
         summaryKanbanApiPort: "kanban_api_port",
         doneTitle: "Hub is running!",
         doneTitleNoStart: "Instance ready (services not started)",
-        doneNoStartHint: "→ Start manually: docker compose up -d hub kanban-api hub-memory-api memory",
+        doneNoStartHint: "→ Start manually: docker compose up -d hub kanban-api hub-memory-api",
         doneHub: "Hub",
         doneBrain: "Brain",
         doneLogs: "Logs",

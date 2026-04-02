@@ -31,9 +31,16 @@ def get_mammouth_credits() -> Optional[MammouthUsage]:
             info.get("max_budget", info.get("metadata", {}).get("base_budget", 2)) or 2
         )
         avail = max(0, limit - spend)
+        currency = "EUR"
+        sym = "€" if currency == "EUR" else "$" if currency == "USD" else ""
+        sub = (
+            f"{sym}{avail:.2f} / {sym}{limit:.2f}"
+            if sym
+            else f"{avail:.2f} {currency} / {limit:.2f} {currency}"
+        )
         return MammouthUsage(
-            credits=MammouthCredits(available=avail, limit=limit, currency="EUR"),
-            subscription=f"${avail:.2f} / ${limit:.2f}",
+            credits=MammouthCredits(available=avail, limit=limit, currency=currency),
+            subscription=sub,
             additional="N/A",
             last_updated=datetime.datetime.now().strftime("%H:%M:%S"),
         )

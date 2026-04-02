@@ -8,13 +8,17 @@ This folder contains the default Clawvis memory tree using PARA:
 - Archive — inactive items.
 - Todo — planning and backlog notes.
 
-Start the Brain runtime (Logseq web app):
+Brain : les données vivent dans `instances/<instance_name>/memory`.
+Pour la stack Docker Clawvis (Hub + APIs) :
 
 ```bash
-docker compose up -d memory
+docker compose up -d hub kanban-api hub-memory-api
 ```
 
-Then open:
+Pour ouvrir l’UI « Brain » (port configuré dans `.env`, souvent 3099), sers Quartz selon ton setup instance — il n’y a pas de service compose nommé `memory`.
+Cf. `scripts/setup-quartz.sh` et la doc instance.
+
+Puis ouvre typiquement :
 
 - http://localhost:3099
 

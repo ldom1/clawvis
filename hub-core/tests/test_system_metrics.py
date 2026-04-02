@@ -3,8 +3,8 @@
 
 from unittest.mock import patch
 
-from hub_core.track.system import get_system_stats
 from hub_core.track.tokens import get_token_stats
+from hub_core.update.system_metrics import get_cpu_ram
 
 MOCK_SESSION_DATA = {
     "updated_at": "2026-03-17T10:00:00",
@@ -24,21 +24,20 @@ MOCK_SESSION_DATA = {
 class TestSystemMetrics:
     """Tests for CPU and RAM tracking."""
 
-    def test_get_system_stats_returns_dict(self):
-        metrics = get_system_stats()
-        assert isinstance(metrics, dict)
-        assert "cpu_percent" in metrics
-        assert "ram_percent" in metrics
+    def test_get_cpu_ram_returns_model(self):
+        m = get_cpu_ram()
+        assert m.cpu_percent is not None
+        assert m.ram_percent is not None
 
     def test_cpu_ram_values_in_range(self):
-        metrics = get_system_stats()
-        assert 0 <= metrics["cpu_percent"] <= 100
-        assert 0 <= metrics["ram_percent"] <= 100
+        m = get_cpu_ram()
+        assert 0 <= m.cpu_percent <= 100
+        assert 0 <= m.ram_percent <= 100
 
-    def test_cpu_ram_are_floats(self):
-        metrics = get_system_stats()
-        assert isinstance(metrics["cpu_percent"], (int, float))
-        assert isinstance(metrics["ram_percent"], (int, float))
+    def test_cpu_ram_are_numeric(self):
+        m = get_cpu_ram()
+        assert isinstance(m.cpu_percent, (int, float))
+        assert isinstance(m.ram_percent, (int, float))
 
 
 class TestTokenTracking:
@@ -76,14 +75,14 @@ class TestIntegration:
         "hub_core.track.tokens.update_session_tokens", return_value=MOCK_SESSION_DATA
     )
     def test_complete_system_metrics_fetch(self, _mock):
-        metrics = get_system_stats()
+        m = get_cpu_ram()
         tokens = get_token_stats()
-        assert metrics["cpu_percent"] is not None
-        assert metrics["ram_percent"] is not None
+        assert m.cpu_percent is not None
+        assert m.ram_percent is not None
         assert tokens is not None
 
     def test_system_metrics_are_fresh(self):
-        metrics1 = get_system_stats()
-        metrics2 = get_system_stats()
-        assert abs(metrics1["cpu_percent"] - metrics2["cpu_percent"]) < 20
-        assert abs(metrics1["ram_percent"] - metrics2["ram_percent"]) < 20
+        m1 = get_cpu_ram()
+        m2 = get_cpu_ram()
+        assert abs(m1.cpu_percent - m2.cpu_percent) < 20
+        assert abs(m1.ram_percent - m2.ram_percent) < 20

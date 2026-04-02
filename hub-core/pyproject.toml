@@ -11,8 +11,7 @@ dependencies = [
     "requests>=2.32.5",
     "fastapi>=0.109",
     "uvicorn>=0.27",
-    "aiohttp>=3.9",
-    "faster-whisper>=1.2.1",
+    "kanban-api",
 ]
 
 [project.scripts]
@@ -20,6 +19,8 @@ hub-core = "hub_core.__main__:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+# Local audio transcription (`hub_core transcribe`); optional import in `hub_core.transcribe`.
+transcribe = ["faster-whisper>=1.2.1"]
 
 [build-system]
 requires = ["hatchling"]

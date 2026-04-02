@@ -57,15 +57,7 @@ def update_session_tokens() -> dict:
 
     mammouth_usage = get_mammouth_credits()
     if mammouth_usage:
-        mammouth_data = {
-            "subscription": mammouth_usage.subscription,
-            "credits": {
-                "available": mammouth_usage.credits.available,
-                "limit": mammouth_usage.credits.limit,
-                "currency": mammouth_usage.credits.currency,
-            },
-            "last_updated": mammouth_usage.last_updated,
-        }
+        mammouth_data = mammouth_usage.session_blob()
         logger.info(f"MammouthAI: {mammouth_usage.subscription}")
     else:
         mammouth_data = {

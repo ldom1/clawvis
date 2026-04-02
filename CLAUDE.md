@@ -44,7 +44,7 @@ Clawvis assume une identité inspirée de Clovis et des Mérovingiens pour rendr
 Deux couches strictement séparées :
 
 **Core** (partagé, géré upstream) :
-- `hub/`, `kanban/`, `hub-core/`, `skills/`, `core-tools/logger/`, `scripts/`
+- `hub/`, `kanban/`, `hub-core/`, `skills/`, `scripts/`
 - Fichiers root : compose, installer
 
 **Instance** (géré par l'utilisateur) :

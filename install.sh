@@ -342,11 +342,11 @@ if [ "${NO_START}" -eq 1 ]; then
   echo "- .env:     ${ENV_FILE}"
   echo ""
   echo "To start manually:"
-  echo "  docker compose up -d hub kanban-api hub-memory-api memory"
+  echo "  docker compose up -d hub kanban-api hub-memory-api"
   echo "  # or: clawvis start"
 elif [ "${MODE}" = "1" ]; then
   # hub depends_on kanban-api + hub-memory-api; list them explicitly so all modes match.
-  docker compose up -d hub kanban-api hub-memory-api memory
+  docker compose up -d hub kanban-api hub-memory-api
   info "Instance started"
   echo "- Hub:    http://localhost:${HUB_PORT}"
   echo "- Brain:  http://localhost:${MEMORY_PORT}"

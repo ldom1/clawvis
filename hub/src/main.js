@@ -31,7 +31,8 @@ function markdownToBrainSrcdoc(markdown) {
   const inner = raw
     ? marked.parse(raw, { gfm: true, breaks: false })
     : '<p style="color:#8b949e">—</p>';
-  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><style>${BRAIN_MD_PAGE_CSS}</style><base target="_blank"/></head><body><article class="markdown-body">${inner}</article></body></html>`;
+  const lang = settingsLocale();
+  return `<!DOCTYPE html><html lang="${lang}"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><style>${BRAIN_MD_PAGE_CSS}</style><base target="_blank"/></head><body><article class="markdown-body">${inner}</article></body></html>`;
 }
 
 const app = document.getElementById("app");
@@ -160,14 +161,11 @@ const SETTINGS_TEXT = {
     saveWorkspace: "Sauvegarder le workspace",
     workspaceSaved: "Workspace sauvegarde",
     saveFailed: "Échec sauvegarde",
-    instancesTitle: "Explorateur d'instances",
-    instancesDesc: "Instances detectees : lie-en plusieurs au Hub en une fois.",
+    instancesTitle: "Instances Clawvis",
+    instancesDesc:
+      "Dossiers Clawvis detectes dans le depot et chemins externes.",
     instancesInfo:
-      "Une instance est un dossier Clawvis (docker-compose local, .env, etc.). Les instances du depot sont listees ici ; tu peux en lier plusieurs au Hub pour les menus et la configuration. Utilise la liste deroulante a selection multiple pour en choisir plusieurs, puis Lie ou Retire. Plusieurs instances liees : l'API choisit d'abord celle dont le dossier memoire est egal a MEMORY_ROOT, sinon la premiere apres tri de chemins. Si tu as besoin de choisir explicitement quelle instance alimente le Brain, on pourra ajouter un champ dedie dans les reglages plus tard.",
-    instancesLinkSelected: "Lier la selection",
-    instancesUnlinkSelected: "Retirer la selection",
-    instancesMultiHint:
-      "Sélection multiple : Ctrl ou Cmd + clic, ou Maj + clic pour une plage. Disque plein = déjà liée au Hub ; cercle vide = pas encore liée.",
+      "Une instance est un deploiement Clawvis (compose local, .env, etc.). Lie ou retire chaque ligne au Hub pour les menus et la configuration. Plusieurs instances liees : l'API choisit d'abord celle dont le dossier memoire est egal a MEMORY_ROOT, sinon la premiere apres tri de chemins.",
     refreshInstances: "Rafraichir",
     loadingInstances: "Chargement des instances...",
     loadInstancesFailed: "Impossible de charger les instances.",
@@ -194,38 +192,14 @@ const SETTINGS_TEXT = {
     kpiTasks: "Tâches actives",
     kpiDone: "Terminées",
     kpiBrain: "Notes Brain",
+    systemStatus: "État du système",
+    healthBannerTitle: "Santé",
     languageTitle: "Langue",
     languageDesc: "Langue de l'interface (ce navigateur).",
     languageInfo:
       "Le choix est enregistré localement et appliqué immédiatement.",
     languageFr: "Français",
     languageEn: "English",
-    agentTitle: "Agent IA",
-    agentDesc: "Choisis quel modèle Dombot utilise pour répondre dans le chat.",
-    agentProviderLabel: "Provider actif",
-    agentModelLabel: "Modèle",
-    agentSave: "Sauvegarder",
-    agentSaved: "Agent sauvegardé",
-    agentSaveFailed: "Échec sauvegarde agent",
-    agentAvailable: "Disponible",
-    agentUnavailable: "Non configuré",
-    agentAuto: "Auto",
-    agentAnthropicName: "Claude (Anthropic)",
-    agentMammouthName: "Mammouth (Mistral)",
-    agentModels: {
-      anthropic: [
-        { value: "claude-haiku-4-5", label: "Haiku 4.5 — rapide" },
-        { value: "claude-sonnet-4-6", label: "Sonnet 4.6 — équilibré" },
-        { value: "claude-opus-4-6", label: "Opus 4.6 — puissant" },
-      ],
-      mammouth: [
-        {
-          value: "mistral-small-3.2-24b-instruct",
-          label: "Mistral Small 3.2 — rapide",
-        },
-        { value: "mistral-medium-3", label: "Mistral Medium 3 — équilibré" },
-      ],
-    },
   },
   en: {
     title: "Settings",
@@ -270,14 +244,10 @@ const SETTINGS_TEXT = {
     saveWorkspace: "Save workspace",
     workspaceSaved: "Workspace saved",
     saveFailed: "Save failed",
-    instancesTitle: "Instance explorer",
-    instancesDesc: "Detected instances: link several to the Hub at once.",
+    instancesTitle: "Clawvis instances",
+    instancesDesc: "Clawvis folders detected in the repo and external paths.",
     instancesInfo:
-      "An instance is a Clawvis deployment folder (local compose, .env, etc.). Repo instances appear here; you can link many for Hub menus and settings. Use the multi-select list, then Link or Unlink. With several linked instances, the API first picks the one whose memory folder equals MEMORY_ROOT, otherwise the first after sorting paths. If you need to explicitly choose which instance feeds the Brain, a dedicated settings field can be added later.",
-    instancesLinkSelected: "Link selection",
-    instancesUnlinkSelected: "Unlink selection",
-    instancesMultiHint:
-      "Multi-select: Ctrl/Cmd+click, or Shift+click for a range. Large filled disc = linked to Hub; large empty ring = not linked yet.",
+      "An instance is a Clawvis deployment folder (local compose, .env, etc.). Use Link or Unlink on each row for Hub menus and settings. With several linked instances, the API first picks the one whose memory folder equals MEMORY_ROOT, otherwise the first after sorting paths.",
     refreshInstances: "Refresh",
     loadingInstances: "Loading instances...",
     loadInstancesFailed: "Unable to load instances.",
@@ -304,37 +274,13 @@ const SETTINGS_TEXT = {
     kpiTasks: "Active tasks",
     kpiDone: "Done",
     kpiBrain: "Brain notes",
+    systemStatus: "System status",
+    healthBannerTitle: "Health",
     languageTitle: "Language",
     languageDesc: "Interface language (this browser).",
     languageInfo: "Your choice is stored locally and applied immediately.",
     languageFr: "Français",
     languageEn: "English",
-    agentTitle: "AI Agent",
-    agentDesc: "Choose which model the agent uses when responding in chat.",
-    agentProviderLabel: "Active provider",
-    agentModelLabel: "Model",
-    agentSave: "Save",
-    agentSaved: "Agent saved",
-    agentSaveFailed: "Failed to save agent config",
-    agentAvailable: "Available",
-    agentUnavailable: "Not configured",
-    agentAuto: "Auto",
-    agentAnthropicName: "Claude (Anthropic)",
-    agentMammouthName: "Mammouth (Mistral)",
-    agentModels: {
-      anthropic: [
-        { value: "claude-haiku-4-5", label: "Haiku 4.5 — fast" },
-        { value: "claude-sonnet-4-6", label: "Sonnet 4.6 — balanced" },
-        { value: "claude-opus-4-6", label: "Opus 4.6 — powerful" },
-      ],
-      mammouth: [
-        {
-          value: "mistral-small-3.2-24b-instruct",
-          label: "Mistral Small 3.2 — fast",
-        },
-        { value: "mistral-medium-3", label: "Mistral Medium 3 — balanced" },
-      ],
-    },
   },
 };
 
@@ -398,7 +344,14 @@ function subpageHeader(pageKey) {
       </div>
       <div class="sub-page-header-actions">
         <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
-        <button class="header-icon icon-button" type="button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+        <div class="locale-menu">
+          <button class="header-icon icon-button" type="button" id="locale-toggle" title="${escapeHtml(t.languageTitle)}" aria-label="${escapeHtml(t.languageTitle)}" aria-expanded="false" aria-haspopup="true">🌐</button>
+          <div class="locale-dropdown" id="locale-dropdown" hidden role="menu">
+            <button class="locale-option" data-locale="fr" type="button" role="menuitem" title="${escapeHtml(t.languageFr)}">FR</button>
+            <button class="locale-option" data-locale="en" type="button" role="menuitem" title="${escapeHtml(t.languageEn)}">EN</button>
+          </div>
+        </div>
+        <button class="header-icon icon-button" type="button" id="theme-toggle" title="${escapeHtml(t.appearanceTitle)}" aria-label="${escapeHtml(t.appearanceTitle)}">
           <span id="theme-toggle-icon">🌙</span>
         </button>
       </div>
@@ -421,7 +374,14 @@ function projectPageHeader(displayName) {
       </div>
       <div class="sub-page-header-actions">
         <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
-        <button class="header-icon icon-button" type="button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+        <div class="locale-menu">
+          <button class="header-icon icon-button" type="button" id="locale-toggle" title="${escapeHtml(t.languageTitle)}" aria-label="${escapeHtml(t.languageTitle)}" aria-expanded="false" aria-haspopup="true">🌐</button>
+          <div class="locale-dropdown" id="locale-dropdown" hidden role="menu">
+            <button class="locale-option" data-locale="fr" type="button" role="menuitem" title="${escapeHtml(t.languageFr)}">FR</button>
+            <button class="locale-option" data-locale="en" type="button" role="menuitem" title="${escapeHtml(t.languageEn)}">EN</button>
+          </div>
+        </div>
+        <button class="header-icon icon-button" type="button" id="theme-toggle" title="${escapeHtml(t.appearanceTitle)}" aria-label="${escapeHtml(t.appearanceTitle)}">
           <span id="theme-toggle-icon">🌙</span>
         </button>
       </div>
@@ -430,6 +390,7 @@ function projectPageHeader(displayName) {
 }
 
 function topbar() {
+  const t = SETTINGS_TEXT[settingsLocale()];
   return `
     <header class="hub-header">
       <div class="hub-brand">
@@ -453,7 +414,14 @@ function topbar() {
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path>
             </svg>
           </a>
-          <button class="header-icon icon-button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+          <div class="locale-menu">
+            <button class="header-icon icon-button" type="button" id="locale-toggle" title="${escapeHtml(t.languageTitle)}" aria-label="${escapeHtml(t.languageTitle)}" aria-expanded="false" aria-haspopup="true">🌐</button>
+            <div class="locale-dropdown" id="locale-dropdown" hidden role="menu">
+              <button class="locale-option" data-locale="fr" type="button" role="menuitem" title="${escapeHtml(t.languageFr)}">FR</button>
+              <button class="locale-option" data-locale="en" type="button" role="menuitem" title="${escapeHtml(t.languageEn)}">EN</button>
+            </div>
+          </div>
+          <button class="header-icon icon-button" id="theme-toggle" title="${escapeHtml(t.appearanceTitle)}" aria-label="${escapeHtml(t.appearanceTitle)}">
             <span id="theme-toggle-icon">🌙</span>
           </button>
       </div>
@@ -572,7 +540,7 @@ function renderHome() {
       </div>
 
       <div class="section-header" style="margin-top:4px">
-        <div class="section-label">System Status</div>
+        <div class="section-label">${escapeHtml(t.systemStatus)}</div>
       </div>
       <div id="system-card" class="system-card">
         <div class="system-kpi-row">
@@ -784,6 +752,7 @@ function renderLogs() {
 }
 
 function renderKanbanPage() {
+  const k = kanbanUi();
   app.innerHTML = `
     <div class="container">
       ${subpageHeader("kanban")}
@@ -791,7 +760,7 @@ function renderKanbanPage() {
         <div class="codir-header" id="codir-toggle">
           <div class="codir-title">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h4"/><circle cx="17" cy="17" r="3"/><path d="M15.5 18.5l1 1"/></svg>
-            Comite de Direction
+            ${escapeHtml(k.codirTitle)}
             <span id="codir-proj-count" style="font-weight:400;font-size:0.72rem"></span>
           </div>
           <span id="codir-chevron" style="font-size:0.75rem;color:var(--muted)">▾</span>
@@ -803,15 +772,16 @@ function renderKanbanPage() {
       <div class="kanban-controls">
         <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
           <span class="view-toggle">
-            <button id="view-board" class="active" type="button">Board</button>
-            <button id="view-gantt" type="button">Gantt</button>
-            <button id="view-graph" type="button">Graph</button>
+            <button id="view-board" class="active" type="button">${escapeHtml(k.viewBoard)}</button>
+            <button id="view-gantt" type="button">${escapeHtml(k.viewGantt)}</button>
+            <button id="view-graph" type="button">${escapeHtml(k.viewGraph)}</button>
           </span>
-          <select id="kanban-project-filter"><option value="">All projects</option></select>
+          <select id="kanban-project-filter"><option value="">${escapeHtml(k.allProjects)}</option></select>
         </div>
-        <div style="display:flex;gap:0.5rem;">
-          <button id="kanban-new-task" class="btn-primary" type="button">+ New Task</button>
-          <button id="kanban-open-archive" type="button">Archive</button>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+          <button id="kanban-new-task" class="btn-primary" type="button">${escapeHtml(k.newTask)}</button>
+          <button id="kanban-open-archive" type="button">${escapeHtml(k.archive)}</button>
+          <button id="kanban-bulk-delete-open" type="button" class="btn" style="border-color:#ef4444;color:#ef4444;margin-left:auto;">${escapeHtml(k.deleteMany)}</button>
         </div>
       </div>
       <div id="kanban-pm-meta" class="pm-meta-card" style="display:none;"></div>
@@ -821,11 +791,11 @@ function renderKanbanPage() {
         <div id="kanban-board" class="kanban-board"></div>
       </div>
       <div id="kanban-gantt-wrap" class="tile" style="display:none;">
-        <div class="card-title">Gantt</div>
+        <div class="card-title">${escapeHtml(k.ganttTitle)}</div>
         <div id="kanban-gantt" class="list"></div>
       </div>
       <div id="kanban-graph-wrap" class="tile" style="display:none;">
-        <div class="card-title">Dependency graph</div>
+        <div class="card-title">${escapeHtml(k.graphTitle)}</div>
         <div id="kanban-graph" class="list"></div>
       </div>
       <div id="kanban-detail-overlay" class="modal-overlay">
@@ -834,18 +804,18 @@ function renderKanbanPage() {
       <div id="kanban-create-overlay" class="modal-overlay">
         <div class="panel">
           <button class="modal-close" id="kanban-create-close" type="button">&times;</button>
-          <h2>New Task</h2>
+          <h2>${escapeHtml(k.newTaskH2)}</h2>
           <div class="field">
-            <label>Title</label>
+            <label>${escapeHtml(k.fieldTitle)}</label>
             <input id="kanban-create-title" />
           </div>
           <div class="field-row">
             <div class="field">
-              <label>Project</label>
+              <label>${escapeHtml(k.fieldProject)}</label>
               <input id="kanban-create-project" />
             </div>
             <div class="field">
-              <label>Priority</label>
+              <label>${escapeHtml(k.fieldPriority)}</label>
               <select id="kanban-create-priority">
                 <option>Critical</option><option>High</option><option selected>Medium</option><option>Low</option>
               </select>
@@ -853,27 +823,42 @@ function renderKanbanPage() {
           </div>
           <div class="field-row">
             <div class="field">
-              <label>Effort hours</label>
+              <label>${escapeHtml(k.fieldEffortHours)}</label>
               <input id="kanban-create-effort" type="number" min="0" step="0.5" />
             </div>
             <div class="field">
-              <label>Assignee</label>
+              <label>${escapeHtml(k.fieldAssignee)}</label>
               <input id="kanban-create-assignee" value="DomBot" />
             </div>
           </div>
           <div class="field">
-            <label>Description</label>
+            <label>${escapeHtml(k.fieldDescription)}</label>
             <textarea id="kanban-create-description"></textarea>
           </div>
           <div class="modal-actions">
-            <button class="btn" id="kanban-create-submit" type="button">Create</button>
+            <button class="btn" id="kanban-create-submit" type="button">${escapeHtml(k.createBtn)}</button>
+          </div>
+        </div>
+      </div>
+      <div id="kanban-bulk-delete-overlay" class="modal-overlay">
+        <div class="panel">
+          <button class="modal-close" id="kanban-bulk-delete-close" type="button">&times;</button>
+          <h2>${escapeHtml(k.deleteManyTitle)}</h2>
+          <p class="desc" style="margin-top:0.5rem;">${escapeHtml(k.deleteManyIntro)}</p>
+          <div class="field">
+            <label>${escapeHtml(k.deleteManyScope)}</label>
+            <select id="kanban-bulk-delete-scope"></select>
+          </div>
+          <div class="modal-actions">
+            <button class="btn" id="kanban-bulk-delete-cancel" type="button">${escapeHtml(k.cancel)}</button>
+            <button class="btn" id="kanban-bulk-delete-confirm" type="button" style="border-color:#ef4444;color:#ef4444;">${escapeHtml(k.delete)}</button>
           </div>
         </div>
       </div>
       <div id="kanban-archive-overlay" class="modal-overlay">
         <div class="panel">
           <button class="modal-close" id="kanban-archive-close" type="button">&times;</button>
-          <h2>Archive</h2>
+          <h2>${escapeHtml(k.archiveH2)}</h2>
           <div id="kanban-archive-content" class="list"></div>
         </div>
       </div>
@@ -945,7 +930,14 @@ function renderSettings() {
         </div>
         <div class="sub-page-header-actions">
           <a href="/" class="back-btn"><span class="icon">←</span><span>${t.back}</span></a>
-          <button class="header-icon icon-button" type="button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+          <div class="locale-menu">
+            <button class="header-icon icon-button" type="button" id="locale-toggle" title="${escapeHtml(t.languageTitle)}" aria-label="${escapeHtml(t.languageTitle)}" aria-expanded="false" aria-haspopup="true">🌐</button>
+            <div class="locale-dropdown" id="locale-dropdown" hidden role="menu">
+              <button class="locale-option" data-locale="fr" type="button" role="menuitem" title="${escapeHtml(t.languageFr)}">FR</button>
+              <button class="locale-option" data-locale="en" type="button" role="menuitem" title="${escapeHtml(t.languageEn)}">EN</button>
+            </div>
+          </div>
+          <button class="header-icon icon-button" type="button" id="theme-toggle" title="${escapeHtml(t.appearanceTitle)}" aria-label="${escapeHtml(t.appearanceTitle)}">
             <span id="theme-toggle-icon">🌙</span>
           </button>
         </div>
@@ -962,7 +954,7 @@ function renderSettings() {
 
       <!-- Health banner centré -->
       <div class="settings-health-banner">
-        <div class="settings-health-banner-title">${isFr ? "État du royaume" : "Kingdom status"}</div>
+        <div class="settings-health-banner-title">${t.healthBannerTitle}</div>
         <div class="health-grid-banner">
           <div class="health-banner-item">
             <span class="health-banner-label">${t.runtimeHealth}</span>
@@ -977,7 +969,6 @@ function renderSettings() {
             <span id="health-instances" class="health-pill warn">0 ${t.linked}</span>
           </div>
         </div>
-        <p class="settings-health-tagline">${isFr ? "Sire, vos royaumes vous attendent." : "Your kingdoms await, sire."}</p>
       </div>
 
       <div class="settings-sections">
@@ -998,46 +989,6 @@ function renderSettings() {
             <a href="/setup/runtime/" class="btn btn-primary">${t.configureRuntime}</a>
           </div>
           <span id="provider-save-feedback" class="test-result"></span>
-        </section>
-
-        <section class="card settings-card settings-section" id="agent-config-section">
-          <div class="settings-heading-row">
-            <h2 class="card-title settings-section-title">${t.agentTitle}</h2>
-            <span id="agent-config-status" class="ai-runtime-status-badge warn">${t.notConfigured}</span>
-          </div>
-          <div class="card-desc">${t.agentDesc}</div>
-          <div class="agent-providers-grid" id="agent-providers-grid">
-            <div class="agent-provider-card" id="agent-card-anthropic">
-              <label class="agent-provider-label">
-                <input type="radio" name="agent-provider" value="anthropic" id="ap-anthropic" />
-                <span class="agent-provider-name">${t.agentAnthropicName}</span>
-                <span class="agent-availability-badge" id="agent-badge-anthropic">${t.agentUnavailable}</span>
-              </label>
-              <div class="agent-model-row" id="agent-model-row-anthropic">
-                <label for="anthropic-model-select" class="agent-model-label">${t.agentModelLabel}</label>
-                <select id="anthropic-model-select" class="agent-model-select">
-                  ${t.agentModels.anthropic.map((m) => `<option value="${m.value}">${escapeHtml(m.label)}</option>`).join("")}
-                </select>
-              </div>
-            </div>
-            <div class="agent-provider-card" id="agent-card-mammouth">
-              <label class="agent-provider-label">
-                <input type="radio" name="agent-provider" value="mammouth" id="ap-mammouth" />
-                <span class="agent-provider-name">${t.agentMammouthName}</span>
-                <span class="agent-availability-badge" id="agent-badge-mammouth">${t.agentUnavailable}</span>
-              </label>
-              <div class="agent-model-row" id="agent-model-row-mammouth">
-                <label for="mammouth-model-select" class="agent-model-label">${t.agentModelLabel}</label>
-                <select id="mammouth-model-select" class="agent-model-select">
-                  ${t.agentModels.mammouth.map((m) => `<option value="${m.value}">${escapeHtml(m.label)}</option>`).join("")}
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="settings-actions">
-            <button id="save-agent-config" class="btn btn-primary" type="button">${t.agentSave}</button>
-            <span id="agent-save-feedback" class="test-result"></span>
-          </div>
         </section>
 
         <section class="card settings-card settings-section">
@@ -1072,11 +1023,8 @@ function renderSettings() {
           <div class="card-desc">${t.instancesDesc}</div>
           <div class="instances-toolbar">
             <button id="refresh-instances" class="btn" type="button">${t.refreshInstances}</button>
-            <button id="instances-link-selected" class="btn" type="button">${t.instancesLinkSelected}</button>
-            <button id="instances-unlink-selected" class="btn" type="button">${t.instancesUnlinkSelected}</button>
           </div>
-          <select id="instances-multi" class="instances-multiselect" multiple size="10" aria-label="${escapeHtml(t.instancesTitle)}"></select>
-          <p class="hint instances-multi-hint">${escapeHtml(t.instancesMultiHint)}</p>
+          <div id="instances-list" class="instances-list" role="group" aria-label="${escapeHtml(t.instancesTitle)}"></div>
         </section>
 
         <section class="card settings-card settings-section" id="cron-section">
@@ -1089,51 +1037,6 @@ function renderSettings() {
           <div id="cron-table-wrap"></div>
         </section>
 
-        <section class="card settings-card settings-section settings-appearance-card">
-          <div class="settings-heading-row">
-            <h2 class="card-title settings-section-title">${t.appearanceTitle}</h2>
-            <span class="settings-info-hold" tabindex="0" aria-label="${escapeHtml(t.moreInfo)}">
-              <span class="settings-info-i" aria-hidden="true">i</span>
-            </span>
-            <div class="settings-info-popover" role="tooltip">${escapeHtml(t.appearanceInfo)}</div>
-          </div>
-          <p class="card-desc appearance-intro">${t.appearanceDesc}</p>
-          <div class="theme-cards">
-            <label class="theme-card theme-card-dark" data-value="dark">
-              <input id="appearance-dark" type="radio" name="hub-theme-choice" value="dark" />
-              <span class="theme-card-preview" aria-hidden="true"></span>
-              <span class="theme-card-label">${isFr ? "Sombre" : "Dark"}</span>
-            </label>
-            <label class="theme-card theme-card-light" data-value="light">
-              <input id="appearance-light" type="radio" name="hub-theme-choice" value="light" />
-              <span class="theme-card-preview" aria-hidden="true"></span>
-              <span class="theme-card-label">${isFr ? "Clair" : "Light"}</span>
-            </label>
-          </div>
-        </section>
-
-        <section class="card settings-card settings-section">
-          <div class="settings-heading-row">
-            <h2 class="card-title settings-section-title">${t.languageTitle}</h2>
-            <span class="settings-info-hold" tabindex="0" aria-label="${escapeHtml(t.moreInfo)}">
-              <span class="settings-info-i" aria-hidden="true">i</span>
-            </span>
-            <div class="settings-info-popover" role="tooltip">${escapeHtml(t.languageInfo)}</div>
-          </div>
-          <p class="card-desc">${t.languageDesc}</p>
-          <div class="theme-cards">
-            <label class="theme-card" data-value="fr">
-              <input id="lang-fr" type="radio" name="hub-lang-choice" value="fr" ${isFr ? "checked" : ""} />
-              <span class="theme-card-preview lang-flag" aria-hidden="true">🇫🇷</span>
-              <span class="theme-card-label">${t.languageFr}</span>
-            </label>
-            <label class="theme-card" data-value="en">
-              <input id="lang-en" type="radio" name="hub-lang-choice" value="en" ${!isFr ? "checked" : ""} />
-              <span class="theme-card-preview lang-flag" aria-hidden="true">🇬🇧</span>
-              <span class="theme-card-label">${t.languageEn}</span>
-            </label>
-          </div>
-        </section>
       </div>
     </div>
   `;
@@ -1260,7 +1163,176 @@ const STATUSES = [
   "Done",
 ];
 
+function kanbanUi() {
+  const loc = settingsLocale();
+  return KANBAN_UI[loc] || KANBAN_UI.en;
+}
+
+const KANBAN_UI = {
+  fr: {
+    codirTitle: "Comité de direction",
+    viewBoard: "Tableau",
+    viewGantt: "Gantt",
+    viewGraph: "Graphe",
+    allProjects: "Tous les projets",
+    newTask: "+ Nouvelle tâche",
+    archive: "Archives",
+    deleteMany: "Supprimer…",
+    deleteManyTitle: "Supprimer des tâches",
+    deleteManyIntro:
+      "Supprime les tâches actives (non archivées). Choisis un projet ou tous les projets.",
+    deleteManyScope: "Portée",
+    deleteManyAllOption: "Tous les projets",
+    cancel: "Annuler",
+    ganttTitle: "Gantt",
+    graphTitle: "Graphe des dépendances",
+    newTaskH2: "Nouvelle tâche",
+    fieldTitle: "Titre",
+    fieldProject: "Projet",
+    fieldPriority: "Priorité",
+    fieldEffortHours: "Effort (heures)",
+    fieldAssignee: "Assigné à",
+    fieldDescription: "Description",
+    createBtn: "Créer",
+    archiveH2: "Archives",
+    statTotal: "Total",
+    statEffortLeft: "Effort restant",
+    statDone: "Terminé",
+    codirProjectCount: "({n} projets)",
+    effortLeftH: "h restantes",
+    filterProjectTitle: "Filtrer {p}",
+    emptyColToStart: "Ajoutez des tâches pour l'IA ici",
+    emptyColOther: "Aucune tâche",
+    detailStatus: "Statut",
+    detailPriority: "Priorité",
+    effortLabel: "Effort (heures)",
+    timelineLabel: "Échéance",
+    timelinePh: "ex. S23, T2 2025",
+    assigneeLabel: "Assigné à",
+    assigneePh: "DomBot",
+    confidenceLabel: "Confiance",
+    notes: "Notes",
+    save: "Enregistrer",
+    split: "Diviser",
+    archiveVerb: "Archiver",
+    delete: "Supprimer",
+    badgeYou: "vous",
+    alertUpdateFailed: "Mise à jour impossible",
+    alertSaveFailed: "Enregistrement impossible",
+    alertSplitFailed: "Division impossible",
+    alertArchiveFailed: "Archivage impossible",
+    alertDeleteFailed: "Suppression impossible",
+    alertMoveFailed: "Déplacement impossible",
+    promptSubtaskCount: "Nombre de sous-tâches",
+    promptBaseTitle: "Titre de base (optionnel)",
+    bulkConfirmTitle: "Confirmer la suppression",
+    taskDeleteConfirmTitle: "Êtes-vous sûr ?",
+    taskDeleteConfirmMessage:
+      "Supprimer cette tâche définitivement ? Elle disparaîtra du Kanban et des dépendances.",
+    bulkConfirmAll:
+      "Supprimer définitivement toutes les tâches actives (tous les projets) ? Cette action est irréversible.",
+    bulkConfirmProject:
+      "Supprimer définitivement toutes les tâches actives du projet « {p} » ? Irréversible.",
+    pmMetaTitle: "Méta PM",
+    visionLabel: "Vision :",
+    sumTotal: "Tâches totales",
+    sumDone: "Terminées",
+    sumRemaining: "Restantes",
+    sumEffort: "Effort",
+    ganttEmpty: "Aucune tâche pour la vue Gantt.",
+    graphEmpty: "Aucune dépendance à afficher.",
+    graphDepends: "Dépend de :",
+    createFailed: "Création impossible",
+    loadingArchive: "Chargement des archives…",
+    restore: "Restaurer",
+    noArchived: "Aucune tâche archivée.",
+    restoreFailed: "Restauration impossible",
+    bulkFailed: "Suppression groupée impossible",
+  },
+  en: {
+    codirTitle: "Steering board",
+    viewBoard: "Board",
+    viewGantt: "Gantt",
+    viewGraph: "Graph",
+    allProjects: "All projects",
+    newTask: "+ New task",
+    archive: "Archive",
+    deleteMany: "Delete…",
+    deleteManyTitle: "Delete tasks",
+    deleteManyIntro:
+      "Deletes active (non-archived) tasks. Pick one project or all projects.",
+    deleteManyScope: "Scope",
+    deleteManyAllOption: "All projects",
+    cancel: "Cancel",
+    ganttTitle: "Gantt",
+    graphTitle: "Dependency graph",
+    newTaskH2: "New task",
+    fieldTitle: "Title",
+    fieldProject: "Project",
+    fieldPriority: "Priority",
+    fieldEffortHours: "Effort hours",
+    fieldAssignee: "Assignee",
+    fieldDescription: "Description",
+    createBtn: "Create",
+    archiveH2: "Archive",
+    statTotal: "Total",
+    statEffortLeft: "Effort left",
+    statDone: "Done",
+    codirProjectCount: "({n} projects)",
+    effortLeftH: "h left",
+    filterProjectTitle: "Filter {p}",
+    emptyColToStart: "Add tasks here for AI",
+    emptyColOther: "No tasks",
+    detailStatus: "Status",
+    detailPriority: "Priority",
+    effortLabel: "Effort (hours)",
+    timelineLabel: "Timeline",
+    timelinePh: "e.g. S23, Q2 2025",
+    assigneeLabel: "Assignee",
+    assigneePh: "DomBot",
+    confidenceLabel: "Confidence",
+    notes: "Notes",
+    save: "Save",
+    split: "Split",
+    archiveVerb: "Archive",
+    delete: "Delete",
+    badgeYou: "you",
+    alertUpdateFailed: "Update failed",
+    alertSaveFailed: "Save failed",
+    alertSplitFailed: "Split failed",
+    alertArchiveFailed: "Archive failed",
+    alertDeleteFailed: "Delete failed",
+    alertMoveFailed: "Move failed",
+    promptSubtaskCount: "Number of subtasks",
+    promptBaseTitle: "Base title (optional)",
+    bulkConfirmTitle: "Confirm deletion",
+    taskDeleteConfirmTitle: "Are you sure?",
+    taskDeleteConfirmMessage:
+      "Delete this task permanently? It will be removed from the board and dependencies.",
+    bulkConfirmAll:
+      "Permanently delete all active tasks across every project? This cannot be undone.",
+    bulkConfirmProject:
+      'Permanently delete all active tasks for project "{p}"? This cannot be undone.',
+    pmMetaTitle: "PM meta",
+    visionLabel: "Vision:",
+    sumTotal: "Total tasks",
+    sumDone: "Done",
+    sumRemaining: "Remaining",
+    sumEffort: "Effort",
+    ganttEmpty: "No tasks for Gantt view.",
+    graphEmpty: "No dependencies to display.",
+    graphDepends: "Depends on:",
+    createFailed: "Create failed",
+    loadingArchive: "Loading archive…",
+    restore: "Restore",
+    noArchived: "No archived tasks.",
+    restoreFailed: "Restore failed",
+    bulkFailed: "Bulk delete failed",
+  },
+};
+
 function updateKanbanOverview(tasks) {
+  const k = kanbanUi();
   const total = tasks.length;
   const byStatus = {};
   let effortRemaining = 0;
@@ -1275,13 +1347,13 @@ function updateKanbanOverview(tasks) {
   const bar = document.getElementById("kanban-stats-bar");
   if (bar) {
     bar.innerHTML = [
-      `<span class="stat-item"><span>Total</span><span>${total}</span></span>`,
+      `<span class="stat-item"><span>${escapeHtml(k.statTotal)}</span><span>${total}</span></span>`,
       ...STATUSES.map(
         (s) =>
-          `<span class="stat-item"><span>${s}</span><span>${byStatus[s] || 0}</span></span>`,
+          `<span class="stat-item"><span>${escapeHtml(s)}</span><span>${byStatus[s] || 0}</span></span>`,
       ),
-      `<span class="stat-item"><span>Effort left</span><span>${effortRemaining.toFixed(1)}h</span></span>`,
-      `<span class="stat-item"><span>Done</span><span>${pct}%</span></span>`,
+      `<span class="stat-item"><span>${escapeHtml(k.statEffortLeft)}</span><span>${effortRemaining.toFixed(1)}h</span></span>`,
+      `<span class="stat-item"><span>${escapeHtml(k.statDone)}</span><span>${pct}%</span></span>`,
     ].join("");
   }
 
@@ -1291,13 +1363,18 @@ function updateKanbanOverview(tasks) {
 let codirOpen = true;
 
 function renderCoDirBoard(tasks) {
+  const k = kanbanUi();
   const grid = document.getElementById("codir-grid");
   if (!grid) return;
   const allProjects = [
     ...new Set(tasks.map((t) => t.project).filter(Boolean)),
   ].sort();
   const countEl = document.getElementById("codir-proj-count");
-  if (countEl) countEl.textContent = `(${allProjects.length} projets)`;
+  if (countEl)
+    countEl.textContent = k.codirProjectCount.replace(
+      "{n}",
+      String(allProjects.length),
+    );
 
   grid.innerHTML = "";
   allProjects.forEach((proj, idx) => {
@@ -1346,7 +1423,9 @@ function renderCoDirBoard(tasks) {
       bl ? `<span>⛔ <strong>${bl}</strong></span>` : "",
       ts ? `<span>📥 <strong>${ts}</strong></span>` : "",
       `<span style="color:var(--muted)">/ ${t}</span>`,
-      effortLeft ? `<span>⏱ ${effortLeft.toFixed(0)}h left</span>` : "",
+      effortLeft
+        ? `<span>⏱ ${effortLeft.toFixed(0)}${escapeHtml(k.effortLeftH)}</span>`
+        : "",
       avgConf ? `<span>🎯 ${avgConf}</span>` : "",
     ]
       .filter(Boolean)
@@ -1356,7 +1435,7 @@ function renderCoDirBoard(tasks) {
       <div class="codir-proj">
         <div class="codir-proj-header">
           <span class="codir-proj-num">#${idx + 1}</span>
-          <span class="codir-proj-name" data-codir-proj="${escapeHtml(proj)}" title="Filter ${escapeHtml(proj)}">${escapeHtml(proj)}</span>
+          <span class="codir-proj-name" data-codir-proj="${escapeHtml(proj)}" title="${escapeHtml(k.filterProjectTitle.replace("{p}", proj))}">${escapeHtml(proj)}</span>
           <span class="codir-proj-pct" style="color:${pctColor}">${pcDone}%</span>
         </div>
         <div class="codir-bar">${barParts || '<div class="codir-bar-start" style="flex:1"></div>'}</div>
@@ -1371,6 +1450,7 @@ function createKanbanBoard(
   projectSlug = null,
   onChanged = null,
 ) {
+  const k = kanbanUi();
   const colIcons = {
     Backlog: "📥",
     "To Start": "🤖",
@@ -1394,7 +1474,7 @@ function createKanbanBoard(
     const cardsDiv = document.createElement("div");
     cardsDiv.className = "kanban-cards";
     if (!colTasks.length) {
-      cardsDiv.innerHTML = `<div class="empty-col">${status === "To Start" ? "Add tasks here for AI" : "No tasks"}</div>`;
+      cardsDiv.innerHTML = `<div class="empty-col">${status === "To Start" ? escapeHtml(k.emptyColToStart) : escapeHtml(k.emptyColOther)}</div>`;
     }
     colTasks.forEach((task) => {
       const card = document.createElement("div");
@@ -1406,7 +1486,7 @@ function createKanbanBoard(
         html += `<span class="badge badge-project">${escapeHtml(task.project)}</span>`;
       html += `<span class="badge badge-${task.priority || "Medium"}">${escapeHtml(task.priority || "Medium")}</span>`;
       if (task.created_by === "user")
-        html += `<span class="badge" style="background:rgba(99,102,241,0.1);color:var(--accent)">you</span>`;
+        html += `<span class="badge" style="background:rgba(99,102,241,0.1);color:var(--accent)">${escapeHtml(k.badgeYou)}</span>`;
       if (task.effort_hours)
         html += `<span class="card-effort">${task.effort_hours}h</span>`;
       html += `</div>`;
@@ -1432,43 +1512,43 @@ function createKanbanBoard(
     modal.innerHTML = `
       <button class="modal-close" id="kanban-detail-close" type="button">&times;</button>
       <h2>${escapeHtml(task.title || "Task")}</h2>
-      <div class="detail-section-label">Statut</div>
+      <div class="detail-section-label">${escapeHtml(k.detailStatus)}</div>
       <div class="status-buttons">
         ${STATUSES.map((s) => `<button class="status-btn ${task.status === s ? "active" : ""}" data-task-id="${escapeHtml(task.id)}" data-next-status="${s}" type="button">${s}</button>`).join("")}
       </div>
-      <div class="detail-section-label">Priorité</div>
+      <div class="detail-section-label">${escapeHtml(k.detailPriority)}</div>
       <div class="priority-buttons">
         ${priorities.map((p) => `<button class="priority-btn ${task.priority === p ? "active" : ""}" data-priority="${p}" type="button" style="--pcolor:${PRIORITY_COLORS[p]}">${p}</button>`).join("")}
       </div>
       <div class="detail-fields-grid">
         <div class="field">
-          <label>Effort (heures)</label>
+          <label>${escapeHtml(k.effortLabel)}</label>
           <input id="detail-effort" type="number" min="0" step="0.5" value="${escapeHtml(String(task.effort_hours ?? ""))}" placeholder="0.5" />
         </div>
         <div class="field">
-          <label>Timeline</label>
-          <input id="detail-timeline" type="text" value="${escapeHtml(task.timeline || "")}" placeholder="ex: S23, Q2 2025" />
+          <label>${escapeHtml(k.timelineLabel)}</label>
+          <input id="detail-timeline" type="text" value="${escapeHtml(task.timeline || "")}" placeholder="${escapeHtml(k.timelinePh)}" />
         </div>
         <div class="field">
-          <label>Assigné à</label>
-          <input id="detail-assignee" type="text" value="${escapeHtml(task.assignee || "")}" placeholder="DomBot" />
+          <label>${escapeHtml(k.assigneeLabel)}</label>
+          <input id="detail-assignee" type="text" value="${escapeHtml(task.assignee || "")}" placeholder="${escapeHtml(k.assigneePh)}" />
         </div>
         <div class="field">
-          <label>Confiance</label>
+          <label>${escapeHtml(k.confidenceLabel)}</label>
           <span class="badge badge-conf-${level}">${score.toFixed(2)}</span>
           <span class="detail-meta-minor">${escapeHtml(task.project || "—")}</span>
         </div>
       </div>
       ${task.description ? `<div class="desc" style="margin-top:8px;">${escapeHtml(task.description)}</div>` : ""}
       <div class="field" style="margin-top:10px;">
-        <label>Notes</label>
+        <label>${escapeHtml(k.notes)}</label>
         <textarea id="kanban-detail-notes">${escapeHtml(task.notes || "")}</textarea>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-primary" id="kanban-detail-save" type="button">Enregistrer</button>
-        <button class="btn" id="kanban-detail-split" type="button">Diviser</button>
-        ${task.status === "Done" ? '<button class="btn" id="kanban-detail-archive" type="button">Archiver</button>' : ""}
-        <button class="btn" id="kanban-detail-delete" type="button" style="margin-left:auto;border-color:#ef4444;color:#ef4444;">Supprimer</button>
+        <button class="btn btn-primary" id="kanban-detail-save" type="button">${escapeHtml(k.save)}</button>
+        <button class="btn" id="kanban-detail-split" type="button">${escapeHtml(k.split)}</button>
+        ${task.status === "Done" ? `<button class="btn" id="kanban-detail-archive" type="button">${escapeHtml(k.archiveVerb)}</button>` : ""}
+        <button class="btn" id="kanban-detail-delete" type="button" style="margin-left:auto;border-color:#ef4444;color:#ef4444;">${escapeHtml(k.delete)}</button>
       </div>
     `;
     overlay.classList.add("open");
@@ -1503,7 +1583,7 @@ function createKanbanBoard(
             body: JSON.stringify({ status: nextStatus }),
           },
         );
-        if (!res.ok) return alert("Update failed");
+        if (!res.ok) return alert(k.alertUpdateFailed);
         overlay.classList.remove("open");
         await reloadBoard();
       });
@@ -1532,18 +1612,18 @@ function createKanbanBoard(
             body: JSON.stringify(body),
           },
         );
-        if (!res.ok) return alert("Save failed");
+        if (!res.ok) return alert(k.alertSaveFailed);
         overlay.classList.remove("open");
         await reloadBoard();
       });
     document
       .getElementById("kanban-detail-split")
       ?.addEventListener("click", async () => {
-        const countRaw = prompt("Number of subtasks", "3");
+        const countRaw = prompt(k.promptSubtaskCount, "3");
         if (!countRaw) return;
         const count = Number(countRaw);
         if (!Number.isFinite(count) || count < 1) return;
-        const base_title = prompt("Base title (optional)", "") || null;
+        const base_title = prompt(k.promptBaseTitle, "") || null;
         const res = await fetch(
           `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}/split`,
           {
@@ -1552,7 +1632,7 @@ function createKanbanBoard(
             body: JSON.stringify({ count, base_title }),
           },
         );
-        if (!res.ok) return alert("Split failed");
+        if (!res.ok) return alert(k.alertSplitFailed);
         overlay.classList.remove("open");
         await reloadBoard();
       });
@@ -1565,28 +1645,25 @@ function createKanbanBoard(
             method: "PUT",
           },
         );
-        if (!res.ok) return alert("Archive failed");
+        if (!res.ok) return alert(k.alertArchiveFailed);
         overlay.classList.remove("open");
         await reloadBoard();
       });
     document
       .getElementById("kanban-detail-delete")
       ?.addEventListener("click", async () => {
-        const locFr = settingsLocale() === "fr";
         const ok = await showConfirm({
-          title: locFr ? "Êtes-vous sûr ?" : "Are you sure?",
-          message: locFr
-            ? "Supprimer cette tâche définitivement ? Elle disparaîtra du Kanban et des dépendances."
-            : "Delete this task permanently? It will be removed from the board and dependencies.",
-          confirmLabel: locFr ? "Supprimer" : "Delete",
-          cancelLabel: locFr ? "Annuler" : "Cancel",
+          title: k.taskDeleteConfirmTitle,
+          message: k.taskDeleteConfirmMessage,
+          confirmLabel: k.delete,
+          cancelLabel: k.cancel,
         });
         if (!ok) return;
         const res = await fetch(
           `/api/hub/kanban/tasks/${encodeURIComponent(task.id)}`,
           { method: "DELETE" },
         );
-        if (!res.ok) return alert("Suppression impossible");
+        if (!res.ok) return alert(k.alertDeleteFailed);
         overlay.classList.remove("open");
         await reloadBoard();
       });
@@ -1628,7 +1705,7 @@ function createKanbanBoard(
           body: JSON.stringify({ status: nextStatus }),
         },
       );
-      if (!res.ok) return alert("Move failed");
+      if (!res.ok) return alert(k.alertMoveFailed);
       draggedId = null;
       await reloadBoard();
     });
@@ -1644,14 +1721,14 @@ function createKanbanBoard(
         `/api/hub/kanban/tasks?project=${encodeURIComponent(projectSlug)}`,
       );
       const payload = refresh.ok ? await refresh.json() : { tasks: [] };
-      createKanbanBoard(payload.tasks || [], target, projectSlug);
+      createKanbanBoard(payload.tasks || [], target, projectSlug, onChanged);
       return;
     }
     const refresh = await fetch("/api/hub/kanban/tasks");
     const payload = refresh.ok ? await refresh.json() : { tasks: [] };
     const refreshedTasks = payload.tasks || [];
     updateKanbanOverview(refreshedTasks);
-    createKanbanBoard(refreshedTasks, target, null);
+    createKanbanBoard(refreshedTasks, target, null, onChanged);
   }
 }
 
@@ -1874,7 +1951,7 @@ async function wireProjectPage() {
           description,
         }),
       });
-      if (!res.ok) return alert(fr ? "Échec création" : "Create failed");
+      if (!res.ok) return alert(kanbanUi().createFailed);
       createOverlay?.classList.remove("open");
       const refresh = await fetch(
         `/api/hub/kanban/tasks?project=${encodeURIComponent(slug)}`,
@@ -2103,21 +2180,16 @@ function logEntryRawTimestamp(entry) {
 
 function formatLogDisplayTs(raw) {
   if (!raw) return "—";
+  const pad = (n) => String(n).padStart(2, "0");
   const normalized = raw.replace(/Z$/i, "");
   const d = new Date(normalized);
   if (!Number.isNaN(d.getTime())) {
-    return d.toLocaleString(undefined, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
-  const t = raw.includes("T") ? raw.replace("T", " ") : raw;
-  return t.length > 23 ? t.slice(0, 23) : t;
+  let t = raw.includes("T") ? raw.replace("T", " ") : raw;
+  t = t.replace(/\.\d{3,}/, "").trim();
+  if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}/.test(t)) return t.slice(0, 19);
+  return t.length > 19 ? t.slice(0, 19) : t;
 }
 
 async function wireLogs() {
@@ -2346,6 +2418,7 @@ async function wireKanbanPage() {
   }
 
   function renderMetaCard() {
+    const k = kanbanUi();
     const host = document.getElementById("kanban-pm-meta");
     if (!host) return;
     const hasDescription = !!(meta.description || "").trim();
@@ -2358,14 +2431,15 @@ async function wireKanbanPage() {
     }
     host.style.display = "";
     host.innerHTML = `
-      <div class="card-title">PM Meta</div>
+      <div class="card-title">${escapeHtml(k.pmMetaTitle)}</div>
       <div class="desc">${escapeHtml(meta.description || "")}</div>
-      ${meta.vision ? `<div class="desc" style="margin-top:6px;"><strong>Vision:</strong> ${escapeHtml(meta.vision)}</div>` : ""}
+      ${meta.vision ? `<div class="desc" style="margin-top:6px;"><strong>${escapeHtml(k.visionLabel)}</strong> ${escapeHtml(meta.vision)}</div>` : ""}
       ${Array.isArray(meta.pr_links) && meta.pr_links.length ? `<div class="chips">${meta.pr_links.map((l) => `<a class="chip" href="${escapeHtml(l)}" target="_blank" rel="noreferrer">PR</a>`).join("")}</div>` : ""}
     `;
   }
 
   function renderProjectSummary(tasks) {
+    const k = kanbanUi();
     const box = document.getElementById("kanban-project-summary");
     if (!box) return;
     if (!projectFilter || !tasks.length) {
@@ -2381,10 +2455,10 @@ async function wireKanbanPage() {
     box.innerHTML = `
       <div style="font-weight:600;font-size:0.9rem;">${escapeHtml(projectFilter)}</div>
       <div style="display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.78rem;">
-        <span>Total tasks: <strong>${total}</strong></span>
-        <span>Done: <strong>${done}</strong></span>
-        <span>Remaining: <strong>${remaining}</strong></span>
-        <span>Effort: <strong>${effort.toFixed(1)}h</strong></span>
+        <span>${escapeHtml(k.sumTotal)}: <strong>${total}</strong></span>
+        <span>${escapeHtml(k.sumDone)}: <strong>${done}</strong></span>
+        <span>${escapeHtml(k.sumRemaining)}: <strong>${remaining}</strong></span>
+        <span>${escapeHtml(k.sumEffort)}: <strong>${effort.toFixed(1)}h</strong></span>
       </div>
     `;
   }
@@ -2405,6 +2479,7 @@ async function wireKanbanPage() {
   }
 
   function renderGantt(tasks) {
+    const k = kanbanUi();
     if (!ganttTarget) return;
     const rows = tasks
       .map((t) => {
@@ -2420,20 +2495,21 @@ async function wireKanbanPage() {
       })
       .join("");
     ganttTarget.innerHTML =
-      rows || '<div class="task">No tasks for gantt view.</div>';
+      rows || `<div class="task">${escapeHtml(k.ganttEmpty)}</div>`;
   }
 
   function renderGraph(tasks) {
+    const k = kanbanUi();
     if (!graphTarget) return;
     const rows = tasks
       .filter((t) => (t.dependencies || []).length)
       .map(
         (t) =>
-          `<div class="task"><strong>${escapeHtml(t.title || t.id)}</strong><div class="desc">Depends on: ${escapeHtml((t.dependencies || []).join(", "))}</div></div>`,
+          `<div class="task"><strong>${escapeHtml(t.title || t.id)}</strong><div class="desc">${escapeHtml(k.graphDepends)} ${escapeHtml((t.dependencies || []).join(", "))}</div></div>`,
       )
       .join("");
     graphTarget.innerHTML =
-      rows || '<div class="task">No dependencies to display.</div>';
+      rows || `<div class="task">${escapeHtml(k.graphEmpty)}</div>`;
   }
 
   async function renderCurrent() {
@@ -2452,6 +2528,7 @@ async function wireKanbanPage() {
   }
 
   async function refreshAll() {
+    const k = kanbanUi();
     const res = await fetch("/api/hub/kanban/tasks");
     const data = res.ok ? await res.json() : { tasks: [] };
     allTasks = data.tasks || [];
@@ -2462,7 +2539,7 @@ async function wireKanbanPage() {
       const projects = [
         ...new Set(allTasks.map((t) => t.project).filter(Boolean)),
       ].sort();
-      filterSel.innerHTML = `<option value="">All projects</option>${projects.map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("")}`;
+      filterSel.innerHTML = `<option value="">${escapeHtml(k.allProjects)}</option>${projects.map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("")}`;
       if (current && projects.includes(current)) filterSel.value = current;
       projectFilter = filterSel.value;
     }
@@ -2529,17 +2606,69 @@ async function wireKanbanPage() {
           description,
         }),
       });
-      if (!res.ok) return alert("Create failed");
+      if (!res.ok) return alert(kanbanUi().createFailed);
       createOverlay?.classList.remove("open");
+      await refreshAll();
+    });
+
+  const bulkOverlay = document.getElementById("kanban-bulk-delete-overlay");
+  const bulkScope = document.getElementById("kanban-bulk-delete-scope");
+  function syncBulkDeleteScopeOptions() {
+    if (!bulkScope) return;
+    const k = kanbanUi();
+    const projects = [
+      ...new Set(allTasks.map((t) => t.project).filter(Boolean)),
+    ].sort();
+    bulkScope.innerHTML = `<option value="__all__">${escapeHtml(k.deleteManyAllOption)}</option>${projects.map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("")}`;
+  }
+  document
+    .getElementById("kanban-bulk-delete-open")
+    ?.addEventListener("click", () => {
+      syncBulkDeleteScopeOptions();
+      bulkOverlay?.classList.add("open");
+    });
+  document
+    .getElementById("kanban-bulk-delete-close")
+    ?.addEventListener("click", () => bulkOverlay?.classList.remove("open"));
+  document
+    .getElementById("kanban-bulk-delete-cancel")
+    ?.addEventListener("click", () => bulkOverlay?.classList.remove("open"));
+  bulkOverlay?.addEventListener("click", (e) => {
+    if (e.target === bulkOverlay) bulkOverlay.classList.remove("open");
+  });
+  document
+    .getElementById("kanban-bulk-delete-confirm")
+    ?.addEventListener("click", async () => {
+      const k = kanbanUi();
+      const v = bulkScope?.value;
+      if (!v) return;
+      const isAll = v === "__all__";
+      const msg = isAll
+        ? k.bulkConfirmAll
+        : k.bulkConfirmProject.replace("{p}", v);
+      const ok = await showConfirm({
+        title: k.bulkConfirmTitle,
+        message: msg,
+        confirmLabel: k.delete,
+        cancelLabel: k.cancel,
+      });
+      if (!ok) return;
+      const url = isAll
+        ? "/api/hub/kanban/tasks/bulk"
+        : `/api/hub/kanban/tasks/bulk?project=${encodeURIComponent(v)}`;
+      const res = await fetch(url, { method: "DELETE" });
+      if (!res.ok) return alert(k.bulkFailed);
+      bulkOverlay?.classList.remove("open");
       await refreshAll();
     });
 
   document
     .getElementById("kanban-open-archive")
     ?.addEventListener("click", async () => {
+      const k = kanbanUi();
       archiveOverlay?.classList.add("open");
       if (!archiveContent) return;
-      archiveContent.innerHTML = '<div class="task">Loading archive...</div>';
+      archiveContent.innerHTML = `<div class="task">${escapeHtml(k.loadingArchive)}</div>`;
       const res = await fetch("/api/hub/kanban/tasks/archive");
       const data = res.ok ? await res.json() : { tasks: [] };
       const archived = data.tasks || [];
@@ -2549,12 +2678,12 @@ async function wireKanbanPage() {
             (t) => `<div class="task">
             <div style="display:flex;justify-content:space-between;gap:8px;">
               <strong>${escapeHtml(t.title || t.id)}</strong>
-              <button class="btn" data-restore-task="${escapeHtml(t.id)}" type="button">Restore</button>
+              <button class="btn" data-restore-task="${escapeHtml(t.id)}" type="button">${escapeHtml(k.restore)}</button>
             </div>
             <div class="desc">${escapeHtml(t.project || "")}</div>
           </div>`,
           )
-          .join("") || '<div class="task">No archived tasks.</div>';
+          .join("") || `<div class="task">${escapeHtml(k.noArchived)}</div>`;
       archiveContent.querySelectorAll("[data-restore-task]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const taskId = btn.dataset.restoreTask;
@@ -2564,7 +2693,7 @@ async function wireKanbanPage() {
               method: "PUT",
             },
           );
-          if (!resp.ok) return alert("Restore failed");
+          if (!resp.ok) return alert(k.restoreFailed);
           await refreshAll();
           btn.closest(".task")?.remove();
         });
@@ -2584,6 +2713,7 @@ async function wireKanbanPage() {
     if (e.key === "Escape") {
       createOverlay?.classList.remove("open");
       archiveOverlay?.classList.remove("open");
+      bulkOverlay?.classList.remove("open");
       document
         .getElementById("kanban-detail-overlay")
         ?.classList.remove("open");
@@ -2883,6 +3013,7 @@ function wireSystemStatus() {
 }
 
 async function wireSettings() {
+  const isFr = settingsLocale() === "fr";
   const t = SETTINGS_TEXT[settingsLocale()];
   const settingsFeedback = document.getElementById("settings-save-feedback");
   const providerFeedback = document.getElementById("provider-save-feedback");
@@ -2927,6 +3058,7 @@ async function wireSettings() {
       }
     }
   };
+
   const refreshWorkspaceHealth = () => {
     const root = document.getElementById("projects-root")?.value?.trim() || "";
     setHealth(workspaceHealth, !!root, !!root ? t.configured : t.notConfigured);
@@ -2980,82 +3112,15 @@ async function wireSettings() {
       }
       refreshWorkspaceHealth();
     });
-  const dark = document.getElementById("appearance-dark");
-  const light = document.getElementById("appearance-light");
-  function syncThemeCards(nextTheme) {
-    document.querySelectorAll(".theme-card").forEach((card) => {
-      card.classList.toggle("active", card.dataset.value === nextTheme);
-    });
-  }
-  if (dark && light) {
-    dark.checked = theme() === "dark";
-    light.checked = theme() === "light";
-    syncThemeCards(theme());
-    dark.addEventListener("change", () => {
-      applyTheme("dark");
-      syncThemeCards("dark");
-    });
-    light.addEventListener("change", () => {
-      applyTheme("light");
-      syncThemeCards("light");
-    });
-  }
-
-  const langFr = document.getElementById("lang-fr");
-  const langEn = document.getElementById("lang-en");
-  function syncLangCards(loc) {
-    document.querySelectorAll("[name='hub-lang-choice']").forEach((r) => {
-      r.closest(".theme-card")?.classList.toggle("active", r.value === loc);
-    });
-  }
-  if (langFr && langEn) {
-    const cur = settingsLocale();
-    langFr.checked = cur === "fr";
-    langEn.checked = cur === "en";
-    syncLangCards(cur);
-    langFr.addEventListener("change", async () => {
-      localStorage.setItem("clawvis-locale", "fr");
-      renderSettings();
-      applyTheme(theme());
-      const tt = document.getElementById("theme-toggle");
-      const tti = document.getElementById("theme-toggle-icon");
-      if (tt && tti) {
-        tti.textContent = theme() === "light" ? "☀️" : "🌙";
-        tt.addEventListener("click", () => {
-          const next = theme() === "light" ? "dark" : "light";
-          applyTheme(next);
-          tti.textContent = next === "light" ? "☀️" : "🌙";
-        });
-      }
-      await wireSettings();
-    });
-    langEn.addEventListener("change", async () => {
-      localStorage.setItem("clawvis-locale", "en");
-      renderSettings();
-      applyTheme(theme());
-      const tt = document.getElementById("theme-toggle");
-      const tti = document.getElementById("theme-toggle-icon");
-      if (tt && tti) {
-        tti.textContent = theme() === "light" ? "☀️" : "🌙";
-        tt.addEventListener("click", () => {
-          const next = theme() === "light" ? "dark" : "light";
-          applyTheme(next);
-          tti.textContent = next === "light" ? "☀️" : "🌙";
-        });
-      }
-      await wireSettings();
-    });
-  }
-
   let activeProvider = localStorage.getItem("ai-provider") || "claude";
 
   async function loadInstances() {
-    const sel = document.getElementById("instances-multi");
-    if (!sel) return;
-    sel.innerHTML = `<option disabled>${escapeHtml(t.loadingInstances)}</option>`;
+    const list = document.getElementById("instances-list");
+    if (!list) return;
+    list.innerHTML = `<div class="instances-empty">${escapeHtml(t.loadingInstances)}</div>`;
     const r = await fetch("/api/hub/memory/instances");
     if (!r.ok) {
-      sel.innerHTML = `<option disabled>${escapeHtml(t.loadInstancesFailed)}</option>`;
+      list.innerHTML = `<div class="instances-empty">${escapeHtml(t.loadInstancesFailed)}</div>`;
       setHealth(instancesHealth, false, `0 ${t.linked}`);
       return;
     }
@@ -3064,57 +3129,61 @@ async function wireSettings() {
     const linkedCount = instances.filter((it) => !!it.linked).length;
     setHealth(instancesHealth, linkedCount > 0, `${linkedCount} ${t.linked}`);
     if (!instances.length) {
-      sel.innerHTML = `<option disabled>${escapeHtml(t.noInstances)}</option>`;
+      list.innerHTML = `<div class="instances-empty">${escapeHtml(t.noInstances)}</div>`;
       return;
     }
-    sel.innerHTML = instances
+    list.innerHTML = instances
       .map((it) => {
         const path = it.path || "";
-        const dot = it.linked ? "⬤" : "◯";
-        const miss = it.missing ? ` · ${t.missingStatus}` : "";
-        const line = `${dot}  ${it.name || "instance"} · ${it.source || "—"}${miss}`;
-        return `<option value="${escapeHtml(path)}" data-linked="${it.linked ? "1" : "0"}">${escapeHtml(line)}</option>`;
+        const name = it.name || "instance";
+        const source = it.source || "—";
+        const status = it.linked ? t.linkedStatus : t.notLinkedStatus;
+        const missing = it.missing
+          ? `<span class="instance-badge missing">${escapeHtml(t.missingStatus)}</span>`
+          : "";
+        const escPath = escapeHtml(path);
+        const actionBtn = it.linked
+          ? `<button type="button" class="btn instance-row-btn" data-instance-action="unlink" data-instance-path="${escPath}">${escapeHtml(t.unlink)}</button>`
+          : `<button type="button" class="btn instance-row-btn" data-instance-action="link" data-instance-path="${escPath}">${escapeHtml(t.link)}</button>`;
+        return `
+          <div class="instance-row ${it.linked ? "linked" : ""}" data-linked="${it.linked ? "1" : "0"}">
+            <span class="instance-row-main">
+              <span class="instance-row-name">${escapeHtml(name)}</span>
+              <span class="instance-row-meta">${escapeHtml(source)} · ${escPath}</span>
+            </span>
+            <span class="instance-row-badges">
+              <span class="instance-badge ${it.linked ? "linked" : "unlinked"}">${escapeHtml(status)}</span>
+              ${missing}
+            </span>
+            ${actionBtn}
+          </div>
+        `;
       })
       .join("");
   }
 
-  async function applyInstancesBatch(link) {
-    const sel = document.getElementById("instances-multi");
-    if (!sel) return;
-    const opts = [...sel.selectedOptions].filter((o) => !o.disabled && o.value);
-    if (!opts.length) return;
-    const paths = opts
-      .filter((o) =>
-        link ? o.dataset.linked !== "1" : o.dataset.linked === "1",
-      )
-      .map((o) => o.value);
-    if (!paths.length) return;
+  async function applyInstanceToggle(link, pathValue) {
+    if (!pathValue) return;
     const url = link
       ? "/api/hub/memory/instances/link"
       : "/api/hub/memory/instances/unlink";
-    const results = await Promise.all(
-      paths.map((pathValue) =>
-        fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: pathValue }),
-        }),
-      ),
-    );
-    if (results.some((x) => !x.ok)) return alert(t.actionFailed);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: pathValue }),
+    });
+    if (!res.ok) alert(t.actionFailed);
     await loadInstances();
   }
 
-  document
-    .getElementById("instances-link-selected")
-    ?.addEventListener("click", () => {
-      applyInstancesBatch(true);
-    });
-  document
-    .getElementById("instances-unlink-selected")
-    ?.addEventListener("click", () => {
-      applyInstancesBatch(false);
-    });
+  document.getElementById("instances-list")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-instance-action]");
+    if (!btn) return;
+    const pathValue = btn.getAttribute("data-instance-path");
+    const action = btn.getAttribute("data-instance-action");
+    if (!pathValue || (action !== "link" && action !== "unlink")) return;
+    applyInstanceToggle(action === "link", pathValue);
+  });
 
   document
     .getElementById("refresh-instances")
@@ -3125,106 +3194,6 @@ async function wireSettings() {
   refreshRuntimeHealth();
   refreshWorkspaceHealth();
   await loadInstances();
-
-  // --- Agent config section ---
-  async function loadAgentConfig() {
-    try {
-      const r = await fetch("/api/hub/agent/config");
-      if (!r.ok) return;
-      const cfg = await r.json();
-
-      const statusBadge = document.getElementById("agent-config-status");
-      const anyAvailable = cfg.anthropic_available || cfg.mammouth_available;
-      if (statusBadge) {
-        statusBadge.className = `ai-runtime-status-badge ${anyAvailable ? "ok" : "warn"}`;
-        statusBadge.textContent = anyAvailable ? t.configured : t.notConfigured;
-      }
-
-      const badgeAnthropicEl = document.getElementById("agent-badge-anthropic");
-      if (badgeAnthropicEl) {
-        badgeAnthropicEl.textContent = cfg.anthropic_available
-          ? t.agentAvailable
-          : t.agentUnavailable;
-        badgeAnthropicEl.className = `agent-availability-badge ${cfg.anthropic_available ? "ok" : "warn"}`;
-      }
-      const badgeMammouthEl = document.getElementById("agent-badge-mammouth");
-      if (badgeMammouthEl) {
-        badgeMammouthEl.textContent = cfg.mammouth_available
-          ? t.agentAvailable
-          : t.agentUnavailable;
-        badgeMammouthEl.className = `agent-availability-badge ${cfg.mammouth_available ? "ok" : "warn"}`;
-      }
-
-      const preferred =
-        cfg.preferred_provider ||
-        (cfg.anthropic_available ? "anthropic" : "mammouth");
-      const radioEl = document.getElementById(`ap-${preferred}`);
-      if (radioEl) radioEl.checked = true;
-
-      const anthropicSelect = document.getElementById("anthropic-model-select");
-      if (anthropicSelect && cfg.anthropic_model)
-        anthropicSelect.value = cfg.anthropic_model;
-      const mammouthSelect = document.getElementById("mammouth-model-select");
-      if (mammouthSelect && cfg.mammouth_model)
-        mammouthSelect.value = cfg.mammouth_model;
-
-      updateAgentCardHighlight(preferred);
-    } catch {
-      // agent service unavailable — section stays disabled-looking
-    }
-  }
-
-  function updateAgentCardHighlight(provider) {
-    ["anthropic", "mammouth"].forEach((p) => {
-      const card = document.getElementById(`agent-card-${p}`);
-      if (card) card.classList.toggle("active", p === provider);
-    });
-  }
-
-  document.querySelectorAll('[name="agent-provider"]').forEach((radio) => {
-    radio.addEventListener("change", () =>
-      updateAgentCardHighlight(radio.value),
-    );
-  });
-
-  document
-    .getElementById("save-agent-config")
-    ?.addEventListener("click", async () => {
-      const feedback = document.getElementById("agent-save-feedback");
-      const selected = document.querySelector(
-        '[name="agent-provider"]:checked',
-      )?.value;
-      const anthropicModel = document.getElementById(
-        "anthropic-model-select",
-      )?.value;
-      const mammouthModel = document.getElementById(
-        "mammouth-model-select",
-      )?.value;
-      const body = {};
-      if (selected) body.preferred_provider = selected;
-      if (anthropicModel) body.anthropic_model = anthropicModel;
-      if (mammouthModel) body.mammouth_model = mammouthModel;
-      try {
-        const r = await fetch("/api/hub/agent/config", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (feedback) {
-          feedback.className = r.ok ? "test-result ok" : "test-result fail";
-          feedback.textContent = r.ok ? t.agentSaved : t.agentSaveFailed;
-          feedback.style.display = "inline-block";
-        }
-      } catch {
-        if (feedback) {
-          feedback.className = "test-result fail";
-          feedback.textContent = t.agentSaveFailed;
-          feedback.style.display = "inline-block";
-        }
-      }
-    });
-
-  await loadAgentConfig();
 
   // --- Cron section ---
   async function loadCronJobs() {
@@ -3817,6 +3786,7 @@ const SETUP_RUNTIME_TEXT = {
 function renderSetupRuntime() {
   const isFr = settingsLocale() === "fr";
   const t = SETUP_RUNTIME_TEXT[isFr ? "fr" : "en"];
+  const themeLabel = SETTINGS_TEXT[settingsLocale()].appearanceTitle;
   app.innerHTML = `
     <div class="wrap">
       <header class="settings-page-header">
@@ -3826,7 +3796,7 @@ function renderSetupRuntime() {
         </div>
         <div class="sub-page-header-actions">
           <a href="/" class="back-btn"><span class="icon">←</span><span>${escapeHtml(t.back)}</span></a>
-          <button class="header-icon icon-button" type="button" id="theme-toggle" title="Apparence" aria-label="Apparence">
+          <button class="header-icon icon-button" type="button" id="theme-toggle" title="${escapeHtml(themeLabel)}" aria-label="${escapeHtml(themeLabel)}">
             <span id="theme-toggle-icon">🌙</span>
           </button>
         </div>
@@ -4214,6 +4184,7 @@ async function boot() {
   else renderHome();
   applyTheme(theme());
   wireActiveServicesCount();
+  wireLocaleSwitcher();
   const themeToggle = document.getElementById("theme-toggle");
   const themeToggleIcon = document.getElementById("theme-toggle-icon");
   if (themeToggle) {
@@ -4233,6 +4204,37 @@ async function boot() {
   else if (path.startsWith("/memory")) await wireMemoryEditor();
   else if (path.startsWith("/project/")) await wireProjectPage();
   else await wireHome();
+}
+
+function wireLocaleSwitcher() {
+  const toggle = document.getElementById("locale-toggle");
+  const dropdown = document.getElementById("locale-dropdown");
+  if (!toggle || !dropdown) return;
+  const current = settingsLocale();
+  const setOpen = (open) => {
+    dropdown.hidden = !open;
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+  dropdown.querySelectorAll("[data-locale]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.locale === current);
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const next = btn.dataset.locale;
+      if (!next || next === current) {
+        setOpen(false);
+        return;
+      }
+      localStorage.setItem("clawvis-locale", next);
+      window.location.reload();
+    });
+  });
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setOpen(dropdown.hidden);
+  });
+  document.addEventListener("click", () => {
+    if (!dropdown.hidden) setOpen(false);
+  });
 }
 
 boot();

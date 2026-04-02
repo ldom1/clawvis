@@ -346,6 +346,51 @@ def delete_task(task_id: str) -> dict:
     return {"ok": True, "id": task_id}
 
 
+def delete_tasks_bulk(project: str | None = None) -> dict:
+    """Remove all non-archived tasks, optionally scoped to one project slug."""
+    data = _load_raw()
+    tasks = data.get("tasks", [])
+    to_remove: list[dict] = []
+    for t in tasks:
+        if t.get("status") == "Archived":
+            continue
+        if project is not None and (t.get("project") or "") != project:
+            continue
+        to_remove.append(t)
+    removed_ids = {t.get("id") for t in to_remove}
+    if not removed_ids:
+        return {"ok": True, "deleted": 0}
+    for task in to_remove:
+        if _MD_SYNC and task.get("source_file"):
+            try:
+                write_task_to_md(
+                    task["source_file"],
+                    task["title"],
+                    {"status": "Deleted", "deleted": True},
+                )
+            except Exception:
+                try:
+                    write_task_to_md(
+                        task["source_file"], task["title"], {"status": "Archived"}
+                    )
+                except Exception:
+                    pass
+    kept = [t for t in tasks if t.get("id") not in removed_ids]
+    for t in kept:
+        deps = t.get("dependencies") or []
+        t["dependencies"] = [d for d in deps if d not in removed_ids]
+    data["tasks"] = kept
+    save(data)
+    _log(
+        "INFO",
+        "task:bulk_delete",
+        f"Bulk-deleted {len(removed_ids)} task(s)"
+        + (f" for project '{project}'" if project else ""),
+        {"count": len(removed_ids), "project": project or ""},
+    )
+    return {"ok": True, "deleted": len(removed_ids)}
+
+
 def archive_task(task_id: str) -> dict:
     data = _load_raw()
     task = _find_task(data, task_id)

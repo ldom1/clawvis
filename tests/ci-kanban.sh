@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # Kanban quality gate:
+# Requires repo-root pyproject.toml (uv workspace) and uv.lock; run: uv lock
 # - style/lint with ruff
 # - static quality with pylint
 # - unit tests with pytest

@@ -259,6 +259,7 @@ Avant de créer, `project-init` lit le Brain global pour détecter composants et
 
 ### [TODO] Phase 2.5 — laptop-first, wizard
 
+- Checklist détaillée des jalons 2.5 → 5 et archive 1 / 1.5 / 2A : `docs/roadmap/v1.md`.
 - Parcours d’installation guidé (wizard) sur machine locale.
 - Réduction de friction « premier run » sans SSH devbox.
 - **Primordial** : l’utilisateur ne doit pas dépendre d’un **clone Git** ni d’une **liste de scripts** instance (`instances/dombot/scripts/…`) pour installer ou mettre à jour — une release / image / paquet unique, et le minimum d’artefacts ops dans `instances/dombot/`.

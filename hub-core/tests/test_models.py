@@ -7,7 +7,6 @@ from hub_core.models import (
     MammouthUsage,
     ProvidersResponse,
     StatusResponse,
-    token_or_na,
 )
 
 
@@ -26,6 +25,37 @@ def test_mammouth_usage_real():
     )
     assert m.credits.available == 1.5
     assert m.credits.limit == 2.0
+
+
+def test_mammouth_from_providers_block_empty():
+    assert MammouthUsage.from_providers_mammouth_block({}) == MammouthUsage()
+    assert MammouthUsage.from_providers_mammouth_block({"credits": {}}).credits.available == "N/A"
+
+
+def test_mammouth_from_providers_block_roundtrip():
+    raw = {
+        "credits": {"available": 3.0, "limit": 10.0, "currency": "EUR"},
+        "subscription": "ok",
+        "additional": "x",
+        "last_updated": "now",
+    }
+    u = MammouthUsage.from_providers_mammouth_block(raw)
+    assert u.credits.available == 3.0
+    assert u.credits.currency == "EUR"
+    assert u.subscription == "ok"
+
+
+def test_mammouth_session_blob():
+    u = MammouthUsage(
+        credits=MammouthCredits(available=1.0, limit=2.0, currency="EUR"),
+        subscription="sub",
+        last_updated="t",
+    )
+    assert u.session_blob() == {
+        "subscription": "sub",
+        "credits": {"available": 1.0, "limit": 2.0, "currency": "EUR"},
+        "last_updated": "t",
+    }
 
 
 def test_providers_response_defaults():
@@ -54,12 +84,6 @@ def test_status_response_real():
     assert s.mammouth_usage.credits.available == 7.5
     d = s.model_dump()
     assert d["mammouth_usage"]["credits"]["available"] == 7.5
-
-
-def test_token_or_na():
-    assert token_or_na(100) == 100
-    assert token_or_na(0) == 0
-    assert token_or_na(-1) == "N/A"
 
 
 def test_hub_state_dumpable():

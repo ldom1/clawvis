@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # hub-core quality gate:
+# Requires repo-root pyproject.toml (uv workspace) and uv.lock; run: uv lock
 # - ruff
 # - pylint (quality score)
 # - pytest

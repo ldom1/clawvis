@@ -1,7 +1,6 @@
 """Tests for OpenClaw tools.media.audio JSON helpers."""
 
 import json
-from pathlib import Path
 
 from hub_core.openclaw_audio_config import audio_block, fragment_document, merge_into
 
