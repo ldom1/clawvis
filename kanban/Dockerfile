@@ -3,7 +3,9 @@ FROM python:3.11-slim
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /clawvis
-# hub-core is a local path dependency of kanban — copy first
+# Workspace root is required for uv to resolve workspace members (hub-core ↔ kanban)
+COPY pyproject.toml ./
+COPY uv.lock ./
 COPY hub-core/ ./hub-core/
 COPY kanban/ ./kanban/
 COPY project-templates/ ./project-templates/
