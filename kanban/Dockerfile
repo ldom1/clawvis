@@ -17,5 +17,5 @@ RUN uv sync --no-dev
 EXPOSE 8090
 
 # Call uvicorn directly from the pre-built venv — avoids uv re-sync at startup
-CMD ["/clawvis/kanban/.venv/bin/uvicorn", "kanban_api.server:app", \
+CMD ["/clawvis/.venv/bin/uvicorn", "kanban_api.server:app", \
      "--host", "0.0.0.0", "--port", "8090"]

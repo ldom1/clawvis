@@ -53,7 +53,7 @@ services:
       test:
         [
           "CMD",
-          "/clawvis/kanban/.venv/bin/python",
+          "/clawvis/.venv/bin/python",
           "-c",
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/openapi.json', timeout=5)",
         ]
@@ -79,7 +79,7 @@ services:
       - "app=clawvis"
     command:
       [
-        "/clawvis/kanban/.venv/bin/uvicorn",
+        "/clawvis/.venv/bin/uvicorn",
         "hub_core.memory_api:app",
         "--host",
         "0.0.0.0",
@@ -90,7 +90,7 @@ services:
       test:
         [
           "CMD",
-          "/clawvis/kanban/.venv/bin/python",
+          "/clawvis/.venv/bin/python",
           "-c",
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/openapi.json', timeout=5)",
         ]
