@@ -172,9 +172,21 @@ done
 
 # ── Discord logger (optional) ────────────────────────────────────────────────
 
+SKILLS_DIR=""
+for r in "${SKILL_ROOTS_ARR[@]}"; do
+  if [[ -f "${r}/logger/scripts/discord-check.sh" ]]; then
+    SKILLS_DIR="$r"
+    break
+  fi
+done
+if [[ -z "$SKILLS_DIR" && -n "${CLAWVIS_ROOT:-}" ]]; then
+  _cr_skills="${CLAWVIS_ROOT%/}/skills"
+  [[ -f "${_cr_skills}/logger/scripts/discord-check.sh" ]] && SKILLS_DIR="$_cr_skills"
+fi
+
 echo
 bold "── Discord logger ───────────────────────"
-if [ -f "$SKILLS_DIR/logger/scripts/discord-check.sh" ]; then
+if [[ -n "$SKILLS_DIR" && -f "$SKILLS_DIR/logger/scripts/discord-check.sh" ]]; then
   output=$(bash "$SKILLS_DIR/logger/scripts/discord-check.sh" 2>&1) || true
   if echo "$output" | grep -q "DISCORD_BOT_TOKEN = (not set)"; then
     yellow "⚠️  Discord bot token not set (logger core/.env)"
