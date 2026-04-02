@@ -61,9 +61,9 @@ Before assembling ANY section, validate sources:
 
 | Section | Source(s) | Validation | If Missing |
 |---------|-----------|-----------|------------|
-| **Moment Before** | Wikipedia API | `requests.get()` returns 200 + `events` array | ✅ Skip silently |
+| **Moment Before** | Wikipedia API | `wikipedia_on_this_day.fetch_on_this_day()` returns an event | ✅ Skip silently |
 | **Tech Headlines** | `memory/resources/curiosity/YYYY-MM-DD-{tech_news,tech}.md` | File exists + markdown parses | Try Brave, then skip |
-| **News of Day** | `memory/resources/curiosity/YYYY-MM-DD-latest.md` | File exists + has "## 1." block | Try Brave, then skip |
+| **News of Day** | `memory/resources/curiosity/YYYY-MM-DD-latest.md` | File exists + first numbered `##` block | Try Brave, then skip |
 | **System Audit** | `~/Lab/hub/public/api/system.json` | File exists + has `cpu_percent`, `ram_percent`, `disk_percent`, `timestamp` | ✅ Skip silently |
 | **Remote URL** | `https://lab.dombot.tech` | Fixe — toujours inclure | Fixe — ne peut pas manquer |
 
@@ -73,15 +73,11 @@ Before assembling ANY section, validate sources:
 
 ## Step 1 — Moment Before (Wikipedia)
 
-Call the Wikipedia On This Day API for today's date (`MM` = month, `DD` = day):
+**Implémentation repo :** `skills/morning-briefing/wikipedia_on_this_day.py` (stdlib + User-Agent) ; le script appelle `format_wikipedia_moment()` dans `morning-briefing.py`.
 
-```
-GET https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/events/MM/DD
-```
-
-- Extract the **most historically significant event**
-- Keep: `year`, `text` (event description), `pages[0].content_urls.desktop.page` (URL)
-- If API fails or returns no events → **skip this section entirely**
+- Langue : variable d’environnement `WIKIPEDIA_ON_THIS_DAY_LANG` (défaut `en`). Endpoint Wikimedia :  
+  `GET https://api.wikimedia.org/feed/v1/wikipedia/{lang}/onthisday/events/{month}/{day}`
+- Si l’API échoue ou aucun événement exploitable → **ne pas inventer** ; section omise.
 
 ---
 
@@ -92,8 +88,7 @@ GET https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/events/MM/DD
 1. Look for the most recent files in `~/.openclaw/workspace/memory/resources/curiosity/`:
    - `YYYY-MM-DD-tech_news.md`
    - `YYYY-MM-DD-tech.md`
-2. Parse the Markdown headings:
-   - For each `## N. Title` block, extract: `Title`, `Source`, `Lien`, `Résumé`.
+2. Découper les blocs avec des titres du type `## 1.`, `## 1)`, `##1.` (regex tolérante). Extraire `Title`, `Source` (ligne `**Source :**` / variantes), `Lien`, `Résumé`.
 3. Use up to **3** items as the Tech Summary.
 
 **Fallback (external, via `web_search` + Brave) — only if no local curiosity files found:**
@@ -116,8 +111,7 @@ GET https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/events/MM/DD
 **Primary source (local, via `knowledge_consolidator`):**
 
 1. Look for the most recent `~/.openclaw/workspace/memory/resources/curiosity/YYYY-MM-DD-latest.md`.
-2. Take the **first** item block:
-   - `## 1. Title` + `Source`, `Lien`, `Résumé`.
+2. Prendre le **premier** bloc numéroté (`## 1.` / `## 1)` / etc.) + `Source`, `Lien`, `Résumé`.
 
 **Fallback (external, via `web_search` + Brave) — only if no local curiosity file found:**
 

@@ -1,11 +1,11 @@
 ---
 name: skill-tester
-description: "Run all Python unit tests for OpenClaw skills and check Slack connectivity. Use when: validating skills after changes, debugging a failing skill, or running a health check. Outputs a pass/fail report."
+description: "Run all Python unit tests for OpenClaw skills and check Discord logger config. Use when: validating skills after changes, debugging a failing skill, or running a health check. Outputs a pass/fail report."
 ---
 
 # Skill Tester
 
-Lance les tests unitaires Python de tous les skills OpenClaw et vérifie la connectivité Slack.
+Lance les tests unitaires Python de tous les skills OpenClaw et un contrôle optionnel du logger Discord.
 
 ## ⚡ Exécution rapide
 
@@ -29,14 +29,13 @@ bash …/test-all.sh --list
 | Vérification | Comment |
 |---|---|
 | Tests unitaires Python | `uv run pytest tests/ -q` dans chaque `core/` |
-| Connectivité Discord (logger) | `logger/scripts/discord-check.sh` (ou `slack-check.sh` si présent) |
+| Logger Discord | `logger/scripts/discord-check.sh` |
 
 ### Skills avec tests actifs
 
 | Skill | Fichiers de test |
 |-------|-----------------|
-| `logger` | test_config, test_logger, test_models, test_slack_router |
-| `self-improvement` | test_config, test_protocol_audit |
+| `logger` | test_config, test_logger, test_models, test_discord_router |
 | `kanban-implementer` | test_selector, test_status |
 
 ---

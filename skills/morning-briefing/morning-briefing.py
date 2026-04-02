@@ -15,6 +15,8 @@ import urllib.error
 from datetime import datetime
 from pathlib import Path
 
+from wikipedia_on_this_day import fetch_on_this_day
+
 WORKSPACE = Path.home() / ".openclaw" / "workspace"
 MEMORY_DIR = WORKSPACE / "memory" / "resources" / "curiosity"
 _HUB_ROOT = Path(os.environ.get("HUB_ROOT", str(Path.home() / "Lab" / "hub-ldom" / "instances" / "ldom")))
@@ -48,48 +50,90 @@ def get_system_line():
         return None
 
 
+_HEADING_ANY = re.compile(r"^##\s*(?:\d+[\.)]\s*)?(.+?)\s*$")
+_SKIP_HEADING = frozenset(
+    x.lower()
+    for x in (
+        "references",
+        "see also",
+        "external links",
+        "overview",
+        "sources",
+    )
+)
+
+
+def _first_curiosity_heading(path: Path) -> str | None:
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        raw = line.strip()
+        m = _HEADING_ANY.match(raw)
+        if not m:
+            continue
+        title = m.group(1).strip()
+        if not title or title.lower() in _SKIP_HEADING:
+            continue
+        if re.fullmatch(r"\d+", title):
+            continue
+        return title
+    return None
+
+
 def get_tech_headline():
     today = datetime.now().strftime("%Y-%m-%d")
-    for suffix in ["tech_news", "tech"]:
-        p = MEMORY_DIR / f"{today}-{suffix}.md"
-        if not p.exists():
-            continue
-        try:
-            for line in p.read_text().split("\n"):
-                if line.startswith("## "):
-                    title = line.lstrip("# ").strip()
-                    if title[0].isdigit():
-                        title = ". ".join(title.split(". ")[1:])
-                    return f"🔧 {title}"
-        except Exception:
-            continue
+    yesterday = datetime.fromtimestamp(datetime.now().timestamp() - 86400).strftime("%Y-%m-%d")
+    for day in (today, yesterday):
+        for suffix in ("tech_news", "tech"):
+            p = MEMORY_DIR / f"{day}-{suffix}.md"
+            if not p.exists():
+                continue
+            title = _first_curiosity_heading(p)
+            if title:
+                return f"🔧 {title}"
     return None
+
+
+_NEWS_FIRST = (
+    re.compile(r"^##\s*1[\.)]\s+(.+)$", re.I),
+    re.compile(r"^##\s*1\s+(.+)$", re.I),
+    re.compile(r"^###\s*1[\.)]\s+(.+)$", re.I),
+)
 
 
 def get_news_headline():
     today = datetime.now().strftime("%Y-%m-%d")
-    p = MEMORY_DIR / f"{today}-latest.md"
-    if not p.exists():
-        return None
-    try:
-        for line in p.read_text().split("\n"):
-            if line.startswith("## 1"):
-                return f"📰 {line.replace('## 1.', '').strip()}"
-    except Exception:
-        pass
+    yesterday = datetime.fromtimestamp(datetime.now().timestamp() - 86400).strftime("%Y-%m-%d")
+    for day in (today, yesterday):
+        p = MEMORY_DIR / f"{day}-latest.md"
+        if not p.exists():
+            continue
+        try:
+            for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+                s = line.strip()
+                for pat in _NEWS_FIRST:
+                    m = pat.match(s)
+                    if m:
+                        return f"📰 {m.group(1).strip()}"
+        except OSError:
+            continue
     return None
 
 
-def get_wikipedia_line():
-    try:
-        import requests
-        now = datetime.now()
-        url = f"https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/events/{now.month}/{now.day}"
-        data = requests.get(url, timeout=5).json()
-        ev = data.get("events", [{}])[0]
-        return f"⏳ {ev['year']}: {ev['text'][:80]}"
-    except Exception:
+def format_wikipedia_moment() -> str | None:
+    """Wikipedia On This Day — real API only; None if unavailable."""
+    lang = os.environ.get("WIKIPEDIA_ON_THIS_DAY_LANG", "en").strip() or "en"
+    ev = fetch_on_this_day(lang=lang)
+    if not ev:
         return None
+    y = f"{ev.year}: " if ev.year is not None else ""
+    text = ev.text[:400] + ("…" if len(ev.text) > 400 else "")
+    lines = [f"⏳ {y}{text}"]
+    if ev.url:
+        lines.append(f"📖 {ev.url}")
+    return "\n".join(lines)
 
 
 def score_discovery(title: str, source: str, category: str) -> float:
@@ -160,10 +204,9 @@ def parse_curiosity_files() -> list:
             found_any = True
             
             try:
-                content = p.read_text()
-                
-                # Parse: ## N. Title ... **Source:** ... **Résumé:** ...
-                items = re.split(r'^##\s+\d+\.\s+', content, flags=re.MULTILINE)[1:]  # Skip header
+                content = p.read_text(encoding="utf-8", errors="replace")
+                # ## 1. Title / ## 1) Title / ##1. Title
+                items = re.split(r"^##\s*\d+[\.)]?\s+", content, flags=re.MULTILINE)[1:]
                 
                 for item in items:
                     lines = item.split('\n')
@@ -173,12 +216,21 @@ def parse_curiosity_files() -> list:
                     title = lines[0].strip()
                     source = cat  # Default
                     
-                    # Find **Source:** line (may have extra formatting)
                     for line in lines:
-                        if 'Source' in line:
-                            # Extract: "**Source :** GitHub Trending" → "GitHub Trending"
-                            source = re.sub(r'\*\*Source\s*:\s*\*\*', '', line).strip()
-                            source = source.rstrip('.')
+                        msrc = re.match(
+                            r"^\s*\*\*Source\s*:\s*\**\s*(.+?)\s*$",
+                            line.strip(),
+                            re.I,
+                        )
+                        if msrc:
+                            source = msrc.group(1).strip().rstrip(".")
+                            break
+                        if "source" in line.lower() and ":" in line and "**" in line:
+                            source = re.sub(
+                                r"(?i)^\s*\*\*Source\s*:\**\s*",
+                                "",
+                                line.strip(),
+                            ).strip().rstrip(".")
                             break
                     
                     # Clean up source (remove links, keep just text)
@@ -250,7 +302,7 @@ def build_briefing():
     if tech:
         lines.append(tech)
 
-    wiki = get_wikipedia_line()
+    wiki = format_wikipedia_moment()
     if wiki:
         lines.append(wiki)
 

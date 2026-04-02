@@ -262,46 +262,7 @@ Logique de sélection de la mémoire active (instance liée vs `MEMORY_ROOT`).
 
 ---
 
-#### `test_dynamic_models.py`
-
-Sélection de modèle IA selon type de tâche et budget.
-
-| Test | Ce qu'il vérifie |
-|------|-----------------|
-| `test_model_catalog_not_empty` | `MAMMOUTH_MODELS` > 5 modèles |
-| `test_model_selection_translation_cheap` | Translation + budget → modèle cheap sélectionné |
-| `test_model_selection_reasoning_unlimited` | Reasoning + unlimited → qualité ≥ 4 |
-| `test_preferred_models_take_priority` | Liste `preferred_models` honorée |
-| `test_capabilities_reflect_selected_model` | `get_capabilities()` retourne des caps valides |
-
----
-
-#### `test_chat_runtime.py`
-
-Gestion des erreurs du stream chat.
-
-| Test | Ce qu'il vérifie |
-|------|-----------------|
-| `test_stream_error_chunk_401` | 401 → `"[CLAWVIS:AUTH]"` |
-| `test_stream_error_chunk_auth_in_json` | JSON avec `authentication_error` → `"[CLAWVIS:AUTH]"` |
-| `test_stream_error_chunk_other` | 429 → `"[CLAWVIS:HTTP:429]"` |
-
----
-
-#### `test_integration.py`
-
-Intégration agents, réseau, RBAC.
-
-| Test | Ce qu'il vérifie |
-|------|-----------------|
-| `test_agent_identity_loads` | `get_agent_identity()` retourne labos-orchestrator avec capability `workflows.execute` |
-| `test_network_policy_allows_essential` | `api.anthropic.com` autorisé, `evil.com` bloqué |
-| `test_rbac_decorator_passes` | Capability matching → exécution OK |
-| `test_rbac_decorator_denied` | Role VIEWER sur `workflows.execute` → `UnauthorizedError` |
-| `test_agent_registry_register_and_select` | Enregistrement + sélection meilleur match |
-| `test_openclaw_adapter_executes` | `OpenClawAdapter.execute("echo hello")` → success=True, cost_usd=0.0 |
-
----
+> **Note (cleanup V1)** : les suites `test_dynamic_models.py`, `test_chat_runtime.py` et `test_integration.py` ont été retirées avec les modules hub-core associés (adaptateurs agents / RBAC réseau / proxy chat inutilisés en prod). Le chat streaming passe par le service `agent/`.
 
 #### `test_transcriber.py`
 
@@ -328,7 +289,6 @@ Couvre : fichier introuvable → None, `WhisperModel=None` → None, mock model 
 |---------|-------|
 | `test_main.py` | `main()` retourne `HubState`, `get_hub_state` agrège providers + metrics |
 | `test_models.py` | Sérialisation/round-trip des modèles Pydantic (HubState, ProvidersResponse, StatusResponse) |
-| `test_services_manager.py` | CRUD services (debate, messidor, optimizer) — start, stop, status |
 | `test_fetch_provider_data.py` | `get_providers_response()` retourne `ProvidersResponse` avec timestamp |
 | `test_update_status.py` | `StatusResponse()` sérialise en JSON valide |
 
@@ -386,8 +346,6 @@ Lancés via `bash tests/ci-skills.sh` (découverte auto des pyproject.toml).
 
 | Fichier | Description |
 |---------|-------------|
-| `hub-core/test_orchestration.py` | Exécutable standalone (pas pytest) — charge style guide, teste routage vers agents, router global, style info |
-| `hub-core/tests/test_real_providers.py` | Intégration réelle (skip sans `MAMMOUTH_API_KEY`) — Claude, Gemini, Mistral, Dynamic adapter, health check |
 | `hub-core/tests/test_hub_integration.py` | Smoke HTTP réel contre Hub local — dashboard, hub-core imports, config, modèles Pydantic, génération JSON état |
 
 ---

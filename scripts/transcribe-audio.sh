@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
-# Transcribe audio via Lab hub_core (Faster Whisper, local, no API key).
-# Used by OpenClaw for Telegram voice notes when tools.media.audio.models uses this CLI.
-# Usage: transcribe-audio.sh <path-to-audio>
+# OpenClaw tools.media.audio : stdout = transcript.  --config → hub_core openclaw-audio-config
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CORE_DIR="$SCRIPT_DIR/../hub-core"
-[[ -n "${1:-}" ]] || { echo "Usage: $0 <audio-file>" >&2; exit 1; }
-cd "$CORE_DIR" && uv run python -m hub_core transcribe "$1" -l fr
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+cd "${ROOT}/hub-core"
+
+if [ "${1:-}" = "--config" ]; then
+  shift
+  extra=()
+  for a in "$@"; do [ "$a" = "--apply" ] && extra+=(--apply); done
+  [ ! -x "${SELF}" ] && [ -f "${SELF}" ] && chmod +x "${SELF}" || true
+  export OPENCLAW_JSON="${OPENCLAW_JSON:-${HOME}/.openclaw/openclaw.json}"
+  exec uv run python -m hub_core openclaw-audio-config --wrapper "${SELF}" "${extra[@]}"
+fi
+
+MEDIA="${1:?usage: $0 <audio-file> | $0 --config [--apply]}"
+exec uv run python -m hub_core transcribe "${MEDIA}" \
+  -l "${TRANSCRIBE_LANG:-fr}" -m "${TRANSCRIBE_MODEL:-base}"

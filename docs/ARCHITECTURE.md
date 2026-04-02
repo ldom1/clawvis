@@ -25,7 +25,7 @@ Utilisateur
 
     Hub UI ──► Kanban API      (port 8090)
            ──► Memory API      (port 8091)
-           ──► Agent Service   (port 8093)
+           ──► Agent Service   (port 8092, env: AGENT_PORT)
            ──► OpenClaw        (port 18789)
 ```
 
@@ -38,7 +38,7 @@ Utilisateur
 | Hub SPA | Vite + vanilla JS | `hub/src/main.js` |
 | Kanban API | FastAPI (uvicorn) | `kanban/kanban_api/server.py` |
 | Memory API | FastAPI (uvicorn) | `hub-core/hub_core/memory_api.py` |
-| Agent Service | Python | `agent-service/server.py` |
+| Agent Service | Python | `agent/agent_service/main.py` |
 | Brain display | Quartz static (iframe) | `scripts/build-quartz.sh` |
 | Docker proxy | nginx | `hub/nginx.conf` |
 | OpenClaw | Node.js | port 18789 |
@@ -52,7 +52,7 @@ Utilisateur
 | **Hub** | 8088 | Vite SPA + nginx | Interface unique — dashboard, kanban, brain, logs, chat, settings |
 | **Kanban API** | 8090 | FastAPI (hub-core) | Gestion projets/tâches, mémoire sync, settings |
 | **Memory API** | 8091 | FastAPI (hub-core) | Brain tree, Quartz, instance linking |
-| **Agent Service** | 8093 | Python | Streaming LLM, sessions OpenClaw, routing provider |
+| **Agent Service** | 8092 (`AGENT_PORT`) | Python | Streaming LLM, sessions OpenClaw, routing provider |
 | **OpenClaw** | 18789 | Node.js | Agent runtime, crons skills, channels Telegram/Discord |
 
 ---
@@ -77,6 +77,8 @@ ports:
 ```
 - `HUB_HOST=127.0.0.1` (défaut) → loopback uniquement, safe pour Docker Desktop et setups avec reverse proxy hôte
 - `HUB_HOST=0.0.0.0` → container accepte les connexions non-loopback (sans reverse proxy hôte)
+
+**Santé:** `docker-compose.yml` définit des `healthcheck` sur `hub`, `kanban-api` et `hub-memory-api`. Pour un diagnostic depuis l’hôte (ports mappés, sortie texte ou `--json`), utiliser `bash scripts/hub-healthcheck.sh` (variables `HUB_PORT`, `KANBAN_API_PORT`, `HUB_MEMORY_API_PORT`, `NGINX_PORT` selon le setup).
 
 ### Mérovingien — VPS / serveur
 
@@ -118,7 +120,7 @@ Assets statiques dans `hub/public/` copiés verbatim dans `hub/dist/` au build :
 /api/hub/kanban/*    → Kanban API (FastAPI, port 8090)
 /api/hub/memory/*    → Memory API (FastAPI, port 8091)
 /api/hub/logs/*      → Logs (hub-core)
-/api/hub/chat/*      → Agent Service (port 8093)
+/api/hub/chat/*      → Agent Service (port 8092)
 ```
 
 **Règle absolue :** les endpoints Brain/Quartz ne vivent jamais sous la surface Kanban API.
@@ -216,14 +218,14 @@ clawvis/
     src/                  # Source dev (main.js, style.css)
     public/               # Assets statiques, SPA prod compilée
     dist/                 # Build output (gitignored)
-  hub-core/               # Python lib partagée — identity, RBAC, AI adapters, Memory API
+  hub-core/               # Python lib partagée — Memory API, transcribe, brain_memory helpers
   kanban/                 # FastAPI Kanban — tasks, projects, deps, stats, memory sync
   skills/                 # Skills Clawvis préconfigurés
   openclaw/               # Wrapper + config OpenClaw
   clawvis-cli/            # CLI unifié (npm) — clawvis start/deploy/update/backup
   core-tools/
     logger/               # Logs UI standalone servie sur /logs/
-  scripts/                # Scripts utilitaires (deploy, project-launch, build-quartz…)
+  scripts/                # Scripts utilitaires (start, deploy, upgrade, build-quartz, hub-healthcheck…)
   project-templates/      # Templates nouveaux projets (python, vite, empty)
   instances/
     example/              # Template d'instance (copié lors de l'install)

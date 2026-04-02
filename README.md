@@ -5,7 +5,7 @@
 <h1 align="center">Clawvis</h1>
 
 <p align="center">
-  Self-hosted control center for your AI agents — Hub, Kanban, Memory, Skills.
+  The french king of AI agents. Hub, Kanban, Memory, Skills. Self-hosted. Simple.
 </p>
 
 <p align="center">
@@ -17,6 +17,8 @@
   </a>
   <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT" />
 </p>
+
+**One-liner install:** `curl -fsSL https://raw.githubusercontent.com/ldom1/clawvis/main/get.sh | bash`
 
 ---
 
@@ -48,9 +50,11 @@ After install, open **`http://localhost:8088`** and configure your AI runtime in
 
 ## What is Clawvis?
 
-You run AI agents — Claude, Mistral, or your own OpenClaw instance. But you have no single place to see what they're doing, manage their tasks, or keep project notes alongside them.
+You send a voice note. Ten minutes later, your AI agent has structured a project, filled a kanban, and shipped a working PoC — all traceable, all yours.
 
-**Clawvis is that place.** One `docker compose up` gives you:
+That's Clawvis. A self-hosted control center that turns AI agents into a reliable execution machine: structured projects, autonomous skills, persistent memory, real-time logs. No chaos. No drift.
+
+**One `docker compose up` gives you:**
 
 | Service | URL | What it does |
 |---------|-----|--------------|
@@ -187,7 +191,8 @@ It works out of the box — no Quartz installation needed. A lightweight Python 
 | Directory | Purpose |
 |-----------|---------|
 | `hub/` | Vite SPA frontend + nginx Docker image |
-| `hub-core/` | Python lib — identity, RBAC, AI adapters |
+| `hub-core/` | Python lib — brain memory, memory API, hub state, transcription |
+| `agent/` | Streaming AI service — Claude, Mistral, OpenClaw routing |
 | `kanban/` | Task board FastAPI — tasks, projects, memory sync |
 | `skills/` | Pre-configured agent skills (kanban, logger, brain…) |
 | `instances/` | Your instance data — never overwritten by updates |

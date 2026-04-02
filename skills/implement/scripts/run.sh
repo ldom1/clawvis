@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
-# Load task JSON from Kanban API for agent implementation loop.
+# implement — execute a single kanban task (called by kanban-implementer)
+# Usage: run.sh --task-id <id>
 set -euo pipefail
-TASK_ID="${1:?usage: run.sh <task_id>}"
-API="${KANBAN_API_URL:-http://127.0.0.1:8090}"
-KEY="${KANBAN_API_KEY:-}"
-ARGS=(-fsS "$API/tasks")
-[[ -n "$KEY" ]] && ARGS+=(-H "X-API-Key: $KEY")
-TASK_JSON=$(curl "${ARGS[@]}")
-TASK=$(echo "$TASK_JSON" | python3 -c "import json,sys; data=json.load(sys.stdin); tid=sys.argv[1]; \
-print(json.dumps(next((t for t in data.get('tasks',[]) if t.get('id')==tid), {})))" "$TASK_ID")
-if [[ "$TASK" == "{}" ]]; then
-  echo "implement: task not found: $TASK_ID" >&2
-  exit 1
-fi
-echo "--- Task (JSON) ---"
-echo "$TASK" | python3 -m json.tool
-echo ""
-echo "--- Next steps (agent) ---"
-echo "1. kanban-implementer update $TASK_ID \"In Progress\""
-echo "2. Edit repo per PROTOCOL.md and task source_file / project."
-echo "3. Branch, commit, gh pr create, then kanban-implementer update $TASK_ID \"Review\""
+
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+CORE_DIR="$SKILL_DIR/core"
+OPENCLAW_LOGS="${OPENCLAW_LOGS:-$HOME/.openclaw/logs}"
+mkdir -p "$OPENCLAW_LOGS"
+LOG="$OPENCLAW_LOGS/implement-$(date +%Y-%m-%d-%H%M).log"
+
+trap 'e=$?; [ $e -ne 0 ] && uv run --directory ~/.openclaw/skills/logger/core dombot-log "ERROR" "skill:implement" "system" "impl:fail" "Script failed (exit $e)" 2>/dev/null || true; exit $e' EXIT
+
+for envf in "$SKILL_DIR/.env" "$CORE_DIR/.env"; do
+  [ -f "$envf" ] && { set -a; . "$envf"; set +a; }
+done
+
+uv run --directory ~/.openclaw/skills/logger/core \
+  dombot-log "INFO" "skill:implement" "system" "impl:start" "implement started" 2>/dev/null || true
+
+echo "[$(date)] Loading task context..." | tee -a "$LOG"
+uv run --directory "$CORE_DIR" python -m implement "$@" | tee -a "$LOG"

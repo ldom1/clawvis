@@ -173,7 +173,7 @@ Scripts présents dans `hub-ldom/instances/ldom/scripts/` :
 | `start.sh` | Démarrage de la stack |
 | `stop.sh` | Arrêt de la stack |
 | `system_audit.sh` | Audit système (génère system.json ou équivalent) |
-| `transcribe-audio.sh` | Transcription audio (service ponctuel) |
+| `transcribe-audio.sh` | Transcription OpenClaw / Whisper local (`scripts/` Clawvis) |
 | `update-projects-and-reload.sh` | Mise à jour projets + reload nginx |
 
 **Post-migration :** ces scripts devront être copiés ou portés vers `clawvis/instances/ldom/scripts/`. Les chemins hardcodés vers `hub-ldom/` devront être mis à jour.

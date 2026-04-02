@@ -36,49 +36,26 @@ if [ -n "${CLAWVIS_QUIET_START:-}" ]; then
   uvicorn_extra+=(--log-level warning --no-access-log)
 fi
 
-wait_kanban_api() {
-  local pid="$1"
+wait_uvicorn_openapi() {
+  local pid="$1" port="$2" label="$3"
   local i=0
   local max=80
   while [ "${i}" -lt "${max}" ]; do
     if ! kill -0 "${pid}" 2>/dev/null; then
-      echo "[clawvis] L'API Kanban (uvicorn) s'est arrêtée — port ${API_PORT} déjà pris ou erreur uv/Python ?" >&2
+      echo "[clawvis] ${label} (uvicorn) s'est arrêtée — port ${port} déjà pris ou erreur uv/Python ?" >&2
       return 1
     fi
     if command -v curl >/dev/null 2>&1 \
-      && curl -fsS -m 1 "http://127.0.0.1:${API_PORT}/openapi.json" >/dev/null 2>&1; then
+      && curl -fsS -m 1 "http://127.0.0.1:${port}/openapi.json" >/dev/null 2>&1; then
       return 0
     fi
-    if (echo >/dev/tcp/127.0.0.1/"${API_PORT}") 2>/dev/null; then
+    if (echo >/dev/tcp/127.0.0.1/"${port}") 2>/dev/null; then
       return 0
     fi
     sleep 0.25
     i=$((i + 1))
   done
-  echo "[clawvis] Timeout: pas de réponse Kanban API sur http://127.0.0.1:${API_PORT}/ (openapi.json)." >&2
-  return 1
-}
-
-wait_memory_api() {
-  local pid="$1"
-  local i=0
-  local max=80
-  while [ "${i}" -lt "${max}" ]; do
-    if ! kill -0 "${pid}" 2>/dev/null; then
-      echo "[clawvis] L'API Memory (uvicorn) s'est arrêtée — port ${MEM_API_PORT} déjà pris ou erreur uv/Python ?" >&2
-      return 1
-    fi
-    if command -v curl >/dev/null 2>&1 \
-      && curl -fsS -m 1 "http://127.0.0.1:${MEM_API_PORT}/openapi.json" >/dev/null 2>&1; then
-      return 0
-    fi
-    if (echo >/dev/tcp/127.0.0.1/"${MEM_API_PORT}") 2>/dev/null; then
-      return 0
-    fi
-    sleep 0.25
-    i=$((i + 1))
-  done
-  echo "[clawvis] Timeout: pas de réponse Memory API sur http://127.0.0.1:${MEM_API_PORT}/ (openapi.json)." >&2
+  echo "[clawvis] Timeout: pas de réponse ${label} sur http://127.0.0.1:${port}/ (openapi.json)." >&2
   return 1
 }
 
@@ -110,10 +87,10 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-if ! wait_kanban_api "${API_PID}"; then
+if ! wait_uvicorn_openapi "${API_PID}" "${API_PORT}" "Kanban API"; then
   exit 1
 fi
-if ! wait_memory_api "${MEM_API_PID}"; then
+if ! wait_uvicorn_openapi "${MEM_API_PID}" "${MEM_API_PORT}" "Memory API"; then
   exit 1
 fi
 

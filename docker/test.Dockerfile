@@ -29,8 +29,8 @@ RUN useradd -m -s /bin/bash tester
 USER tester
 WORKDIR /home/tester
 
-# Copy repo into the image — simulates what get.sh does after git clone.
-# To test the real get.sh one-liner over the network, run tests/test-get-sh.sh separately.
+# Copy repo into the image — simulates post-clone tree (same as get.sh result).
+# Automated get.sh/install coverage: bash tests/test-get-sh.sh --workspace (CI) or --clone / --from-github locally.
 COPY --chown=tester:tester . /home/tester/.clawvis
 
 ENV CLAWVIS_DIR=/home/tester/.clawvis

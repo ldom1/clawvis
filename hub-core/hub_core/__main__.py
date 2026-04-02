@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI for hub_core - DomBot's Hub Tools."""
+"""CLI for hub_core (status, transcribe, openclaw-audio-config, setup-runtime)."""
 
 import argparse
 import json
@@ -8,9 +8,8 @@ from pathlib import Path
 
 from loguru import logger
 
-from hub_core.git_sync import cli as git_sync_cli
 from hub_core.main import get_hub_state
-from hub_core.services import ServiceManager
+from hub_core.openclaw_audio_config import run_openclaw_audio_config
 from hub_core.setup_runtime import run_setup_runtime
 
 
@@ -48,60 +47,13 @@ def cmd_transcribe(args):
         return 1
 
 
-def cmd_services(args):
-    """Manage Lab services (start/stop/status)."""
-    if args.action == "status":
-        if args.service == "all":
-            services = ServiceManager.get_all_services()
-            print("\n📊 Lab Services Status:\n")
-            total_ram = 0
-            for service_id, status in services.items():
-                running = "✅" if status.get("running") else "❌"
-                ram = status.get("ram_mb", 0)
-                total_ram += ram if status.get("running") else 0
-                print(f"{running} {status.get('name')}")
-                print(f"   Port: {status.get('port')} | RAM: {ram}MB")
-                if status.get("error"):
-                    print(f"   Error: {status.get('error')}")
-                print()
-            print(f"📊 Total RAM (running): ~{int(total_ram)}MB\n")
-        else:
-            status = ServiceManager.get_status(args.service)
-            print("\n" + str(status) + "\n")
-        return 0
-
-    elif args.action == "start":
-        result = ServiceManager.start(args.service)
-        print(result)
-        return 0 if result.get("success") else 1
-
-    elif args.action == "stop":
-        result = ServiceManager.stop(args.service)
-        print(result)
-        return 0 if result.get("success") else 1
-
-    elif args.action == "restart":
-        result = ServiceManager.restart(args.service)
-        print(result)
-        return 0 if result.get("success") else 1
-
-    return 1
-
-
-def cmd_git(args):
-    """Run Lab git sync/status (wraps git-sync.sh + git-status.json)."""
-    sync = args.action == "sync"
-    code = git_sync_cli(sync=sync)
-    # Re-read the JSON to print it (nice UX if script wrote it)
-    from hub_core.git_sync import GIT_STATUS_JSON  # local import to avoid cycles
-
-    if GIT_STATUS_JSON.exists():
-        try:
-            payload = json.loads(GIT_STATUS_JSON.read_text())
-            print(json.dumps(payload, indent=2))
-        except Exception:  # pragma: no cover - best-effort print
-            pass
-    return code
+def cmd_openclaw_audio_config(args):
+    """Print or merge OpenClaw tools.media.audio fragment."""
+    return run_openclaw_audio_config(
+        args.wrapper,
+        apply=args.apply,
+        json_path=Path(args.json) if args.json else None,
+    )
 
 
 def cmd_setup_runtime(args):
@@ -126,7 +78,7 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         prog="hub_core",
-        description="DomBot's Hub Core - AI news, transcription, system monitoring",
+        description="Clawvis hub_core — status, transcription, runtime setup",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Commands")
@@ -150,29 +102,25 @@ def main():
     parser_transcribe.add_argument("-o", "--output", help="Output text file")
     parser_transcribe.set_defaults(func=cmd_transcribe)
 
-    # services command
-    parser_services = subparsers.add_parser(
-        "services", help="Manage Lab services (start/stop/status)"
+    parser_oac = subparsers.add_parser(
+        "openclaw-audio-config",
+        help="Fragment / merge tools.media.audio for OpenClaw (Whisper local)",
     )
-    parser_services.add_argument(
-        "action", choices=["status", "start", "stop", "restart"], help="Action"
+    parser_oac.add_argument(
+        "--wrapper",
+        required=True,
+        help="Absolute path to scripts/transcribe-audio.sh",
     )
-    parser_services.add_argument(
-        "-s",
-        "--service",
-        default="all",
-        help="Service id (debate, messidor, optimizer, epidemie, melodimage, poetic_shield, or 'all')",
+    parser_oac.add_argument(
+        "--apply",
+        action="store_true",
+        help="Merge into openclaw.json (backup first)",
     )
-    parser_services.set_defaults(func=cmd_services)
-
-    # git command
-    parser_git = subparsers.add_parser("git", help="Git sync & status for Lab repos")
-    parser_git.add_argument(
-        "action",
-        choices=["status", "sync"],
-        help="Only update status JSON, or run git-sync.sh then update status",
+    parser_oac.add_argument(
+        "--json",
+        help="openclaw.json path (default: OPENCLAW_JSON or ~/.openclaw/openclaw.json)",
     )
-    parser_git.set_defaults(func=cmd_git)
+    parser_oac.set_defaults(func=cmd_openclaw_audio_config)
 
     # setup-runtime command
     parser_setup_runtime = subparsers.add_parser(

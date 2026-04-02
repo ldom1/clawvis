@@ -1,0 +1,31 @@
+# Live check: published get.sh on main + GitHub clone (network).
+# Does not run on every PR — use workflow_dispatch to avoid flaky CI.
+
+name: get-sh live
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: curl main/get.sh | bash (isolated CLAWVIS_DIR, fake docker)
+        run: |
+          FAKE="${RUNNER_TEMP}/fakebin"
+          mkdir -p "${FAKE}"
+          printf '#!/bin/sh\nexit 0\n' > "${FAKE}/docker"
+          chmod +x "${FAKE}/docker"
+          export PATH="${FAKE}:${PATH}"
+          export CLAWVIS_DIR="${RUNNER_TEMP}/clawvis-live"
+          export CLAWVIS_NO_NODE_WRAPPER=1 CLAWVIS_SKIP_QUARTZ=1
+          rm -rf "${CLAWVIS_DIR}"
+          curl -fsSL https://raw.githubusercontent.com/ldom1/clawvis/main/get.sh | bash -s -- \
+            --non-interactive \
+            --instance gettestlive \
+            --mode docker \
+            --skip-primary \
+            --no-start \
+            --hub-port 18088 \
+            --memory-port 13099 \
+            --kanban-api-port 18090

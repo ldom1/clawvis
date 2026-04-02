@@ -3521,7 +3521,7 @@ async function wireMemoryEdit() {
   await loadList();
 }
 
-/** Parse streamed chat error tokens from hub_core.chat_runtime (i18n). */
+/** Parse streamed chat error tokens from agent-service (/api/hub/agent/chat) (i18n). */
 function formatClawvisChatAssistantText(full, fr) {
   const t = full.trim();
   const authFr =
@@ -4078,11 +4078,9 @@ async function wireSetupRuntime() {
 
       try {
         // ⚠️ KNOWN LIMITATION: this test validates the backend's configured key (from .env),
-        // NOT the key the user just entered in the wizard. hub_core.chat_runtime reads API
-        // keys from environment variables only. A 200 response confirms the backend is
-        // reachable and its env has a working key — it does not validate the wizard-entered key.
-        // Future improvement: pass the key in a request header that chat_runtime reads
-        // preferentially over the env.
+        // NOT the key the user just entered in the wizard. The agent service reads API keys
+        // from environment only. A 200 confirms the stack is reachable with a working env key.
+        // Future: pass the key in a header the agent service accepts for this request.
         const res = await fetch("/api/hub/agent/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

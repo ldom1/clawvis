@@ -23,6 +23,7 @@
 |----------|-------------|
 | [guides/deploy-hostinger.md](./guides/deploy-hostinger.md) | Déploiement sur Hostinger VPS — Docker Manager hPanel + GitHub Actions |
 | [guides/dombot-edge-routing.md](./guides/dombot-edge-routing.md) | Pattern Dombot : landing vs lab sur un seul port — nginx instance, Authelia, HUB_HOST |
+| [guides/openclaw-transcribe-channels.md](./guides/openclaw-transcribe-channels.md) | OpenClaw + Telegram/Discord : transcription vocale via hub_core (Whisper local) |
 
 ---
 
@@ -70,6 +71,7 @@ docs/
   guides/
     deploy-hostinger.md
     dombot-edge-routing.md
+    openclaw-transcribe-channels.md
   roadmap/
     v1.md
   specs/

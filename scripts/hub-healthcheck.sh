@@ -16,10 +16,11 @@
 
 [ -z "${BASH_VERSION:-}" ] && exec bash "$0" "$@"
 
-HUB_PORT="${HUB_PORT:-8089}"
+# Defaults align with docker-compose.yml / .env examples
+HUB_PORT="${HUB_PORT:-8088}"
 KANBAN_API_PORT="${KANBAN_API_PORT:-8090}"
 HUB_MEMORY_PORT="${HUB_MEMORY_PORT:-8091}"
-AGENT_PORT="${AGENT_PORT:-8093}"
+AGENT_PORT="${AGENT_PORT:-8092}"
 
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'; BOLD='\033[1m'
 pass=0; fail=0; results=()

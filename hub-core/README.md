@@ -1,6 +1,6 @@
 ## dombot-hub-core
 
-Core Python package for the LabOS hub.
+Core Python package for the Clawvis Hub: metrics, providers, tokens, Memory API, and optional CLI tools.
 
 - Fetches provider data (MammouthAI credits, Claude usage via `openclaw status`)
 - Tracks CPU/RAM, token usage, system metrics
@@ -14,18 +14,16 @@ Core Python package for the LabOS hub.
 
 ```
 hub_core/
-├── agents/          # Agent adapters (OpenClaw local, MammouthAI remote, registry)
-├── security/        # Identity (RBAC roles), network policy, capability decorators
-├── fetch/           # Provider data fetching (MammouthAI credits, etc.)
-├── track/           # System metrics (CPU/RAM, token usage via openclaw status)
-├── update/          # Status + system_metrics aggregators
-├── mammouth/        # MammouthAI HTTP client
+├── brain_memory.py  # Active memory root resolution (used by Kanban + Memory API)
+├── memory_api.py    # FastAPI Brain / Quartz endpoints (separate service)
+├── security/        # Identity only (AGENT_ID / AGENT_ROLE)
+├── fetch/           # Provider data (MammouthAI credits)
+├── track/           # Token stats + system metrics
+├── update/          # Status + CPU/RAM aggregators
 ├── transcribe/      # Optional transcription (requires faster_whisper)
-├── services/        # Service manager (proxy services status)
 ├── config.py        # Paths and constants (LAB_DIR, HUB_API_DIR, etc.)
 ├── models.py        # Pydantic models (HubState, CpuRam, ProvidersResponse, …)
 ├── dombot_log.py    # Structured DomBot logger → ~/.openclaw/logs/
-├── api_fallback.py  # Auto-fallback Claude → MammouthAI at 75% usage
 └── main.py          # Entry point: get_hub_state(), get_simple_state()
 ```
 
@@ -59,12 +57,11 @@ print(state)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MAMMOUTH_API_KEY` | — | **Required.** MammouthAI gateway key (get it at mammouth.ai) |
+| `MAMMOUTH_API_KEY` | — | MammouthAI gateway key (optional if unused) |
 | `AGENT_ID` | `hub-core` | Agent identifier logged to dombot.log |
-| `AGENT_ROLE` | `AGENT` | RBAC role: `ORCHESTRATOR`, `AGENT`, or `VIEWER` |
+| `AGENT_ROLE` | `AGENT` | Role: `ORCHESTRATOR`, `AGENT`, or `VIEWER` |
 | `AGENT_MODEL` | `claude-haiku-4-5` | Model used for logging context |
-| `NETWORK_MODE` | `restricted` | `unrestricted`, `restricted`, or `allowlist` |
-| `NETWORK_ALLOWLIST` | — | Comma-separated allowed hosts (if `allowlist` mode) |
+| `NETWORK_ALLOWLIST` | — | Optional comma-separated hosts (identity metadata) |
 | `LAB_DIR` | `~/Lab` | Override if your Lab root is elsewhere |
 
 ---
@@ -128,13 +125,6 @@ location /api/ {
 ## Tests
 
 ```bash
-# All tests (skip real API tests if key invalid)
-uv run pytest tests/ --ignore=tests/test_transcriber.py -q
-
-# Integration (identity/RBAC/network policy/openclaw adapter)
-AGENT_ID=labos-orchestrator AGENT_ROLE=ORCHESTRATOR \
-uv run pytest tests/test_integration.py -v
-
-# Real provider tests (requires valid MAMMOUTH_API_KEY)
-uv run pytest tests/test_real_providers.py -v
+# Gate utilisé en CI (voir tests/ci-hub-core.sh)
+uv run pytest tests/ -k "not real_providers and not transcriber_real_audio" -q
 ```

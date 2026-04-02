@@ -1,36 +1,94 @@
 ---
 name: implement
-description: "Pont entre kanban-implementer et l’agent : charge le contexte tâche (API Kanban), prépare la boucle implémentation → PR → update statut. Use when une carte Todo/To Start doit devenir du code."
+description: "Execute a single kanban task selected by kanban-implementer. Reads the task context + Brain note, implements the change, updates task status. Called by kanban-implementer, never standalone. Use when: kanban-implementer has selected a task and passes TASK_ID + context."
 ---
 
-# Implement (bridge)
+# Implement
 
-## Rôle
+Executes one kanban task end-to-end. Called by `kanban-implementer` after task selection.
 
-Après `kanban-implementer select`, ce skill **matérialise** la tâche pour l’agent OpenClaw :
-
-1. Affiche le JSON tâche (titre, projet, `source_file`, effort).
-2. Rappelle l’enchaînement : `In Progress` → code → PR → `Review` (voir `kanban-implementer`).
-
-## Exécution
+## Quick run
 
 ```bash
-~/.openclaw/skills/implement/scripts/run.sh TASK_ID
+# Implement a specific task
+uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+  --task-id task-XXXXXXXX
+
+# Mark task done after implementation
+uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+  --task-id task-XXXXXXXX --mark-done
 ```
 
-Variables : `KANBAN_API_URL` (défaut `http://127.0.0.1:8090`), `KANBAN_API_KEY` si besoin.
+---
 
-## Feedback loop
+## Workflow
 
-1. `kanban-implementer` → `select` → `TASK_ID`
-2. **`implement/run.sh TASK_ID`** → contexte affiché sur stdout
-3. Agent exécute PROTOCOL.md + implémentation
-4. `kanban-implementer update TASK_ID "In Progress" | "Review" | "Done"`
-5. `dombot-log` / Telegram selon `kanban-implementer` SKILL
+### Step 1 — Load context
 
-## Séparation
+```bash
+uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+  --task-id <TASK_ID>
+```
 
-| Skill | Rôle |
-|--------|------|
-| **kanban-implementer** | Orchestration cron, sélection, statuts, PR |
-| **implement** | **Une** tâche → contexte structuré pour l’agent (pas de cron dédié) |
+This prints:
+- `TASK_TITLE`, `TASK_DESCRIPTION`, `TASK_PROJECT`, `TASK_EFFORT`
+- `BRAIN_NOTE` — path to the project Brain note
+- `BRAIN_CONTENT` — full content of the Brain note (context for implementation)
+
+### Step 2 — Read the Brain
+
+The Brain note at `BRAIN_NOTE` contains project context, decisions, and previous work. **Always read it before implementing.**
+
+Key sections to use:
+- **Contexte / Objectif** — what the project is solving
+- **Archive** — past decisions, avoid re-doing what's already done
+- **Ressources** — existing components to reuse
+
+### Step 3 — Implement
+
+Implement the task following `PROTOCOL.md` rules:
+- Use `uv` for Python, `npm`/`yarn` for JS
+- Write tests alongside the code
+- Keep changes minimal and focused on the task
+- Commit with semantic message: `feat(<scope>): <what>` / `fix(<scope>): <what>`
+
+### Step 4 — Update Brain note
+
+If implementation introduces a new decision or component, append to the **Archive** section of the Brain note.
+
+### Step 5 — Update task status
+
+```bash
+# Mark In Progress at start (optional, for long tasks)
+uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+  --task-id <TASK_ID> --set-status "In Progress"
+
+# Mark Done when complete
+uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+  --task-id <TASK_ID> --mark-done
+```
+
+### Step 6 — Log to Discord
+
+Via logger skill:
+```
+[implement] <project> — <task title> done — <N> lines changed
+```
+
+---
+
+## Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `KANBAN_API_URL` | `http://localhost:8088/api/hub/kanban` | Kanban API base URL |
+| `MEMORY_ROOT` | `~/.openclaw/workspace/memory` | Path to instance memory root |
+
+---
+
+## Invariants
+
+- **One task per session.** Never implement more than one task per `implement` call.
+- **Brain first.** Always read the Brain note before writing code.
+- **Status discipline.** Task must be `Done` before logging completion.
+- **No Telegram.** `kanban-implementer` sends the session summary — `implement` only logs to Discord.

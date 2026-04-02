@@ -60,7 +60,7 @@ The lab `server` block may contain:
 include .../instances/<instance>/nginx/projects.d/*.conf;
 ```
 
-If that directory has **no** `*.conf` files, nginx can **fail to start** (empty glob). Keep at least one valid snippet (e.g. a tiny `location` in `00-placeholder.conf`) until `project-launch.sh` generates real routes.
+If that directory has **no** `*.conf` files, nginx can **fail to start** (empty glob). Keep at least one valid snippet (e.g. a tiny `location` in `00-placeholder.conf`) until instance-specific tooling adds real routes.
 
 ## See also
 

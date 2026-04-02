@@ -170,29 +170,21 @@ for SK_ROOT in "${SKILL_ROOTS_ARR[@]}"; do
   done
 done
 
-# ── Slack connectivity check (optional) ──────────────────────────────────
+# ── Discord logger (optional) ────────────────────────────────────────────────
 
 echo
-bold "── Slack connectivity ──────────────────"
-discord_found=0
-for SK_ROOT in "${SKILL_ROOTS_ARR[@]}"; do
-  for check in discord-check.sh slack-check.sh; do
-    p="${SK_ROOT}/logger/scripts/${check}"
-    [[ -f "$p" ]] || continue
-    discord_found=1
-    output=$(bash "$p" 2>&1)
-    if echo "$output" | grep -qiE "ok|configured|token =|set\)"; then
-      green "✅ Logger / Discord check (${check})"
-      REPORT+=("✅ Logger discord-check")
-    else
-      yellow "⚠️  Logger: $(echo "$output" | head -2)"
-      REPORT+=("⚠️  Logger check inconclusive")
-    fi
-    break 2
-  done
-done
-if [[ "$discord_found" -eq 0 ]]; then
-  yellow "⚠️  logger/scripts/discord-check.sh not found under roots"
+bold "── Discord logger ───────────────────────"
+if [ -f "$SKILLS_DIR/logger/scripts/discord-check.sh" ]; then
+  output=$(bash "$SKILLS_DIR/logger/scripts/discord-check.sh" 2>&1) || true
+  if echo "$output" | grep -q "DISCORD_BOT_TOKEN = (not set)"; then
+    yellow "⚠️  Discord bot token not set (logger core/.env)"
+    REPORT+=("⚠️  Discord not fully configured")
+  else
+    green "✅ Logger Discord: token env present (run discord-check.sh for full dump)"
+    REPORT+=("✅ Logger Discord config OK")
+  fi
+else
+  yellow "⚠️  logger skill or discord-check.sh not found"
 fi
 
 # ── Summary ────────────────────────────────────────────────────────────────
