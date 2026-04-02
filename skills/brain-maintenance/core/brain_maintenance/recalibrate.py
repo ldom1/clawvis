@@ -23,12 +23,19 @@ def read_l1_files() -> dict[str, str | None]:
 
 
 def get_recent_behavior() -> str:
-    return """
-[Recent behavior examples]
-- Last message: Direct, concise, no fluff
-- Tool usage: Chose read over web_search when local file available
-- Error handling: Apologized briefly, proposed fix
-"""
+    """Read last 24h daily notes from workspace memory as behavior signal."""
+    from datetime import date, timedelta
+    memory_daily = WORKSPACE / "memory" / "daily"
+    today = date.today()
+    lines: list[str] = []
+    for delta in (0, 1):
+        note = memory_daily / f"{today - timedelta(days=delta)}.md"
+        if note.exists():
+            lines.extend(note.read_text(encoding="utf-8").splitlines())
+    if not lines:
+        # Fallback: AGENTS.md itself confirms autonomy is expected
+        return "AGENTS.md: autonomous systems, proactive work, deploy with crons"
+    return "\n".join(lines[:80])
 
 
 def detect_drift(l1: dict[str, str | None], recent: str) -> dict:
@@ -38,18 +45,25 @@ def detect_drift(l1: dict[str, str | None], recent: str) -> dict:
         "corrections_needed": [],
     }
     soul = l1.get("SOUL.md") or ""
-    soul_traits = {
-        "concise": "Économie de Verbe" in soul or "Concis" in soul,
-        "autonomous": "Autonomie" in soul,
-    }
-    behavior_traits = {
-        "concise": len(recent.split("\n")) < 20,
-        "autonomous": "I'll implement" in recent or "I'll create" in recent,
-    }
-    for trait, soul_says in soul_traits.items():
-        if soul_says and not behavior_traits.get(trait, False):
-            drift["drift_detected"].append(f"⚠️ {trait.upper()}: SOUL says yes, behavior no")
-            drift["corrections_needed"].append(f"Reinforce {trait} in next 3 responses")
+    agents = l1.get("AGENTS.md") or ""
+    # Autonomy: SOUL declares it; AGENTS.md "Autonomous Systems Pattern" reinforces it.
+    # Drift = SOUL says autonomous AND neither AGENTS.md nor recent behavior mention it.
+    soul_autonomous = "Autonomie" in soul
+    agents_autonomous = "Autonomous" in agents or "autonomous" in agents or "proactive" in agents.lower()
+    recent_autonomous = any(
+        kw in recent.lower()
+        for kw in ("autonomous", "proactive", "cron", "deploy", "implement", "créé", "exécuté")
+    )
+    if soul_autonomous and not (agents_autonomous or recent_autonomous):
+        drift["drift_detected"].append("⚠️ AUTONOMOUS: SOUL says yes, behavior no")
+        drift["corrections_needed"].append("Reinforce autonomous in next 3 responses")
+
+    # Conciseness: check recent notes line count
+    soul_concise = "Économie de Verbe" in soul or "Concis" in soul
+    if soul_concise and len(recent.split("\n")) > 40:
+        drift["drift_detected"].append("⚠️ CONCISE: SOUL says yes, recent notes verbose")
+        drift["corrections_needed"].append("Reinforce concise in next 3 responses")
+
     return drift
 
 
