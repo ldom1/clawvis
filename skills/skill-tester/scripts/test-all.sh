@@ -150,9 +150,9 @@ for SK_ROOT in "${SKILL_ROOTS_ARR[@]}"; do
 
   if grep -q 'optional-dependencies' "$core_dir/pyproject.toml" 2>/dev/null && \
      grep -q '"dev"' "$core_dir/pyproject.toml" 2>/dev/null; then
-    output=$(uv run --directory "$core_dir" --extra dev pytest tests/ -q --tb=short 2>&1)
+    output=$(uv run --directory "$core_dir" --extra dev python -m pytest tests/ -q --tb=short 2>&1)
   else
-    output=$(uv run --directory "$core_dir" --with pytest pytest tests/ -q --tb=short 2>&1)
+    output=$(uv run --directory "$core_dir" --with pytest python -m pytest tests/ -q --tb=short 2>&1)
   fi
   exit_code=$?
 
