@@ -3033,8 +3033,27 @@ async function wireSettings() {
       (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"))
     );
   };
-  const refreshRuntimeHealth = () => {
-    const ok = isRuntimeConfigured();
+  const refreshRuntimeHealth = async () => {
+    let ok = isRuntimeConfigured();
+    let backendProvider = null;
+    // Also check backend — same logic as refreshRuntimeBanner on home page.
+    // Needed when localStorage is empty but .env has ANTHROPIC_API_KEY / openclaw configured.
+    if (!ok) {
+      try {
+        const r = await fetch("/api/hub/agent/config", {
+          signal: AbortSignal.timeout(2000),
+        });
+        if (r.ok) {
+          const cfg = await r.json();
+          if (cfg.anthropic_available || cfg.mammouth_available || cfg.openclaw_available) {
+            ok = true;
+            backendProvider =
+              cfg.preferred_provider ||
+              (cfg.openclaw_available ? "openclaw" : cfg.anthropic_available ? "claude" : "mistral");
+          }
+        }
+      } catch (_) {}
+    }
     setHealth(runtimeHealth, ok, ok ? t.configured : t.notConfigured);
     const statusBadge = document.getElementById("settings-runtime-status");
     if (statusBadge) {
@@ -3044,7 +3063,7 @@ async function wireSettings() {
     const providerLbl = document.getElementById("settings-active-provider");
     if (providerLbl) {
       if (ok) {
-        const p = localStorage.getItem("ai-provider") || "claude";
+        const p = localStorage.getItem("ai-provider") || backendProvider || "claude";
         const labels = {
           claude: "Claude (Anthropic)",
           mistral: "Mistral AI",
@@ -3191,7 +3210,7 @@ async function wireSettings() {
   document
     .getElementById("projects-root")
     .addEventListener("input", refreshWorkspaceHealth);
-  refreshRuntimeHealth();
+  await refreshRuntimeHealth();
   refreshWorkspaceHealth();
   await loadInstances();
 
@@ -3710,10 +3729,10 @@ const SETUP_RUNTIME_TEXT = {
         name: "OpenClaw",
         owner: "Auto-hébergé",
         badge: "Self-hosted",
-        desc: "Instance compatible OpenAI. Renseigne l'URL de ton serveur.",
+        desc: "Instance compatible OpenAI. Renseigne l'URL de ton gateway OpenClaw (ex. http://localhost:18789). Note : le backend utilise le CLI — cette URL sert à l'identification de la session.",
         link: null,
         linkLabel: null,
-        placeholder: "http://host:port",
+        placeholder: "http://localhost:18789",
       },
     },
     securityNote:
@@ -3772,10 +3791,10 @@ const SETUP_RUNTIME_TEXT = {
         name: "OpenClaw",
         owner: "Self-hosted",
         badge: "Self-hosted",
-        desc: "OpenAI-compatible self-hosted instance. Enter your server URL.",
+        desc: "OpenAI-compatible self-hosted instance. Enter your OpenClaw gateway URL (e.g. http://localhost:18789). Note: the backend uses the CLI — this URL identifies your session.",
         link: null,
         linkLabel: null,
-        placeholder: "http://host:port",
+        placeholder: "http://localhost:18789",
       },
     },
     securityNote:
