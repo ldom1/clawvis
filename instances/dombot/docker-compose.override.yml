@@ -4,3 +4,11 @@ services:
   hub:
     ports:
       - "127.0.0.1:8089:80"
+
+  kanban-api:
+    volumes:
+      # Mount host projects dir so kanban API can scan project slugs.
+      # Container path must match PROJECTS_ROOT in hub_settings.json.
+      - /home/lgiron/Lab/project:/clawvis/project
+    environment:
+      - PROJECTS_ROOT=/clawvis/project
