@@ -2093,26 +2093,6 @@ async function wireProjectPage() {
       if (!hidden) await loadBrainPreviewHtml();
     });
   document
-    .getElementById("project-dev-btn")
-    .addEventListener("click", async () => {
-      const devBtn = document.getElementById("project-dev-btn");
-      const cmd = projectDevRunCommand(project.template, project.repo_path);
-      const label =
-        devBtn?.textContent ||
-        (fr ? "Copier : lancer en local" : "Copy: run locally");
-      try {
-        await navigator.clipboard.writeText(cmd);
-        if (devBtn) {
-          devBtn.textContent = fr ? "Copié" : "Copied";
-          setTimeout(() => {
-            devBtn.textContent = label;
-          }, 1600);
-        }
-      } catch {
-        window.prompt(fr ? "Copier la commande :" : "Copy command:", cmd);
-      }
-    });
-  document
     .getElementById("archive-project-btn")
     .addEventListener("click", async () => {
       if (
@@ -3540,7 +3520,7 @@ function renderChatPage() {
   const fr = settingsLocale() === "fr";
   app.innerHTML = `
     <div class="container">
-      ${subpageHeader("chat")}
+      ${subpageHeader("runtime")}
       <div class="chat-shell">
         <div id="chat-status-bar" class="chat-status-bar"></div>
         <div id="chat-messages" class="chat-messages" aria-live="polite" aria-label="${fr ? "Conversation" : "Conversation"}"></div>
