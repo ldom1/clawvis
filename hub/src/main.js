@@ -3516,23 +3516,37 @@ function formatClawvisChatAssistantText(full, fr) {
   return { text: full, authError: false };
 }
 
-function renderChatPage() {
+function renderRuntimePage() {
   const fr = settingsLocale() === "fr";
   app.innerHTML = `
     <div class="container">
       ${subpageHeader("runtime")}
-      <div class="chat-shell">
-        <div id="chat-status-bar" class="chat-status-bar"></div>
-        <div id="chat-messages" class="chat-messages" aria-live="polite" aria-label="${fr ? "Conversation" : "Conversation"}"></div>
-        <div class="chat-input-area">
-          <textarea id="chat-input" class="chat-input" rows="3"
-            placeholder="${fr ? "Posez une question à votre runtime IA…" : "Ask your AI runtime a question…"}"
-            autocomplete="off"></textarea>
-          <button id="chat-send" class="btn btn-primary chat-send-btn" type="button">
-            ${fr ? "Envoyer" : "Send"}
+      <div class="runtime-page">
+
+        <section class="runtime-info-panel card" id="runtime-info-panel">
+          <div class="runtime-info-loading">${fr ? "Chargement…" : "Loading…"}</div>
+        </section>
+
+        <section class="runtime-test-section card">
+          <h2 class="card-title">${fr ? "Test de connexion" : "Connection test"}</h2>
+          <p class="card-desc">${fr
+            ? "Envoie un ping au runtime pour vérifier que la clé API et le backend répondent."
+            : "Send a ping to the runtime to verify the API key and backend are responding."}</p>
+          <button id="runtime-test-btn" class="btn btn-primary" type="button">
+            ${fr ? "Lancer le test" : "Run test"}
           </button>
-        </div>
-        <p class="chat-hint">${fr ? "Entrée pour envoyer · Maj+Entrée pour un saut de ligne" : "Enter to send · Shift+Enter for new line"}</p>
+          <div id="runtime-test-result" class="runtime-test-result"></div>
+        </section>
+
+        <section class="runtime-openclaw-section card" id="runtime-openclaw-section">
+          <h2 class="card-title">OpenClaw</h2>
+          <p class="card-desc" id="runtime-openclaw-desc">${fr
+            ? "Interface de chat auto-hébergée."
+            : "Self-hosted chat interface."}</p>
+          <div id="runtime-openclaw-actions"></div>
+          <div id="runtime-openclaw-embed"></div>
+        </section>
+
       </div>
     </div>
   `;
@@ -4176,7 +4190,8 @@ async function boot() {
   if (path.startsWith("/setup/runtime")) renderSetupRuntime();
   else if (path.startsWith("/settings")) renderSettings();
   else if (path.startsWith("/logs")) renderLogs();
-  else if (path.startsWith("/chat")) renderChatPage();
+  else if (path.startsWith("/runtime")) renderRuntimePage();
+  else if (path.startsWith("/chat")) renderRuntimePage(); // legacy redirect
   else if (path.startsWith("/kanban")) renderKanbanPage();
   else if (path.startsWith("/memory/edit")) renderMemoryEditPage();
   else if (path.startsWith("/memory")) renderMemoryPage();
