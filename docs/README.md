@@ -2,7 +2,7 @@
 
 > Index de navigation. Tous les documents techniques sont ici.
 > Pour la vision produit et les workflows → `GOAL.md` (racine)
-> Pour les règles de dev permanent → `CLAUDE.md` (racine)
+> Pour les règles de dev permanent → `CLAUDE.md` (racine) · détail agent → [`CLAUDE-REFERENCE.md`](./CLAUDE-REFERENCE.md)
 
 ---
 
@@ -10,6 +10,7 @@
 
 | Document | Description |
 |----------|-------------|
+| [CLAUDE-REFERENCE.md](./CLAUDE-REFERENCE.md) | Complément de `CLAUDE.md` : modes, install détaillé, contrats étendus, CLI, GitNexus résumé |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Stack complète, API domains, routing SPA, Brain/Quartz, pattern Dombot edge, HUB_HOST |
 | [DATA-MODEL.md](./DATA-MODEL.md) | États kanban, cycle de vie projet, paramètres configurables, schéma Brain PARA |
 | [PITFALLS.md](./PITFALLS.md) | Bugs connus, dettes techniques, points de friction non résolus |
@@ -61,6 +62,7 @@
 ```
 docs/
   README.md               ← ce fichier
+  CLAUDE-REFERENCE.md     ← complément règles agent (hors hot path)
   ARCHITECTURE.md         ← architecture technique fusionnée
   DATA-MODEL.md           ← modèle de données de référence
   PITFALLS.md             ← bugs connus et dettes

@@ -2,7 +2,7 @@
 
 > Architecture technique de Clawvis. Source de vérité pour les décisions d'implémentation.
 > Pour la vision produit → `GOAL.md`
-> Pour les règles de dev → `CLAUDE.md`
+> Pour les règles de dev → `CLAUDE.md` (résumé) · `docs/CLAUDE-REFERENCE.md` (détail)
 > Pour le modèle de données → `docs/DATA-MODEL.md`
 
 ---

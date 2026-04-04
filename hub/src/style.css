@@ -3011,13 +3011,6 @@ body {
 }
 
 /* ── Chat ────────────────────────────────────────────── */
-.chat-shell {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 140px);
-  min-height: 400px;
-  gap: 12px;
-}
 .chat-status-bar {
   font-size: 13px;
   padding: 8px 12px;
@@ -3056,79 +3049,6 @@ body {
 }
 .chat-status-dot.err {
   background: #ef4444;
-}
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 4px 0;
-  scroll-behavior: smooth;
-}
-.chat-bubble {
-  display: flex;
-}
-.chat-bubble-user {
-  justify-content: flex-end;
-}
-.chat-bubble-assistant {
-  justify-content: flex-start;
-}
-.chat-bubble-inner {
-  max-width: 80%;
-  padding: 10px 14px;
-  border-radius: 14px;
-  font-size: 14px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.chat-bubble-user .chat-bubble-inner {
-  background: var(--accent);
-  color: #fff;
-  border-bottom-right-radius: 4px;
-}
-.chat-bubble-assistant .chat-bubble-inner {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-bottom-left-radius: 4px;
-}
-.chat-input-area {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-}
-.chat-input {
-  flex: 1;
-  resize: none;
-  font-family: inherit;
-  font-size: 14px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  line-height: 1.5;
-  overflow: hidden;
-  min-height: 44px;
-  max-height: 160px;
-  transition: border-color 0.15s;
-}
-.chat-input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.chat-send-btn {
-  flex-shrink: 0;
-  padding: 10px 18px;
-  align-self: flex-end;
-}
-.chat-hint {
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
 }
 .chat-setup-link {
   font-weight: 600;
@@ -3181,9 +3101,15 @@ body {
   height: 8px;
   border-radius: 50%;
 }
-.runtime-dot.ok   { background: var(--color-success, #22c55e); }
-.runtime-dot.warn { background: var(--color-warn, #f59e0b); }
-.runtime-dot.err  { background: var(--color-error, #ef4444); }
+.runtime-dot.ok {
+  background: var(--color-success, #22c55e);
+}
+.runtime-dot.warn {
+  background: var(--color-warn, #f59e0b);
+}
+.runtime-dot.err {
+  background: var(--color-error, #ef4444);
+}
 
 .runtime-settings-link {
   font-size: 0.82rem;
@@ -3191,7 +3117,10 @@ body {
   text-decoration: none;
   color: var(--color-accent, currentColor);
 }
-.runtime-settings-link:hover { opacity: 1; text-decoration: underline; }
+.runtime-settings-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
 
 .runtime-test-result {
   margin-top: var(--space-3, 1rem);
@@ -3202,10 +3131,22 @@ body {
 }
 .runtime-test-result.loading,
 .runtime-test-result.ok,
-.runtime-test-result.err { display: block; }
-.runtime-test-result.loading { opacity: 0.7; }
-.runtime-test-result.ok  { background: color-mix(in srgb, var(--color-success, #22c55e) 12%, transparent); }
-.runtime-test-result.err { background: color-mix(in srgb, var(--color-error, #ef4444) 12%, transparent); }
+.runtime-test-result.err {
+  display: block;
+}
+.runtime-test-result.loading {
+  opacity: 0.7;
+}
+.runtime-test-result.ok {
+  background: color-mix(
+    in srgb,
+    var(--color-success, #22c55e) 12%,
+    transparent
+  );
+}
+.runtime-test-result.err {
+  background: color-mix(in srgb, var(--color-error, #ef4444) 12%, transparent);
+}
 
 .runtime-test-raw {
   margin-top: 0.5rem;
