@@ -3040,7 +3040,6 @@ async function wireSettings() {
       }
       refreshWorkspaceHealth();
     });
-  let activeProvider = localStorage.getItem("ai-provider") || "claude";
 
   async function loadInstances() {
     const list = document.getElementById("instances-list");
