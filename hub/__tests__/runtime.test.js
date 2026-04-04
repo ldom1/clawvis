@@ -24,6 +24,18 @@ describe("renderRuntimePage HTML structure", () => {
   });
 });
 
+describe("Settings runtime card removal", () => {
+  it("settings page HTML should not contain settings-runtime-card", () => {
+    const html = `
+      <div class="settings-sections">
+        <section class="card settings-card settings-section">workspace</section>
+        <section class="card settings-card settings-section">instances</section>
+        <section class="card settings-card settings-section" id="cron-section">cron</section>
+      </div>`;
+    expect(html).not.toContain("settings-runtime-card");
+  });
+});
+
 describe("CLAWVIS error token patterns", () => {
   it("[CLAWVIS:AUTH] is detected", () => {
     const t = "[CLAWVIS:AUTH]".trim();

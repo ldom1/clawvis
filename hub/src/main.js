@@ -960,7 +960,7 @@ function renderSettings() {
         <div class="health-grid-banner">
           <div class="health-banner-item">
             <span class="health-banner-label">${t.runtimeHealth}</span>
-            <span id="health-runtime" class="health-pill warn">${t.notConfigured}</span>
+            <a href="/runtime/" id="health-runtime" class="health-pill warn">${t.notConfigured}</a>
           </div>
           <div class="health-banner-item">
             <span class="health-banner-label">${t.workspaceHealth}</span>
@@ -974,25 +974,6 @@ function renderSettings() {
       </div>
 
       <div class="settings-sections">
-        <section class="card settings-card settings-section settings-runtime-card">
-          <div class="settings-card-header">
-            <div class="settings-runtime-info">
-              <div class="settings-heading-row">
-                <h2 class="card-title settings-section-title">${t.runtimeTitle}</h2>
-                <span id="settings-runtime-status" class="ai-runtime-status-badge warn">${t.notConfigured}</span>
-                <span class="settings-info-hold" tabindex="0" aria-label="${escapeHtml(t.moreInfo)}">
-                  <span class="settings-info-i" aria-hidden="true">i</span>
-                </span>
-                <div class="settings-info-popover" role="tooltip">${escapeHtml(t.runtimeInfo)}</div>
-              </div>
-              <div class="card-desc">${t.runtimeDesc}</div>
-              <div id="settings-active-provider" class="settings-active-provider"></div>
-            </div>
-            <a href="/setup/runtime/" class="btn btn-primary">${t.configureRuntime}</a>
-          </div>
-          <span id="provider-save-feedback" class="test-result"></span>
-        </section>
-
         <section class="card settings-card settings-section">
           <div class="settings-heading-row">
             <h2 class="card-title settings-section-title">${t.workspaceTitle}</h2>
@@ -2998,7 +2979,6 @@ async function wireSettings() {
   const isFr = settingsLocale() === "fr";
   const t = SETTINGS_TEXT[settingsLocale()];
   const settingsFeedback = document.getElementById("settings-save-feedback");
-  const providerFeedback = document.getElementById("provider-save-feedback");
   const runtimeHealth = document.getElementById("health-runtime");
   const workspaceHealth = document.getElementById("health-workspace");
   const instancesHealth = document.getElementById("health-instances");
@@ -3007,59 +2987,6 @@ async function wireSettings() {
     el.className = `health-pill ${ok ? "ok" : "warn"}`;
     el.textContent = text;
   };
-  const isRuntimeConfigured = () => {
-    const provider = localStorage.getItem("ai-provider") || "claude";
-    return (
-      (provider === "claude" && !!localStorage.getItem("ai-claude-key")) ||
-      (provider === "mistral" && !!localStorage.getItem("ai-mistral-key")) ||
-      (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"))
-    );
-  };
-  const refreshRuntimeHealth = async () => {
-    let ok = isRuntimeConfigured();
-    let backendProvider = null;
-    // Also check backend — same logic as refreshRuntimeBanner on home page.
-    // Needed when localStorage is empty but .env has ANTHROPIC_API_KEY / openclaw configured.
-    if (!ok) {
-      try {
-        const r = await fetch("/api/hub/agent/config", {
-          signal: AbortSignal.timeout(2000),
-        });
-        if (r.ok) {
-          const cfg = await r.json();
-          if (cfg.anthropic_available || cfg.mammouth_available || cfg.openclaw_available) {
-            ok = true;
-            backendProvider =
-              cfg.preferred_provider ||
-              (cfg.openclaw_available ? "openclaw" : cfg.anthropic_available ? "claude" : "mistral");
-          }
-        }
-      } catch (_) {}
-    }
-    setHealth(runtimeHealth, ok, ok ? t.configured : t.notConfigured);
-    const statusBadge = document.getElementById("settings-runtime-status");
-    if (statusBadge) {
-      statusBadge.className = `ai-runtime-status-badge ${ok ? "ok" : "warn"}`;
-      statusBadge.textContent = ok ? t.configured : t.notConfigured;
-    }
-    const providerLbl = document.getElementById("settings-active-provider");
-    if (providerLbl) {
-      if (ok) {
-        const p = localStorage.getItem("ai-provider") || backendProvider || "claude";
-        const labels = {
-          claude: "Claude (Anthropic)",
-          mistral: "Mistral AI",
-          openclaw: "OpenClaw",
-        };
-        providerLbl.textContent = labels[p] || p;
-        providerLbl.style.display = "";
-      } else {
-        providerLbl.textContent = "";
-        providerLbl.style.display = "none";
-      }
-    }
-  };
-
   const refreshWorkspaceHealth = () => {
     const root = document.getElementById("projects-root")?.value?.trim() || "";
     setHealth(workspaceHealth, !!root, !!root ? t.configured : t.notConfigured);
@@ -3192,7 +3119,6 @@ async function wireSettings() {
   document
     .getElementById("projects-root")
     .addEventListener("input", refreshWorkspaceHealth);
-  await refreshRuntimeHealth();
   refreshWorkspaceHealth();
   await loadInstances();
 
