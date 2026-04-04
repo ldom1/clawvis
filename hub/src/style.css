@@ -3139,6 +3139,102 @@ body {
   text-decoration: underline;
 }
 
+/* ── Runtime page ──────────────────────────────────── */
+.runtime-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1.5rem);
+  max-width: 720px;
+}
+
+.runtime-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.75rem);
+  margin-top: var(--space-3, 1rem);
+}
+
+.runtime-info-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 1rem);
+}
+
+.runtime-info-label {
+  min-width: 110px;
+  font-size: 0.85rem;
+  opacity: 0.65;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.runtime-info-value {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.95rem;
+}
+
+.runtime-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.runtime-dot.ok   { background: var(--color-success, #22c55e); }
+.runtime-dot.warn { background: var(--color-warn, #f59e0b); }
+.runtime-dot.err  { background: var(--color-error, #ef4444); }
+
+.runtime-settings-link {
+  font-size: 0.82rem;
+  opacity: 0.7;
+  text-decoration: none;
+  color: var(--color-accent, currentColor);
+}
+.runtime-settings-link:hover { opacity: 1; text-decoration: underline; }
+
+.runtime-test-result {
+  margin-top: var(--space-3, 1rem);
+  padding: var(--space-2, 0.75rem) var(--space-3, 1rem);
+  border-radius: var(--radius, 6px);
+  font-size: 0.9rem;
+  display: none;
+}
+.runtime-test-result.loading,
+.runtime-test-result.ok,
+.runtime-test-result.err { display: block; }
+.runtime-test-result.loading { opacity: 0.7; }
+.runtime-test-result.ok  { background: color-mix(in srgb, var(--color-success, #22c55e) 12%, transparent); }
+.runtime-test-result.err { background: color-mix(in srgb, var(--color-error, #ef4444) 12%, transparent); }
+
+.runtime-test-raw {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.runtime-openclaw-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.75rem);
+  margin-top: var(--space-3, 1rem);
+}
+
+.runtime-openclaw-iframe {
+  display: block;
+  width: 100%;
+  height: 520px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius, 6px);
+  margin-top: var(--space-3, 1rem);
+  background: var(--color-surface, #fff);
+}
+
+.runtime-api-warn {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
 /* ============================================================
    Setup Runtime Wizard — /setup/runtime/
    ============================================================ */
