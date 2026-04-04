@@ -3552,14 +3552,11 @@ function renderRuntimePage() {
   `;
 }
 
-async function wireChat() {
+async function wireRuntime() {
   const fr = settingsLocale() === "fr";
-  const statusBar = document.getElementById("chat-status-bar");
-  const messagesEl = document.getElementById("chat-messages");
-  const input = document.getElementById("chat-input");
-  const sendBtn = document.getElementById("chat-send");
 
-  // Fetch agent config + status from backend
+  // ── 1. Info panel ──────────────────────────────────────────────
+  const infoPanel = document.getElementById("runtime-info-panel");
   try {
     const [statusRes, configRes] = await Promise.all([
       fetch("/api/hub/agent/status"),
@@ -3568,106 +3565,134 @@ async function wireChat() {
     if (statusRes.ok && configRes.ok) {
       const s = await statusRes.json();
       const cfg = await configRes.json();
-      const configured = s.anthropic_configured || s.mammouth_configured;
+      const configured = s.anthropic_configured || s.mammouth_configured || cfg.openclaw_available;
       const providerLabels = {
         anthropic: "Claude (Anthropic)",
         mammouth: "Mammouth (Mistral)",
+        openclaw: "OpenClaw",
       };
       const modelLabel =
         s.provider === "anthropic"
           ? cfg.anthropic_model || "claude-haiku-4-5"
-          : cfg.mammouth_model || "mistral-small-3.2-24b-instruct";
-      const changeLink = `<a href="/settings" class="chat-setup-link">${fr ? "Changer →" : "Change →"}</a>`;
-      if (statusBar) {
-        statusBar.className = `chat-status-bar ${configured ? "ok" : "warn"}`;
-        statusBar.innerHTML = configured
-          ? `<span class="chat-status-dot ok"></span><strong>${providerLabels[s.provider] || s.provider}</strong> · <code>${modelLabel}</code> ${changeLink}`
-          : `<span class="chat-status-dot warn"></span>${fr ? "Aucun provider configuré. " : "No provider configured. "}<a href="/settings" class="chat-setup-link">${fr ? "Configurer →" : "Configure →"}</a>`;
-      }
+          : s.provider === "mammouth"
+          ? cfg.mammouth_model || "mistral-small-3.2-24b-instruct"
+          : cfg.openclaw_model || "—";
+      const providerName = providerLabels[s.provider] || s.provider || "—";
+      const statusDot = configured
+        ? `<span class="runtime-dot ok"></span>`
+        : `<span class="runtime-dot warn"></span>`;
+      const statusLabel = configured
+        ? fr ? "Opérationnel" : "Operational"
+        : fr ? "Non configuré" : "Not configured";
+      const changeLink = `<a href="/settings" class="runtime-settings-link">${fr ? "Modifier →" : "Change →"}</a>`;
+
+      infoPanel.innerHTML = `
+        <h2 class="card-title">${fr ? "Runtime actif" : "Active runtime"}</h2>
+        <div class="runtime-info-grid">
+          <div class="runtime-info-row">
+            <span class="runtime-info-label">${fr ? "Statut" : "Status"}</span>
+            <span class="runtime-info-value">${statusDot} ${escapeHtml(statusLabel)}</span>
+          </div>
+          <div class="runtime-info-row">
+            <span class="runtime-info-label">${fr ? "Fournisseur" : "Provider"}</span>
+            <span class="runtime-info-value"><strong>${escapeHtml(providerName)}</strong> ${changeLink}</span>
+          </div>
+          <div class="runtime-info-row">
+            <span class="runtime-info-label">${fr ? "Modèle" : "Model"}</span>
+            <span class="runtime-info-value"><code>${escapeHtml(modelLabel)}</code></span>
+          </div>
+        </div>
+      `;
+    } else {
+      throw new Error("API error");
     }
   } catch {
-    if (statusBar)
-      statusBar.innerHTML = `<span class="chat-status-dot warn"></span>${fr ? "API indisponible" : "API unavailable"}`;
+    if (infoPanel) {
+      infoPanel.innerHTML = `<p class="runtime-api-warn">${fr ? "API indisponible — vérifie que les services sont démarrés." : "API unavailable — check that services are running."}</p>`;
+    }
   }
 
-  const history = [];
+  // ── 2. Test de connexion ────────────────────────────────────────
+  const testBtn = document.getElementById("runtime-test-btn");
+  const testResult = document.getElementById("runtime-test-result");
 
-  function addMessage(role, text, streaming = false) {
-    const bubble = document.createElement("div");
-    bubble.className = `chat-bubble chat-bubble-${role}`;
-    if (streaming) bubble.dataset.streaming = "1";
-    const inner = document.createElement("div");
-    inner.className = "chat-bubble-inner markdown-body";
-    inner.innerHTML = marked.parse(text || "");
-    bubble.appendChild(inner);
-    messagesEl.appendChild(bubble);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-    return inner;
-  }
-
-  async function sendMessage() {
-    const msg = input.value.trim();
-    if (!msg) return;
-    input.value = "";
-    input.style.height = "";
-    sendBtn.disabled = true;
-
-    addMessage("user", msg);
-    history.push({ role: "user", content: msg });
-
-    const assistantEl = addMessage("assistant", fr ? "…" : "…", true);
-    let full = "";
-
+  testBtn.addEventListener("click", async () => {
+    testResult.className = "runtime-test-result loading";
+    testResult.textContent = fr ? "Connexion en cours…" : "Testing connection…";
+    testBtn.disabled = true;
     try {
       const res = await fetch("/api/hub/agent/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg, history: history.slice(0, -1) }),
+        body: JSON.stringify({
+          message: fr ? "Réponds juste 'ok'." : "Just reply 'ok'.",
+          history: [],
+          system: "Reply with only the word 'ok'.",
+        }),
       });
-      if (!res.ok || !res.body) {
-        assistantEl.textContent = fr
-          ? "Erreur de communication avec l'API."
-          : "Error communicating with API.";
-        sendBtn.disabled = false;
-        return;
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      assistantEl.textContent = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        full += chunk;
-        assistantEl.innerHTML = marked.parse(full);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-      }
-      const formatted = formatClawvisChatAssistantText(full, fr);
-      assistantEl.innerHTML = marked.parse(formatted.text || "");
-      history.push({ role: "assistant", content: formatted.text });
-      if (formatted.authError && statusBar) {
-        statusBar.className = "chat-status-bar err";
-        statusBar.innerHTML = `<span class="chat-status-dot err"></span>${fr ? "Clé API refusée — vérifie .env et redémarre les services." : "API key rejected — check .env and restart services."}`;
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const fmt = formatClawvisChatAssistantText(text, fr);
+      if (fmt.authError) throw new Error(fmt.text);
+      testResult.className = "runtime-test-result ok";
+      testResult.innerHTML = `${escapeHtml(fr ? "Connexion réussie — le runtime répond." : "Connection successful — runtime is responding.")}
+        <details class="runtime-test-raw"><summary>${fr ? "Réponse" : "Response"}</summary>${escapeHtml(text.slice(0, 200))}</details>`;
     } catch (e) {
-      assistantEl.textContent = fr ? "Erreur réseau." : "Network error.";
+      testResult.className = "runtime-test-result err";
+      testResult.textContent = `${fr ? "Échec." : "Failed."} ${String(e)}`;
     }
-    sendBtn.disabled = false;
-    input.focus();
+    testBtn.disabled = false;
+  });
+
+  // ── 3. Section OpenClaw ─────────────────────────────────────────
+  const openclawDesc = document.getElementById("runtime-openclaw-desc");
+  const openclawActions = document.getElementById("runtime-openclaw-actions");
+  const openclawEmbed = document.getElementById("runtime-openclaw-embed");
+
+  const openclawUrl = localStorage.getItem("ai-openclaw-url") || "/openclaw/";
+  const hasLocalUrl = !!localStorage.getItem("ai-openclaw-url");
+
+  if (openclawDesc) {
+    openclawDesc.textContent = fr
+      ? "Accède au chat OpenClaw auto-hébergé ou configure l'URL dans les réglages."
+      : "Access your self-hosted OpenClaw chat or set the URL in settings.";
   }
 
-  sendBtn.addEventListener("click", sendMessage);
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  if (openclawActions) {
+    openclawActions.innerHTML = `
+      <div class="runtime-openclaw-btns">
+        <a href="${escapeHtml(openclawUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+          ${fr ? "Ouvrir OpenClaw ↗" : "Open OpenClaw ↗"}
+        </a>
+        <button id="runtime-embed-toggle" class="btn" type="button">
+          ${fr ? "Intégrer ici" : "Embed here"}
+        </button>
+        ${!hasLocalUrl ? `<a href="/settings" class="btn">${fr ? "Configurer l'URL →" : "Set URL →"}</a>` : ""}
+      </div>
+    `;
+  }
+
+  // Embed toggle
+  let embedVisible = false;
+  document.getElementById("runtime-embed-toggle")?.addEventListener("click", () => {
+    embedVisible = !embedVisible;
+    if (embedVisible) {
+      openclawEmbed.innerHTML = `
+        <iframe
+          src="${escapeHtml(openclawUrl)}"
+          class="runtime-openclaw-iframe"
+          title="OpenClaw chat"
+          allow="clipboard-write"
+          loading="lazy">
+        </iframe>`;
+    } else {
+      openclawEmbed.innerHTML = "";
     }
+    const btn = document.getElementById("runtime-embed-toggle");
+    if (btn) btn.textContent = embedVisible
+      ? (fr ? "Masquer" : "Hide")
+      : (fr ? "Intégrer ici" : "Embed here");
   });
-  input.addEventListener("input", () => {
-    input.style.height = "auto";
-    input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
-  });
-  input.focus();
 }
 
 const SETUP_RUNTIME_TEXT = {
@@ -4214,7 +4239,8 @@ async function boot() {
   if (path.startsWith("/setup/runtime")) await wireSetupRuntime();
   else if (path.startsWith("/settings")) await wireSettings();
   else if (path.startsWith("/logs")) await wireLogs();
-  else if (path.startsWith("/chat")) await wireChat();
+  else if (path.startsWith("/runtime")) await wireRuntime();
+  else if (path.startsWith("/chat")) await wireRuntime(); // legacy
   else if (path.startsWith("/kanban")) await wireKanbanPage();
   else if (path.startsWith("/memory/edit")) await wireMemoryEdit();
   else if (path.startsWith("/memory")) await wireMemoryEditor();

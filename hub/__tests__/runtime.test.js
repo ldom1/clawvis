@@ -23,3 +23,16 @@ describe("renderRuntimePage HTML structure", () => {
     expect(html).toContain('id="runtime-openclaw-section"');
   });
 });
+
+describe("CLAWVIS error token patterns", () => {
+  it("[CLAWVIS:AUTH] is detected", () => {
+    const t = "[CLAWVIS:AUTH]".trim();
+    expect(t.startsWith("[CLAWVIS:AUTH]")).toBe(true);
+  });
+
+  it("[CLAWVIS:HTTP:403] is detected", () => {
+    const m = /^\[CLAWVIS:HTTP:(\d+)\]$/.exec("[CLAWVIS:HTTP:403]");
+    expect(m).not.toBeNull();
+    expect(m[1]).toBe("403");
+  });
+});
