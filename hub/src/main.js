@@ -3529,9 +3529,11 @@ function renderRuntimePage() {
 
         <section class="runtime-test-section card">
           <h2 class="card-title">${fr ? "Test de connexion" : "Connection test"}</h2>
-          <p class="card-desc">${fr
-            ? "Envoie un ping au runtime pour vérifier que la clé API et le backend répondent."
-            : "Send a ping to the runtime to verify the API key and backend are responding."}</p>
+          <p class="card-desc">${
+            fr
+              ? "Envoie un ping au runtime pour vérifier que la clé API et le backend répondent."
+              : "Send a ping to the runtime to verify the API key and backend are responding."
+          }</p>
           <button id="runtime-test-btn" class="btn btn-primary" type="button">
             ${fr ? "Lancer le test" : "Run test"}
           </button>
@@ -3540,9 +3542,11 @@ function renderRuntimePage() {
 
         <section class="runtime-openclaw-section card" id="runtime-openclaw-section">
           <h2 class="card-title">OpenClaw</h2>
-          <p class="card-desc" id="runtime-openclaw-desc">${fr
-            ? "Interface de chat auto-hébergée."
-            : "Self-hosted chat interface."}</p>
+          <p class="card-desc" id="runtime-openclaw-desc">${
+            fr
+              ? "Interface de chat auto-hébergée."
+              : "Self-hosted chat interface."
+          }</p>
           <div id="runtime-openclaw-actions"></div>
           <div id="runtime-openclaw-embed"></div>
         </section>
@@ -3565,7 +3569,10 @@ async function wireRuntime() {
     if (statusRes.ok && configRes.ok) {
       const s = await statusRes.json();
       const cfg = await configRes.json();
-      const configured = s.anthropic_configured || s.mammouth_configured || cfg.openclaw_available;
+      const configured =
+        s.anthropic_configured ||
+        s.mammouth_configured ||
+        cfg.openclaw_available;
       const providerLabels = {
         anthropic: "Claude (Anthropic)",
         mammouth: "Mammouth (Mistral)",
@@ -3575,15 +3582,19 @@ async function wireRuntime() {
         s.provider === "anthropic"
           ? cfg.anthropic_model || "claude-haiku-4-5"
           : s.provider === "mammouth"
-          ? cfg.mammouth_model || "mistral-small-3.2-24b-instruct"
-          : cfg.openclaw_model || "—";
+            ? cfg.mammouth_model || "mistral-small-3.2-24b-instruct"
+            : cfg.openclaw_model || "—";
       const providerName = providerLabels[s.provider] || s.provider || "—";
       const statusDot = configured
         ? `<span class="runtime-dot ok"></span>`
         : `<span class="runtime-dot warn"></span>`;
       const statusLabel = configured
-        ? fr ? "Opérationnel" : "Operational"
-        : fr ? "Non configuré" : "Not configured";
+        ? fr
+          ? "Opérationnel"
+          : "Operational"
+        : fr
+          ? "Non configuré"
+          : "Not configured";
       const changeLink = `<a href="/settings" class="runtime-settings-link">${fr ? "Modifier →" : "Change →"}</a>`;
 
       infoPanel.innerHTML = `
@@ -3674,10 +3685,12 @@ async function wireRuntime() {
 
   // Embed toggle
   let embedVisible = false;
-  document.getElementById("runtime-embed-toggle")?.addEventListener("click", () => {
-    embedVisible = !embedVisible;
-    if (embedVisible) {
-      openclawEmbed.innerHTML = `
+  document
+    .getElementById("runtime-embed-toggle")
+    ?.addEventListener("click", () => {
+      embedVisible = !embedVisible;
+      if (embedVisible) {
+        openclawEmbed.innerHTML = `
         <iframe
           src="${escapeHtml(openclawUrl)}"
           class="runtime-openclaw-iframe"
@@ -3685,14 +3698,19 @@ async function wireRuntime() {
           allow="clipboard-write"
           loading="lazy">
         </iframe>`;
-    } else {
-      openclawEmbed.innerHTML = "";
-    }
-    const btn = document.getElementById("runtime-embed-toggle");
-    if (btn) btn.textContent = embedVisible
-      ? (fr ? "Masquer" : "Hide")
-      : (fr ? "Intégrer ici" : "Embed here");
-  });
+      } else {
+        openclawEmbed.innerHTML = "";
+      }
+      const btn = document.getElementById("runtime-embed-toggle");
+      if (btn)
+        btn.textContent = embedVisible
+          ? fr
+            ? "Masquer"
+            : "Hide"
+          : fr
+            ? "Intégrer ici"
+            : "Embed here";
+    });
 }
 
 const SETUP_RUNTIME_TEXT = {
@@ -4216,7 +4234,8 @@ async function boot() {
   else if (path.startsWith("/settings")) renderSettings();
   else if (path.startsWith("/logs")) renderLogs();
   else if (path.startsWith("/runtime")) renderRuntimePage();
-  else if (path.startsWith("/chat")) renderRuntimePage(); // legacy redirect
+  else if (path.startsWith("/chat"))
+    renderRuntimePage(); // legacy redirect
   else if (path.startsWith("/kanban")) renderKanbanPage();
   else if (path.startsWith("/memory/edit")) renderMemoryEditPage();
   else if (path.startsWith("/memory")) renderMemoryPage();
@@ -4240,7 +4259,8 @@ async function boot() {
   else if (path.startsWith("/settings")) await wireSettings();
   else if (path.startsWith("/logs")) await wireLogs();
   else if (path.startsWith("/runtime")) await wireRuntime();
-  else if (path.startsWith("/chat")) await wireRuntime(); // legacy
+  else if (path.startsWith("/chat"))
+    await wireRuntime(); // legacy
   else if (path.startsWith("/kanban")) await wireKanbanPage();
   else if (path.startsWith("/memory/edit")) await wireMemoryEdit();
   else if (path.startsWith("/memory")) await wireMemoryEditor();
