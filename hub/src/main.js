@@ -302,9 +302,9 @@ const SUBPAGE_TEXT = {
       title: "Modifier le Brain",
       sub: "Éditez vos fichiers projets markdown. Pour les tâches, utilisez le Kanban.",
     },
-    chat: {
-      title: "Chat",
-      sub: "Discutez avec votre runtime IA pour valider le setup, tester ou explorer.",
+    runtime: {
+      title: "Runtime IA",
+      sub: "Statut, test de connexion et accès au chat OpenClaw.",
     },
   },
   en: {
@@ -324,9 +324,9 @@ const SUBPAGE_TEXT = {
       title: "Edit Brain",
       sub: "Edit your project markdown files. For tasks, use Kanban.",
     },
-    chat: {
-      title: "Chat",
-      sub: "Talk to your AI runtime to validate setup, test, or explore.",
+    runtime: {
+      title: "AI Runtime",
+      sub: "Status, connection test, and access to OpenClaw chat.",
     },
   },
 };
@@ -622,17 +622,19 @@ function renderHome() {
               <div class="tool-chiprow"><span class="tool-chip">Quartz</span><span class="tool-chip">Projects</span><span class="tool-chip">Notes</span></div>
             </div>
           </a>
-          <a class="tool-tile" href="/chat/">
+          <a class="tool-tile" href="/runtime/">
             <span class="tool-open">&#x2197;</span>
             <div class="tool-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                <path d="M8 21h8M12 17v4"></path>
+                <circle cx="12" cy="10" r="2"></circle>
               </svg>
             </div>
             <div class="tool-meta">
-              <div class="tool-name">Chat</div>
-              <div class="tool-desc">Talk to your AI runtime to validate setup or explore.</div>
-              <div class="tool-chiprow"><span class="tool-chip">Claude</span><span class="tool-chip">Mistral</span><span class="tool-chip">OpenClaw</span></div>
+              <div class="tool-name">Runtime IA</div>
+              <div class="tool-desc">Statut du runtime, test de connexion et accès OpenClaw.</div>
+              <div class="tool-chiprow"><span class="tool-chip">Status</span><span class="tool-chip">Test</span><span class="tool-chip">OpenClaw</span></div>
             </div>
           </a>
         </div>
