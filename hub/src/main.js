@@ -2693,6 +2693,45 @@ async function wireKanbanPage() {
   await refreshAll();
 }
 
+async function wireRuntimeTileDot() {
+  const tile = document.querySelector('a.tool-tile[href="/runtime/"]');
+  if (!tile) return;
+
+  if (getComputedStyle(tile).position === "static") {
+    tile.style.position = "relative";
+  }
+
+  const dot = document.createElement("span");
+  dot.className = "tile-status-dot";
+  dot.setAttribute("aria-hidden", "true");
+  tile.appendChild(dot);
+
+  const provider = localStorage.getItem("ai-provider") || "claude";
+  const localConfigured =
+    (provider === "claude" && !!localStorage.getItem("ai-claude-key")) ||
+    (provider === "mistral" && !!localStorage.getItem("ai-mistral-key")) ||
+    (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"));
+
+  let backendOk = false;
+  try {
+    const r = await fetch("/api/hub/agent/config", {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (r.ok) {
+      const cfg = await r.json();
+      backendOk = !!(cfg.anthropic_available || cfg.mammouth_available || cfg.openclaw_available);
+    }
+  } catch (_) {}
+
+  if (backendOk) {
+    dot.className = "tile-status-dot ok";
+  } else if (localConfigured) {
+    dot.className = "tile-status-dot warn";
+  } else {
+    dot.className = "tile-status-dot err";
+  }
+}
+
 async function wireHome() {
   const modal = document.getElementById("modal");
   const tagsInput = document.getElementById("project-tags");
@@ -2973,6 +3012,8 @@ function wireSystemStatus() {
   loadBusinessKpis();
   setInterval(loadStats, 30000);
   setInterval(loadBusinessKpis, 60000);
+
+  await wireRuntimeTileDot();
 }
 
 async function wireSettings() {

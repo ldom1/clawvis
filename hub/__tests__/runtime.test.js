@@ -36,6 +36,24 @@ describe("Settings runtime card removal", () => {
   });
 });
 
+describe("runtimeDotState", () => {
+  function runtimeDotState({ backendOk, localConfigured }) {
+    if (backendOk) return "ok";
+    if (localConfigured) return "warn";
+    return "err";
+  }
+
+  it("returns ok when backend responds", () => {
+    expect(runtimeDotState({ backendOk: true, localConfigured: false })).toBe("ok");
+  });
+  it("returns warn when only local config", () => {
+    expect(runtimeDotState({ backendOk: false, localConfigured: true })).toBe("warn");
+  });
+  it("returns err when nothing configured", () => {
+    expect(runtimeDotState({ backendOk: false, localConfigured: false })).toBe("err");
+  });
+});
+
 describe("CLAWVIS error token patterns", () => {
   it("[CLAWVIS:AUTH] is detected", () => {
     const t = "[CLAWVIS:AUTH]".trim();
