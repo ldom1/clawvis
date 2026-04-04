@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Hub — Runtime IA page (2026-04-04)
+- **Page `/chat` remplacée par `/runtime`** : nouvelle page dédiée au runtime IA avec info panel (provider, modèle, statut live), bouton de test de connexion (ping `/api/hub/agent/chat`), et accès OpenClaw (lien externe + iframe embed toggle). Route `/chat` conservée comme alias legacy.
+- **Section runtime retirée de Settings** : la gestion du provider est centralisée sur `/runtime`. Le health banner "Runtime config" dans Settings est maintenant un lien cliquable vers `/runtime`.
+- **Dot de statut pulsant** sur la tile "Runtime IA" de la home : vert (backend OK), orange (config locale non confirmée côté backend), rouge (rien de configuré / API inaccessible). Animé via CSS `@keyframes`.
+- `hub/__tests__/runtime.test.js` créé : 10 tests couvrant la baseline `escapeHtml`, la structure DOM de la page runtime, les patterns d'erreur CLAWVIS, la logique d'état du dot.
+
 ### Phase 1.5 — Dombot migration complete (2026-03-27)
 - **Clawvis stack deployed on Dombot** (hub:8089, kanban-api:8090, hub-memory-api:8091 — all bound to 127.0.0.1).
 - `docker-compose.yml`: all service ports now bound to `127.0.0.1` by default — prevents accidental exposure on `0.0.0.0` and fixes port-conflict bug when `docker-compose.override.yml` redeclares the same ports (compose merges port arrays, causing duplicate bind failures).
