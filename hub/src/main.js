@@ -3013,7 +3013,7 @@ function wireSystemStatus() {
   setInterval(loadStats, 30000);
   setInterval(loadBusinessKpis, 60000);
 
-  await wireRuntimeTileDot();
+  wireRuntimeTileDot();
 }
 
 async function wireSettings() {
