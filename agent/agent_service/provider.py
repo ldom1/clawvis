@@ -10,7 +10,7 @@ from pathlib import Path
 
 @dataclass
 class ProviderConfig:
-    provider: str            # "anthropic" | "mistral"
+    provider: str            # "anthropic" | "openrouter"
     anthropic_token: str
     mammouth_token: str
     mammouth_base_url: str
@@ -23,7 +23,7 @@ def load_provider_config() -> ProviderConfig:
     state_dir = os.environ.get("OPENCLAW_STATE_DIR")
     anthropic_token = ""
     mammouth_token = ""
-    mammouth_base_url = "https://api.mammouth.ai/v1"
+    mammouth_base_url = "https://openrouter.ai/api/v1"
 
     if state_dir:
         profiles_path = (
@@ -34,14 +34,22 @@ def load_provider_config() -> ProviderConfig:
             for val in data.get("profiles", {}).values():
                 if val.get("provider") == "anthropic" and not anthropic_token:
                     anthropic_token = val.get("token", "")
-                elif val.get("provider") == "mistral" and not mammouth_token:
+                elif val.get("provider") in ("openrouter", "mistral") and not mammouth_token:
                     mammouth_token = val.get("token", "")
 
         openclaw_cfg = Path(state_dir) / "openclaw.json"
         if openclaw_cfg.exists():
             cfg = json.loads(openclaw_cfg.read_text(encoding="utf-8"))
+            # Read OpenRouter API key from openclaw.json env section
+            openrouter_key = cfg.get("env", {}).get("OPENROUTER_API_KEY", "")
+            if openrouter_key and openrouter_key != "YOUR_OPENROUTER_API_KEY":
+                mammouth_token = mammouth_token or openrouter_key
             providers = cfg.get("models", {}).get("providers", {})
-            if "mistral" in providers:
+            if "openrouter" in providers:
+                mammouth_base_url = providers["openrouter"].get(
+                    "baseUrl", mammouth_base_url
+                )
+            elif "mistral" in providers:
                 mammouth_base_url = providers["mistral"].get(
                     "baseUrl", mammouth_base_url
                 )
@@ -50,6 +58,7 @@ def load_provider_config() -> ProviderConfig:
     anthropic_token = anthropic_token or os.environ.get("ANTHROPIC_API_KEY", "")
     mammouth_token = (
         mammouth_token
+        or os.environ.get("OPENROUTER_API_KEY", "")
         or os.environ.get("MAMMOUTH_API_KEY", "")
         or os.environ.get("OPENAI_API_KEY", "")
     )

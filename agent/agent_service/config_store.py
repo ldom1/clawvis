@@ -7,7 +7,7 @@ from pathlib import Path
 _DEFAULTS: dict = {
     "preferred_provider": None,  # None = auto (anthropic first if available)
     "anthropic_model": "claude-haiku-4-5",
-    "mammouth_model": "mistral-small-3.2-24b-instruct",
+    "mammouth_model": "qwen/qwen3-plus:free",
 }
 
 _ALLOWED = set(_DEFAULTS)

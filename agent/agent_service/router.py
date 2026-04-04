@@ -78,7 +78,7 @@ async def chat(req: ChatRequest):
 
     preferred = conf.get("preferred_provider")
     anthropic_model = conf.get("anthropic_model", "claude-haiku-4-5")
-    mammouth_model = conf.get("mammouth_model", "mistral-small-3.2-24b-instruct")
+    mammouth_model = conf.get("mammouth_model", "qwen/qwen3-plus:free")
 
     use_openclaw = preferred == "openclaw" and openclaw_available()
     use_anthropic = not use_openclaw and (
@@ -123,7 +123,7 @@ async def chat(req: ChatRequest):
             else:
                 yield (
                     "[No LLM provider configured. "
-                    "Set ANTHROPIC_API_KEY or MAMMOUTH_API_KEY in .env]"
+                    "Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY in .env]"
                 )
         except Exception as exc:
             yield f"[Error: {type(exc).__name__}: {exc}]"
