@@ -2929,8 +2929,8 @@ body {
 .back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -2946,7 +2946,18 @@ body {
   background: rgba(99, 102, 241, 0.08);
 }
 .back-btn .icon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  flex-shrink: 0;
   font-size: 1rem;
+}
+.sub-page-header-actions .btn .icon,
+.sub-page-header-actions button .icon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  flex-shrink: 0;
 }
 .card-title {
   font-size: 0.95rem;

@@ -15,12 +15,10 @@ describe("renderRuntimePage HTML structure", () => {
           <button id="runtime-test-btn"></button>
           <div id="runtime-test-result"></div>
         </div>
-        <div class="runtime-openclaw-section" id="runtime-openclaw-section"></div>
       </div>`;
     expect(html).toContain('id="runtime-info-panel"');
     expect(html).toContain('id="runtime-test-btn"');
     expect(html).toContain('id="runtime-test-result"');
-    expect(html).toContain('id="runtime-openclaw-section"');
   });
 });
 

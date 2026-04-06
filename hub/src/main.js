@@ -304,7 +304,7 @@ const SUBPAGE_TEXT = {
     },
     runtime: {
       title: "Runtime IA",
-      sub: "Statut, test de connexion et accès au chat OpenClaw.",
+      sub: "Statut et test de connexion.",
     },
   },
   en: {
@@ -326,7 +326,7 @@ const SUBPAGE_TEXT = {
     },
     runtime: {
       title: "AI Runtime",
-      sub: "Status, connection test, and access to OpenClaw chat.",
+      sub: "Status and connection test.",
     },
   },
 };
@@ -1729,6 +1729,7 @@ async function loadProjects() {
   const data = await res.json();
   const v = Date.now();
   if (!(data.projects || []).length) {
+    console.warn("[loadProjects] empty projects; raw response:", data);
     const fr = settingsLocale() === "fr";
     grid.insertAdjacentHTML(
       "beforeend",
@@ -2202,8 +2203,19 @@ async function wireLogs() {
   function renderRows(logs) {
     const tbody = document.getElementById("logs-tbody");
     if (!tbody) return;
+    const fr = settingsLocale() === "fr";
+    if (!allLogs.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="muted-cell">${
+        fr
+          ? "Aucun log disponible. Vérifie que les services sont actifs."
+          : "No logs available. Verify that services are running."
+      }</td></tr>`;
+      return;
+    }
     if (!logs.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="muted-cell">No logs yet.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="muted-cell">${
+        fr ? "Aucun résultat pour ces filtres." : "No matching logs for these filters."
+      }</td></tr>`;
       return;
     }
     tbody.innerHTML = logs
@@ -2706,28 +2718,19 @@ async function wireRuntimeTileDot() {
   dot.setAttribute("aria-hidden", "true");
   tile.appendChild(dot);
 
-  const provider = localStorage.getItem("ai-provider") || "claude";
-  const localConfigured =
-    (provider === "claude" && !!localStorage.getItem("ai-claude-key")) ||
-    (provider === "mistral" && !!localStorage.getItem("ai-mistral-key")) ||
-    (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"));
-
-  let backendOk = false;
   try {
-    const r = await fetch("/api/hub/agent/config", {
+    const r = await fetch("/api/hub/agent/status", {
       signal: AbortSignal.timeout(3000),
     });
-    if (r.ok) {
-      const cfg = await r.json();
-      backendOk = !!(cfg.anthropic_available || cfg.mammouth_available || cfg.openclaw_available);
+    if (!r.ok) {
+      dot.className = "tile-status-dot err";
+      return;
     }
-  } catch (_) {}
-
-  if (backendOk) {
-    dot.className = "tile-status-dot ok";
-  } else if (localConfigured) {
-    dot.className = "tile-status-dot warn";
-  } else {
+    const s = await r.json();
+    dot.className = s.runtime_ready
+      ? "tile-status-dot ok"
+      : "tile-status-dot warn";
+  } catch (_) {
     dot.className = "tile-status-dot err";
   }
 }
@@ -2831,68 +2834,59 @@ function wireSystemStatus() {
   const loc = settingsLocale();
   const t = SETTINGS_TEXT[loc];
 
-  // AI Runtime banner — checks localStorage AND backend agent config
+  // AI Runtime banner — provider + readiness from GET /api/hub/agent/status only
   async function refreshRuntimeBanner() {
     const statusEl = document.getElementById("ai-runtime-status");
     const labelEl = document.getElementById("ai-runtime-provider-label");
     const ctaEl = document.getElementById("ai-runtime-cta");
     if (!statusEl) return;
-    const provider = localStorage.getItem("ai-provider") || "claude";
-    const localConfigured =
-      (provider === "claude" && !!localStorage.getItem("ai-claude-key")) ||
-      (provider === "mistral" && !!localStorage.getItem("ai-mistral-key")) ||
-      (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"));
 
-    // Also check if backend has a working provider (anthropic, mammouth, or openclaw)
-    let backendConfigured = false;
-    let backendProvider = null;
-    try {
-      const r = await fetch("/api/hub/agent/config", {
-        signal: AbortSignal.timeout(3000),
-      });
-      if (r.ok) {
-        const cfg = await r.json();
-        if (cfg.anthropic_available) {
-          backendConfigured = true;
-          backendProvider = "claude";
-        } else if (cfg.mammouth_available) {
-          backendConfigured = true;
-          backendProvider = "mistral";
-        } else if (cfg.openclaw_available) {
-          backendConfigured = true;
-          backendProvider = "openclaw";
-        }
-      }
-    } catch (_) {}
+    const labels = {
+      anthropic: "Claude",
+      mammouth: "Mistral",
+      openclaw: "OpenClaw",
+    };
 
-    const configured = localConfigured || backendConfigured;
-    const activeProvider = localConfigured ? provider : backendProvider;
     const banner = document.getElementById("ai-runtime-banner");
     const chip = document.getElementById("ai-runtime-chip");
     const chipProvider = document.getElementById("ai-runtime-chip-provider");
     const chipPanelStatus = document.getElementById(
       "ai-runtime-chip-panel-status",
     );
-    const labels = {
-      claude: "Claude",
-      mistral: "Mistral",
-      openclaw: "OpenClaw",
-    };
-    if (configured) {
-      // Hide full banner, show compact chip
-      if (banner) banner.style.display = "none";
-      if (chip) chip.style.display = "inline-flex";
-      const providerLabel = labels[activeProvider] || activeProvider || "IA";
-      if (chipProvider) chipProvider.textContent = providerLabel;
-      if (chipPanelStatus)
-        chipPanelStatus.textContent = `${t.runtimeBannerConfigured} · ${providerLabel}`;
-    } else {
-      // Show full banner, hide chip
+
+    let s;
+    try {
+      const r = await fetch("/api/hub/agent/status", {
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!r.ok) throw new Error("status");
+      s = await r.json();
+    } catch (_) {
       if (banner) banner.style.display = "";
       if (chip) chip.style.display = "none";
       statusEl.className = "ai-runtime-status-badge warn";
       statusEl.textContent = t.runtimeBannerNotConfigured;
       if (labelEl) labelEl.textContent = "";
+      if (ctaEl) ctaEl.textContent = t.runtimeBannerCta;
+      return;
+    }
+
+    const providerLabel =
+      labels[s.provider] || s.provider || "IA";
+    const configured = s.runtime_ready;
+
+    if (configured) {
+      if (banner) banner.style.display = "none";
+      if (chip) chip.style.display = "inline-flex";
+      if (chipProvider) chipProvider.textContent = providerLabel;
+      if (chipPanelStatus)
+        chipPanelStatus.textContent = `${t.runtimeBannerConfigured} · ${providerLabel}`;
+    } else {
+      if (banner) banner.style.display = "";
+      if (chip) chip.style.display = "none";
+      statusEl.className = "ai-runtime-status-badge warn";
+      statusEl.textContent = t.runtimeBannerNotConfigured;
+      if (labelEl) labelEl.textContent = providerLabel;
       if (ctaEl) ctaEl.textContent = t.runtimeBannerCta;
     }
   }
@@ -3028,10 +3022,41 @@ async function wireSettings() {
     el.className = `health-pill ${ok ? "ok" : "warn"}`;
     el.textContent = text;
   };
-  const refreshWorkspaceHealth = () => {
+
+  async function refreshHealthPills() {
     const root = document.getElementById("projects-root")?.value?.trim() || "";
     setHealth(workspaceHealth, !!root, !!root ? t.configured : t.notConfigured);
-  };
+    try {
+      const [stRes, instRes] = await Promise.all([
+        fetch("/api/hub/agent/status", { signal: AbortSignal.timeout(8000) }),
+        fetch("/api/hub/memory/instances"),
+      ]);
+      if (stRes.ok) {
+        const s = await stRes.json();
+        setHealth(
+          runtimeHealth,
+          s.runtime_ready,
+          s.runtime_ready ? t.configured : t.notConfigured,
+        );
+      } else {
+        setHealth(runtimeHealth, false, t.notConfigured);
+      }
+      if (instRes.ok) {
+        const payload = await instRes.json();
+        const linkedCount = (payload.instances || []).filter((it) => !!it.linked)
+          .length;
+        setHealth(
+          instancesHealth,
+          linkedCount > 0,
+          `${linkedCount} ${t.linked}`,
+        );
+      } else {
+        setHealth(instancesHealth, false, `0 ${t.linked}`);
+      }
+    } catch {
+      setHealth(runtimeHealth, false, t.notConfigured);
+    }
+  }
 
   const res = await fetch("/api/hub/memory/settings");
   if (res.ok) {
@@ -3050,7 +3075,8 @@ async function wireSettings() {
       activeInstanceEl.textContent = data.active_brain_memory || "—";
     if (activeProjectsEl)
       activeProjectsEl.textContent = data.projects_root || "—";
-    refreshWorkspaceHealth();
+  } else {
+    await refreshHealthPills();
   }
   document
     .getElementById("save-settings")
@@ -3079,7 +3105,7 @@ async function wireSettings() {
         settingsFeedback.textContent = t.workspaceSaved;
         settingsFeedback.style.display = "inline-block";
       }
-      refreshWorkspaceHealth();
+      await refreshHealthPills();
     });
 
   async function loadInstances() {
@@ -3089,13 +3115,11 @@ async function wireSettings() {
     const r = await fetch("/api/hub/memory/instances");
     if (!r.ok) {
       list.innerHTML = `<div class="instances-empty">${escapeHtml(t.loadInstancesFailed)}</div>`;
-      setHealth(instancesHealth, false, `0 ${t.linked}`);
+      await refreshHealthPills();
       return;
     }
     const payload = await r.json();
     const instances = payload.instances || [];
-    const linkedCount = instances.filter((it) => !!it.linked).length;
-    setHealth(instancesHealth, linkedCount > 0, `${linkedCount} ${t.linked}`);
     if (!instances.length) {
       list.innerHTML = `<div class="instances-empty">${escapeHtml(t.noInstances)}</div>`;
       return;
@@ -3128,6 +3152,7 @@ async function wireSettings() {
         `;
       })
       .join("");
+    await refreshHealthPills();
   }
 
   async function applyInstanceToggle(link, pathValue) {
@@ -3158,8 +3183,9 @@ async function wireSettings() {
     .addEventListener("click", loadInstances);
   document
     .getElementById("projects-root")
-    .addEventListener("input", refreshWorkspaceHealth);
-  refreshWorkspaceHealth();
+    .addEventListener("input", () => {
+      refreshHealthPills();
+    });
   await loadInstances();
 
   // --- Cron section ---
@@ -3325,12 +3351,36 @@ async function wireMemoryEditor() {
 
   async function loadQuartzList() {
     const res = await fetch("/api/hub/memory/quartz");
-    const payload = res.ok ? await res.json() : { files: [] };
+    if (!res.ok) {
+      let detail = "";
+      try {
+        detail = await res.text();
+      } catch {
+        /* ignore */
+      }
+      quartzFrame.srcdoc = fr
+        ? `<div style="font-family:system-ui,sans-serif;padding:20px;color:#f87171">Impossible de charger le Brain (HTTP ${res.status}). ${escapeHtml(detail.slice(0, 400))}</div>`
+        : `<div style="font-family:system-ui,sans-serif;padding:20px;color:#f87171">Could not load Brain (HTTP ${res.status}). ${escapeHtml(detail.slice(0, 400))}</div>`;
+      return;
+    }
+    const payload = await res.json();
     let files = payload.files || [];
     brainPreviewKind = "html";
     if (!files.length) {
       const mres = await fetch("/api/hub/memory/projects");
-      const mp = mres.ok ? await mres.json() : { files: [] };
+      if (!mres.ok) {
+        let detail = "";
+        try {
+          detail = await mres.text();
+        } catch {
+          /* ignore */
+        }
+        quartzFrame.srcdoc = fr
+          ? `<div style="font-family:system-ui,sans-serif;padding:20px;color:#f87171">Liste des projets indisponible (HTTP ${mres.status}). ${escapeHtml(detail.slice(0, 400))}</div>`
+          : `<div style="font-family:system-ui,sans-serif;padding:20px;color:#f87171">Project list unavailable (HTTP ${mres.status}). ${escapeHtml(detail.slice(0, 400))}</div>`;
+        return;
+      }
+      const mp = await mres.json();
       files = (mp.files || []).filter((f) =>
         String(f).toLowerCase().endsWith(".md"),
       );
@@ -3506,17 +3556,6 @@ function renderRuntimePage() {
           <div id="runtime-test-result" class="runtime-test-result"></div>
         </section>
 
-        <section class="runtime-openclaw-section card" id="runtime-openclaw-section">
-          <h2 class="card-title">OpenClaw</h2>
-          <p class="card-desc" id="runtime-openclaw-desc">${
-            fr
-              ? "Interface de chat auto-hébergée."
-              : "Self-hosted chat interface."
-          }</p>
-          <div id="runtime-openclaw-actions"></div>
-          <div id="runtime-openclaw-embed"></div>
-        </section>
-
       </div>
     </div>
   `;
@@ -3535,10 +3574,7 @@ async function wireRuntime() {
     if (statusRes.ok && configRes.ok) {
       const s = await statusRes.json();
       const cfg = await configRes.json();
-      const configured =
-        s.anthropic_configured ||
-        s.mammouth_configured ||
-        cfg.openclaw_available;
+      const configured = s.runtime_ready;
       const providerLabels = {
         anthropic: "Claude (Anthropic)",
         mammouth: "Mammouth (Mistral)",
@@ -3616,67 +3652,17 @@ async function wireRuntime() {
         <details class="runtime-test-raw"><summary>${fr ? "Réponse" : "Response"}</summary>${escapeHtml(text.slice(0, 200))}</details>`;
     } catch (e) {
       testResult.className = "runtime-test-result err";
-      testResult.textContent = `${fr ? "Échec." : "Failed."} ${String(e)}`;
+      const net =
+        e instanceof TypeError &&
+        (e.message === "Failed to fetch" || e.message === "Load failed");
+      testResult.textContent = net
+        ? fr
+          ? "Service agent inaccessible — vérifie que le conteneur agent est démarré."
+          : "Agent service unreachable — ensure the agent container is running."
+        : `${fr ? "Échec." : "Failed."} ${String(e)}`;
     }
     testBtn.disabled = false;
   });
-
-  // ── 3. Section OpenClaw ─────────────────────────────────────────
-  const openclawDesc = document.getElementById("runtime-openclaw-desc");
-  const openclawActions = document.getElementById("runtime-openclaw-actions");
-  const openclawEmbed = document.getElementById("runtime-openclaw-embed");
-
-  const openclawUrl = localStorage.getItem("ai-openclaw-url") || "/openclaw/";
-  const hasLocalUrl = !!localStorage.getItem("ai-openclaw-url");
-
-  if (openclawDesc) {
-    openclawDesc.textContent = fr
-      ? "Accède au chat OpenClaw auto-hébergé ou configure l'URL dans les réglages."
-      : "Access your self-hosted OpenClaw chat or set the URL in settings.";
-  }
-
-  if (openclawActions) {
-    openclawActions.innerHTML = `
-      <div class="runtime-openclaw-btns">
-        <a href="${escapeHtml(openclawUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
-          ${fr ? "Ouvrir OpenClaw ↗" : "Open OpenClaw ↗"}
-        </a>
-        <button id="runtime-embed-toggle" class="btn" type="button">
-          ${fr ? "Intégrer ici" : "Embed here"}
-        </button>
-        ${!hasLocalUrl ? `<a href="/settings" class="btn">${fr ? "Configurer l'URL →" : "Set URL →"}</a>` : ""}
-      </div>
-    `;
-  }
-
-  // Embed toggle
-  let embedVisible = false;
-  document
-    .getElementById("runtime-embed-toggle")
-    ?.addEventListener("click", () => {
-      embedVisible = !embedVisible;
-      if (embedVisible) {
-        openclawEmbed.innerHTML = `
-        <iframe
-          src="${escapeHtml(openclawUrl)}"
-          class="runtime-openclaw-iframe"
-          title="OpenClaw chat"
-          allow="clipboard-write"
-          loading="lazy">
-        </iframe>`;
-      } else {
-        openclawEmbed.innerHTML = "";
-      }
-      const btn = document.getElementById("runtime-embed-toggle");
-      if (btn)
-        btn.textContent = embedVisible
-          ? fr
-            ? "Masquer"
-            : "Hide"
-          : fr
-            ? "Intégrer ici"
-            : "Embed here";
-    });
 }
 
 const SETUP_RUNTIME_TEXT = {
