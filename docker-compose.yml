@@ -10,6 +10,10 @@ services:
       # HUB_HOST=127.0.0.1 (default) = localhost-only; HUB_HOST=0.0.0.0 = LAN/Tailscale without host nginx
       - "${HUB_HOST:-127.0.0.1}:${HUB_PORT:-8088}:80"
     env_file: .env
+    environment:
+      - INSTANCE_NAME=${INSTANCE_NAME:-example}
+    volumes:
+      - ./instances:/clawvis/instances:ro
     tmpfs:
       - /tmp
     labels:
@@ -34,7 +38,7 @@ services:
     volumes:
       - ./instances:/clawvis/instances
     environment:
-      - MEMORY_ROOT=instances/${INSTANCE_NAME:-example}/memory
+      - MEMORY_ROOT=${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}
       # OpenClaw: set OPENCLAW_BASE_URL to reach your OpenClaw instance.
       # Same-host deployment (OpenClaw on the VPS alongside Clawvis):
       #   OPENCLAW_BASE_URL=http://host.docker.internal:3333
@@ -73,7 +77,7 @@ services:
       - ./instances:/clawvis/instances
       - ./quartz:/clawvis/quartz
     environment:
-      - MEMORY_ROOT=instances/${INSTANCE_NAME:-example}/memory
+      - MEMORY_ROOT=${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     labels:
       - "app=clawvis"
@@ -109,7 +113,12 @@ services:
     volumes:
       - ./instances:/app/instances
     environment:
-      - OPENCLAW_AVAILABLE=false
+      - OPENCLAW_BASE_URL=${OPENCLAW_BASE_URL:-}
+      - OPENCLAW_API_KEY=${OPENCLAW_API_KEY:-}
+      - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
+      - OPENCLAW_AVAILABLE=${OPENCLAW_AVAILABLE:-false}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - MAMMOUTH_API_KEY=${MAMMOUTH_API_KEY:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
