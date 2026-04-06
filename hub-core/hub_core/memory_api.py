@@ -72,7 +72,10 @@ def rebuild_static_endpoint():
 
 @app.get("/projects")
 def list_projects_endpoint():
-    return list_memory_project_files()
+    try:
+        return list_memory_project_files()
+    except Exception:
+        return {"files": []}
 
 
 @app.get("/projects/{filename}")
@@ -95,7 +98,10 @@ def save_project_endpoint(body: MemoryFileSave):
 
 @app.get("/quartz")
 def list_quartz_endpoint():
-    return list_memory_quartz_pages()
+    try:
+        return list_memory_quartz_pages()
+    except Exception:
+        return {"files": [], "source": "unavailable"}
 
 
 @app.get("/quartz/{filename}")

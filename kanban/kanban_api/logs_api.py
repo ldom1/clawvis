@@ -55,14 +55,17 @@ def get_logs(
     limit: int = Query(200, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    entries = _read_entries(
-        level=level,
-        process=process,
-        action=action,
-        search=search,
-        limit=limit,
-        offset=offset,
-    )
+    try:
+        entries = _read_entries(
+            level=level,
+            process=process,
+            action=action,
+            search=search,
+            limit=limit,
+            offset=offset,
+        )
+    except Exception:
+        entries = []
     return {"logs": entries, "count": len(entries)}
 
 
