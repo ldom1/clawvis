@@ -1,8 +1,40 @@
 # Clawvis — Documentation
 
+**Clawvis** est un hub self-hosted de pilotage d’agents IA : Kanban, Brain (mémoire / Quartz), runtime IA, logs — stack documentée dans ce dossier.
+
+**Dépôt source** : [github.com/ldom1/clawvis](https://github.com/ldom1/clawvis).
+
+> **Wiki GitHub (miroir)** — Cette documentation est [synchronisée automatiquement](https://github.com/ldom1/clawvis/actions/workflows/sync-wiki.yml) depuis `docs/` vers le [wiki](https://github.com/ldom1/clawvis/wiki). **Ne pas éditer le wiki directement** : toute modification passe par les fichiers Markdown dans [`docs/`](https://github.com/ldom1/clawvis/tree/main/docs) sur le dépôt principal. Le contenu est **aplati** à la racine du wiki (pas de sous-dossiers) ; les liens relatifs du dépôt sont fiables en local / sur GitHub, pas toujours dans l’UI wiki — voir [Correspondance wiki](#correspondance-wiki-fichiers-aplatis). Si le workflow ne peut pas pousser vers le wiki, ajouter un secret dépôt `WIKI_SYNC_TOKEN` (PAT avec scope `repo`).
+
 > Index de navigation. Tous les documents techniques sont ici.
 > Pour la vision produit et les workflows → `GOAL.md` (racine)
 > Pour les règles de dev permanent → `CLAUDE.md` (racine) · détail agent → [`CLAUDE-REFERENCE.md`](./CLAUDE-REFERENCE.md)
+
+---
+
+## Correspondance wiki (fichiers aplatis)
+
+| Fichier sous `docs/` | Page sur le wiki (GitHub) |
+|----------------------|---------------------------|
+| `README.md` (ce fichier) | [Home](https://github.com/ldom1/clawvis/wiki) (`Home.md`) |
+| `ARCHITECTURE.md` | `ARCHITECTURE` |
+| `DATA-MODEL.md` | `DATA-MODEL` |
+| `PITFALLS.md` | `PITFALLS` |
+| `testing.md` | `testing` |
+| `guides/deploy-hostinger.md` | `guides-deploy-hostinger` |
+| `guides/dombot-edge-routing.md` | `guides-dombot-edge-routing` |
+| `guides/openclaw-transcribe-channels.md` | `guides-openclaw-transcribe-channels` |
+| `roadmap/v1.md` | `roadmap-v1` |
+| `specs/2026-03-27-dombot-migration-design.md` | `specs-2026-03-27-dombot-migration-design` |
+| `adr/README.md` | `adr-README` |
+| `adr/0001-docker-as-default-mode.md` | `adr-0001-docker-as-default-mode` |
+| `adr/0002-instance-scoped-memory.md` | `adr-0002-instance-scoped-memory` |
+| `adr/0003-dombot-migration.md` | `adr-0003-dombot-migration` |
+| `adr/0004-production-deployment-pitfalls.md` | `adr-0004-production-deployment-pitfalls` |
+| `superpowers/plans/2026-03-21-clawvis-refactor.md` | `superpowers-plans-2026-03-21-clawvis-refactor` |
+| `superpowers/plans/2026-03-23-oneliner-install.md` | `superpowers-plans-2026-03-23-oneliner-install` |
+
+Liens wiki (syntaxe GitHub) : `[[guides-deploy-hostinger]]`, etc.
 
 ---
 
