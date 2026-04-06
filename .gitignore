@@ -68,10 +68,6 @@ instances/*
 # Keep template/test instances tracked.
 !instances/example/
 !instances/example/**
-# Dombot: versioned nginx + scripts only (runtime logs/generated conf stay local).
-!instances/dombot/
-!instances/dombot/**
-instances/dombot/logs/
 
 ########################
 # Private projects
