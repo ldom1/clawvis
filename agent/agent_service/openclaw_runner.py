@@ -22,6 +22,8 @@ def _openclaw_bin() -> str | None:
 
 
 def openclaw_available() -> bool:
+    if (os.environ.get("OPENCLAW_BASE_URL") or "").strip():
+        return True
     return (
         os.environ.get("OPENCLAW_AVAILABLE", "").lower() == "true"
         and bool(_openclaw_bin())

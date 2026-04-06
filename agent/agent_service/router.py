@@ -18,10 +18,42 @@ from .openclaw_runner import (
     run_agent_session,
 )
 from .persona import load_persona
-from .provider import load_provider_config
+from .provider import ProviderConfig, load_provider_config
 from .streaming import stream_anthropic, stream_openai_compat
 
 router = APIRouter()
+
+
+def _normalize_provider_str(v: str) -> str:
+    s = (v or "").strip().lower()
+    if not s:
+        return "anthropic"
+    if s in ("anthropic", "claude"):
+        return "anthropic"
+    if s in ("mammouth", "mistral", "mammoth"):
+        return "mammouth"
+    if s in ("openclaw",):
+        return "openclaw"
+    return s
+
+
+def effective_provider(conf: dict, cfg: ProviderConfig) -> str:
+    if cfg.primary_from_env:
+        return cfg.provider
+    pp = conf.get("preferred_provider")
+    if pp:
+        return _normalize_provider_str(str(pp))
+    return cfg.provider
+
+
+def runtime_ready(cfg: ProviderConfig, eff: str) -> bool:
+    if eff == "anthropic":
+        return bool(cfg.anthropic_token)
+    if eff == "mammouth":
+        return bool(cfg.mammouth_token)
+    if eff == "openclaw":
+        return cfg.openclaw_available
+    return False
 
 
 class ChatRequest(BaseModel):
@@ -33,8 +65,10 @@ class ChatRequest(BaseModel):
 def status():
     cfg = load_provider_config()
     conf = load_config()
+    eff = effective_provider(conf, cfg)
     return {
-        "provider": conf.get("preferred_provider") or cfg.provider,
+        "provider": eff,
+        "runtime_ready": runtime_ready(cfg, eff),
         "anthropic_configured": bool(cfg.anthropic_token),
         "mammouth_configured": bool(cfg.mammouth_token),
         "openclaw_available": cfg.openclaw_available,
@@ -45,11 +79,15 @@ def status():
 def get_config():
     cfg = load_provider_config()
     conf = load_config()
+    eff = effective_provider(conf, cfg)
     return {
         **conf,
         "anthropic_available": bool(cfg.anthropic_token),
         "mammouth_available": bool(cfg.mammouth_token),
         "openclaw_available": cfg.openclaw_available,
+        "effective_provider": eff,
+        "runtime_ready": runtime_ready(cfg, eff),
+        "primary_from_env": cfg.primary_from_env,
     }
 
 
@@ -76,17 +114,13 @@ async def chat(req: ChatRequest):
     conf = load_config()
     system = load_persona(cfg.openclaw_state_dir)
 
-    preferred = conf.get("preferred_provider")
+    preferred = effective_provider(conf, cfg)
     anthropic_model = conf.get("anthropic_model", "claude-haiku-4-5")
     mammouth_model = conf.get("mammouth_model", "mistral-small-3.2-24b-instruct")
 
     use_openclaw = preferred == "openclaw" and openclaw_available()
-    use_anthropic = not use_openclaw and (
-        (preferred == "anthropic" and bool(cfg.anthropic_token))
-        or (preferred is None and bool(cfg.anthropic_token))
-        or (preferred == "mammouth" and not cfg.mammouth_token and bool(cfg.anthropic_token))
-    )
-    use_mammouth = not use_openclaw and not use_anthropic and bool(cfg.mammouth_token)
+    use_anthropic = preferred == "anthropic" and bool(cfg.anthropic_token)
+    use_mammouth = preferred == "mammouth" and bool(cfg.mammouth_token)
 
     async def generate():
         try:
