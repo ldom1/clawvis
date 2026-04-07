@@ -1941,6 +1941,19 @@ async function wireProjectPage() {
   const launchBtn = document.getElementById("project-launch-btn");
   if (launchBtn) {
     launchBtn.href = `/apps/${encodeURIComponent(slug)}/`;
+    const devMode = Boolean(import.meta?.env?.DEV);
+    const devAppsOrigin = (
+      import.meta?.env?.VITE_HUB_APPS_ORIGIN ||
+      import.meta?.env?.HUB_APPS_ORIGIN ||
+      ""
+    ).trim();
+    if (devMode && !devAppsOrigin) {
+      launchBtn.hidden = true;
+      launchBtn.title = fr
+        ? "Apps hébergées indisponibles en mode dev sans HUB_APPS_ORIGIN."
+        : "Hosted apps unavailable in dev mode without HUB_APPS_ORIGIN.";
+      return;
+    }
     try {
       const serveCheck = await fetch(`/apps/${encodeURIComponent(slug)}/`, {
         method: "HEAD",

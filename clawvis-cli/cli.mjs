@@ -299,6 +299,13 @@ async function runDoctor() {
 }
 
 async function runInstallInteractive() {
+  if (!process.stdin.isTTY) {
+    console.error(
+      "Non-interactive stdin detected; retry with flags or use --non-interactive defaults.",
+    );
+    runLegacy(["install", "--non-interactive", "--skip-primary"]);
+    return;
+  }
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
     const I18N = {

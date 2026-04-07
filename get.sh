@@ -30,4 +30,19 @@ else
   fi
 fi
 
-exec bash "${INSTALL_DIR}/install.sh" "$@"
+INSTALL_ARGS=("$@")
+if [ ! -t 0 ]; then
+  has_non_interactive=0
+  for arg in "${INSTALL_ARGS[@]}"; do
+    if [ "${arg}" = "--non-interactive" ]; then
+      has_non_interactive=1
+      break
+    fi
+  done
+  if [ "${has_non_interactive}" -eq 0 ]; then
+    echo "==> Non-interactive stdin detected; using default non-interactive install flags"
+    INSTALL_ARGS+=(--non-interactive --skip-primary)
+  fi
+fi
+
+exec bash "${INSTALL_DIR}/install.sh" "${INSTALL_ARGS[@]}"

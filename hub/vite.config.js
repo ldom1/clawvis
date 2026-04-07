@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
   const kanbanPort = Number(env.KANBAN_API_PORT || 8090);
   const memoryPort = Number(env.HUB_MEMORY_API_PORT || 8091);
   const agentPort = Number(env.AGENT_PORT || 8092);
+  const appsOrigin = (env.HUB_APPS_ORIGIN || "").trim();
 
   return {
     server: {
@@ -40,6 +41,14 @@ export default defineConfig(({ mode }) => {
           target: `http://127.0.0.1:${memoryPort}`,
           rewrite: (p) => p.replace(/^\/api\/hub\/memory/, ""),
         },
+        ...(appsOrigin
+          ? {
+              "/apps": {
+                target: appsOrigin,
+                changeOrigin: true,
+              },
+            }
+          : {}),
       },
     },
     preview: {

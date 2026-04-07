@@ -44,7 +44,9 @@ services:
     environment:
       - CLAWVIS_ROOT=/clawvis
       - UV_CACHE_DIR=/tmp/uv-cache
+      - HOME=/home/${USER}
       - MEMORY_ROOT=${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}
+      - DOMBOT_LOG_JSONL=${DOMBOT_LOG_JSONL:-/home/${USER}/.openclaw/logs/dombot.jsonl}
       # OpenClaw: set OPENCLAW_BASE_URL to reach your OpenClaw instance.
       # Same-host deployment (OpenClaw on the VPS alongside Clawvis):
       #   OPENCLAW_BASE_URL=http://host.docker.internal:3333

@@ -1344,10 +1344,19 @@ def list_projects() -> dict:
     root = Path(settings["projects_root"]).expanduser()
     if root.exists():
         for entry in sorted(root.iterdir()):
-            if entry.is_dir():
-                meta = _load_project_metadata(entry)
-                items.append(meta)
-                seen_slugs.add(meta.get("slug") or entry.name)
+            if not entry.is_dir():
+                continue
+            if entry.name == "archived":
+                continue
+            slug = entry.name
+            has_metadata = (entry / HUB_METADATA_FILE).is_file()
+            has_memory = _memory_file_for(slug).is_file()
+            has_clawvis_marker = (entry / ".clawvis").is_dir()
+            if not (has_metadata or has_memory or has_clawvis_marker):
+                continue
+            meta = _load_project_metadata(entry)
+            items.append(meta)
+            seen_slugs.add(meta.get("slug") or slug)
     projects_dir = active_brain_memory_root(settings) / "projects"
     if projects_dir.is_dir():
         for md in sorted(projects_dir.glob("*.md")):

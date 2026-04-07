@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from collections import Counter
 from pathlib import Path
 
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
-LOG_JSONL = Path.home() / ".openclaw" / "logs" / "dombot.jsonl"
+def _log_jsonl_path() -> Path:
+    override = os.environ.get("DOMBOT_LOG_JSONL", "").strip()
+    if override:
+        return Path(override).expanduser()
+    return Path.home() / ".openclaw" / "logs" / "dombot.jsonl"
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
@@ -23,10 +28,11 @@ def _read_entries(
     limit: int = 200,
     offset: int = 0,
 ) -> list[dict]:
-    if not LOG_JSONL.exists():
+    log_jsonl = _log_jsonl_path()
+    if not log_jsonl.exists():
         return []
     entries: list[dict] = []
-    for line in LOG_JSONL.read_text(encoding="utf-8").strip().split("\n"):
+    for line in log_jsonl.read_text(encoding="utf-8").strip().split("\n"):
         if not line.strip():
             continue
         try:
@@ -66,14 +72,15 @@ def get_logs(
         )
     except Exception:
         entries = []
-    return {"logs": entries, "count": len(entries)}
+    return {"logs": entries, "count": len(entries), "source_path": str(_log_jsonl_path())}
 
 
 @router.get("/summary")
 def get_logs_summary():
-    if not LOG_JSONL.exists():
+    log_jsonl = _log_jsonl_path()
+    if not log_jsonl.exists():
         return {"total": 0, "by_level": {}, "by_process": {}, "recent_errors": []}
-    lines = LOG_JSONL.read_text(encoding="utf-8").strip().split("\n")
+    lines = log_jsonl.read_text(encoding="utf-8").strip().split("\n")
     levels: Counter = Counter()
     processes: Counter = Counter()
     errors: list[dict] = []
@@ -99,17 +106,19 @@ def get_logs_summary():
 @router.get("/stream")
 async def stream_logs():
     async def event_generator():
-        if not LOG_JSONL.exists():
+        log_jsonl = _log_jsonl_path()
+        if not log_jsonl.exists():
             return
-        last_pos = LOG_JSONL.stat().st_size
+        last_pos = log_jsonl.stat().st_size
         while True:
             await asyncio.sleep(2)
-            if not LOG_JSONL.exists():
+            log_jsonl = _log_jsonl_path()
+            if not log_jsonl.exists():
                 continue
-            size = LOG_JSONL.stat().st_size
+            size = log_jsonl.stat().st_size
             if size <= last_pos:
                 continue
-            with open(LOG_JSONL, "r", encoding="utf-8") as f:
+            with open(log_jsonl, "r", encoding="utf-8") as f:
                 f.seek(last_pos)
                 new_data = f.read()
                 last_pos = f.tell()
