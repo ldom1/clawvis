@@ -1753,11 +1753,7 @@ async function loadProjects() {
       tmpl && tmpl !== "empty"
         ? `<span class="card-project-type-chip">${escapeHtml(tmpl)}</span>`
         : "";
-    const statusRaw = (
-      project.brain_status ||
-      project.stage ||
-      "PoC"
-    ).trim();
+    const statusRaw = (project.brain_status || project.stage || "PoC").trim();
     const stLower = statusRaw.toLowerCase();
     const isArchived = /archiv/i.test(statusRaw);
     const isActive =
@@ -1839,8 +1835,7 @@ async function loadProjects() {
         `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/archive`,
         { method: "POST" },
       );
-      if (!res.ok)
-        return alert(fr ? "Échec archivage" : "Archive failed");
+      if (!res.ok) return alert(fr ? "Échec archivage" : "Archive failed");
       window.location.href = "/";
     });
     btnDel.addEventListener("click", async (e) => {
@@ -1860,8 +1855,7 @@ async function loadProjects() {
         `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}`,
         { method: "DELETE" },
       );
-      if (!res.ok)
-        return alert(fr ? "Échec suppression" : "Delete failed");
+      if (!res.ok) return alert(fr ? "Échec suppression" : "Delete failed");
       window.location.href = "/";
     });
 
@@ -3649,11 +3643,13 @@ async function wireMemoryEditor() {
     quartzFrame.src = staticUrl;
   }
 
-  document.getElementById("brain-frame-retry")?.addEventListener("click", async () => {
-    clearBrainFrameError();
-    if (lastQuartzFilename) await loadQuartzPage(lastQuartzFilename);
-    else await loadQuartzList();
-  });
+  document
+    .getElementById("brain-frame-retry")
+    ?.addEventListener("click", async () => {
+      clearBrainFrameError();
+      if (lastQuartzFilename) await loadQuartzPage(lastQuartzFilename);
+      else await loadQuartzList();
+    });
 
   quartzRefresh.addEventListener("click", async () => {
     if (quartzRebuildLoading) quartzRebuildLoading.hidden = false;
