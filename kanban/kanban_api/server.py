@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api import router
 from .logs_api import router as logs_router
+from .setup_api import router as setup_router
+from .skills_api import router as skills_router
 from .sse import router as sse_router
 
 app = FastAPI(title="Kanban & Logs API")
@@ -13,4 +15,6 @@ app.add_middleware(
 )
 app.include_router(router)
 app.include_router(logs_router)
+app.include_router(skills_router)
+app.include_router(setup_router, prefix="/setup")
 app.include_router(sse_router)

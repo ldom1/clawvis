@@ -21,10 +21,11 @@ export NETWORK_ALLOWLIST="api.mammouth.ai,api.anthropic.com,localhost"
 
 # Log start
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh START — AGENT_ID=$AGENT_ID AGENT_ROLE=$AGENT_ROLE" >> "$LOG_FILE"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] hub-refresh START" >> /tmp/hub-refresh.log
 
-# Run hub_core and capture exit code
+# Run hub_core and capture exit code (hard cap to avoid hangs)
 cd "$HUB_CORE_DIR"
-if uv run python -m hub_core.main "$@" >> "$LOG_FILE" 2>&1; then
+if timeout 300 uv run python -m hub_core.main "$@" >> "$LOG_FILE" 2>&1; then
   EXIT_CODE=0
   STATUS="SUCCESS"
 else
@@ -34,6 +35,7 @@ fi
 
 # Log completion
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh END — STATUS=$STATUS EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] hub-refresh done exit=$EXIT_CODE" >> /tmp/hub-refresh.log
 
 # Send to dombot-logger
 uv run --directory "$HOME/Lab/clawvis/skills/logger/core" dombot-log "INFO" "cron:hub-refresh" "system" "cron:complete" "Hub Refresh executed ($STATUS)" "{\"exit_code\": $EXIT_CODE, \"log_file\": \"$LOG_FILE\"}" || true

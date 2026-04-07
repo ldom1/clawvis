@@ -39,7 +39,7 @@ Tests automatically **skip** when the Hub is not reachable — they never fail s
 **User story:** A brand-new user lands on the Hub home page and completes the AI runtime setup wizard for the first time.
 
 **Tests:**
-- `home, setup runtime wizard through failed connection test` — Verifies the home page loads with the AI runtime "Not configured" banner, navigates to `/setup/runtime/`, walks through the 4-step wizard (provider selection → API key entry → connection test), and confirms the test result is shown. Accepts both success and expected failure when no real API key is provided.
+- `home, setup runtime wizard through sync steps` — Verifies the home page loads with the AI runtime "Not configured" banner, navigates to `/setup/runtime/`, walks the 4-step wizard (provider → sync skills → sync memory → recap) with mocked setup APIs, and returns to the hub.
 - `AI runtime badge in French` (FR locale) — Verifies the runtime status badge renders correctly in French.
 
 ---

@@ -4,7 +4,7 @@
 >
 > | Besoin | Fichier |
 > |--------|---------|
-> | Vision produit | [`GOAL.md`](GOAL.md) |
+> | Vision produit | [`docs/GOAL.md`](docs/GOAL.md) |
 > | Architecture | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 > | Bugs / dettes | [`docs/PITFALLS.md`](docs/PITFALLS.md) |
 > | Modèle de données | [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) |

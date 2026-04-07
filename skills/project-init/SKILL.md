@@ -31,7 +31,7 @@ Le script appelle `POST /hub/projects` (serveur Kanban Clawvis). Le slug est **d
 
 ## Liens
 
-- Kanban : `GOAL.md` scénario « Initialisation »
+- Kanban : `docs/GOAL.md` scénario « Initialisation »
 - API : `kanban_api` — `ProjectCreate` (`description`, `name`, `stage`, `template`, …)
 =======
 Creates a complete project from a single voice note or text idea.

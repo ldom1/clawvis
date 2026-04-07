@@ -1,95 +1,95 @@
-# Déploiement Clawvis sur Hostinger VPS
+# Deploying Clawvis on Hostinger VPS
 
-> Pour les non-techniques. Aucune ligne de commande requise après la première connexion.
-
----
-
-## Prérequis
-
-- Un VPS Hostinger avec **Docker** pré-installé (template "Docker" dans hPanel)
-- OpenClaw déjà déployé sur le même VPS (ou accessible via URL externe)
-- Le dépôt Clawvis est **public** sur GitHub
+> For non-technical users. No command line required after the first connection.
 
 ---
 
-## Méthode recommandée — Docker Manager dans hPanel
+## Prerequisites
 
-Hostinger fournit un **Docker Manager visuel** dans hPanel. Pas de terminal requis.
+- A Hostinger VPS with **Docker** pre-installed ("Docker" template in hPanel)
+- OpenClaw already deployed on the same VPS (or reachable via external URL)
+- The Clawvis repo is **public** on GitHub
 
-### Étape 1 — Accéder au Docker Manager
+---
 
-1. Connectez-vous à [hPanel](https://hpanel.hostinger.com)
-2. Sélectionnez votre VPS → **Docker**
-3. Cliquez **New project**
-4. Choisissez **Compose from URL**
+## Recommended method — Docker Manager in hPanel
 
-### Étape 2 — Pointer sur le docker-compose Clawvis
+Hostinger provides a visual **Docker Manager** in hPanel. No terminal required.
 
-Dans le champ URL, collez :
+### Step 1 — Open Docker Manager
+
+1. Log in to [hPanel](https://hpanel.hostinger.com)
+2. Select your VPS → **Docker**
+3. Click **New project**
+4. Choose **Compose from URL**
+
+### Step 2 — Point to Clawvis docker-compose
+
+In the URL field, paste:
 
 ```
 https://raw.githubusercontent.com/YOUR_USERNAME/clawvis/main/docker-compose.yml
 ```
 
-> Remplacez `YOUR_USERNAME` par votre nom d'utilisateur GitHub.
+> Replace `YOUR_USERNAME` with your GitHub username.
 
-### Étape 3 — Configurer les variables d'environnement
+### Step 3 — Configure environment variables
 
-Dans l'interface Docker Manager, ajoutez ces variables :
+In Docker Manager, add:
 
-| Variable | Valeur | Description |
+| Variable | Value | Description |
 |----------|--------|-------------|
-| `INSTANCE_NAME` | `mon-instance` | Nom de votre instance (sans espaces) |
-| `OPENCLAW_BASE_URL` | `http://host.docker.internal:3333` | URL d'OpenClaw sur le même VPS |
-| `OPENCLAW_API_KEY` | _(votre clé)_ | Clé API OpenClaw (si configurée) |
-| `PRIMARY_AI_PROVIDER` | `openclaw` | Active OpenClaw comme provider |
-| `HOST_UID` | `1000` | UID de l'utilisateur VPS |
-| `HOST_GID` | `1000` | GID de l'utilisateur VPS |
+| `INSTANCE_NAME` | `my-instance` | Your instance name (no spaces) |
+| `OPENCLAW_BASE_URL` | `http://host.docker.internal:3333` | OpenClaw URL on the same VPS |
+| `OPENCLAW_API_KEY` | _(your key)_ | OpenClaw API key (if configured) |
+| `PRIMARY_AI_PROVIDER` | `openclaw` | Use OpenClaw as provider |
+| `HOST_UID` | `1000` | VPS user UID |
+| `HOST_GID` | `1000` | VPS user GID |
 
-> **OpenClaw sur le même VPS :** utilisez `http://host.docker.internal:3333`.
-> Ce nom est résolu automatiquement par Docker vers la machine hôte.
+> **OpenClaw on the same VPS:** use `http://host.docker.internal:3333`.
+> Docker resolves this automatically to the host.
 >
-> **OpenClaw sur un autre serveur :** utilisez l'URL complète, ex. `https://openclaw.mondomaine.com`.
+> **OpenClaw on another server:** use the full URL, e.g. `https://openclaw.mydomain.com`.
 
-### Étape 4 — Démarrer le projet
+### Step 4 — Start the project
 
-Cliquez **Deploy**. Le Docker Manager télécharge les images et démarre les conteneurs.
+Click **Deploy**. Docker Manager pulls images and starts containers.
 
-Accédez au Hub via : `http://<IP-de-votre-VPS>:8088`
+Open the Hub at: `http://<YOUR-VPS-IP>:8088`
 
 ---
 
-## Méthode avancée — GitHub Actions (déploiement automatique)
+## Advanced method — GitHub Actions (automatic deployment)
 
-Pour que chaque `git push` déclenche un redéploiement automatique.
+So every `git push` triggers a redeploy.
 
-### Prérequis supplémentaires
+### Extra prerequisites
 
-- Un compte Hostinger avec accès API
-- Votre **VM ID** Hostinger (visible dans hPanel → VPS → API)
-- Votre **clé API Hostinger** (hPanel → Profile → API Keys)
+- Hostinger account with API access
+- Your Hostinger **VM ID** (hPanel → VPS → API)
+- Your **Hostinger API key** (hPanel → Profile → API Keys)
 
 ### Configuration
 
-Ajoutez ces secrets dans votre dépôt GitHub (**Settings → Secrets → Actions**) :
+Add these secrets in your GitHub repo (**Settings → Secrets → Actions**):
 
-| Secret | Valeur |
+| Secret | Value |
 |--------|--------|
-| `HOSTINGER_API_KEY` | Votre clé API Hostinger |
-| `HOSTINGER_VM_ID` | L'ID de votre VPS |
+| `HOSTINGER_API_KEY` | Your Hostinger API key |
+| `HOSTINGER_VM_ID` | Your VPS ID |
 
-Le workflow `.github/workflows/deploy-hostinger.yml` est déjà inclus dans Clawvis. Il se déclenche automatiquement sur chaque push vers `main`.
+The `.github/workflows/deploy-hostinger.yml` workflow is included in Clawvis. It runs on each push to `main`.
 
 ---
 
-## Architecture sur le VPS
+## Architecture on the VPS
 
 ```
 Internet
     │
     ▼
 [VPS Hostinger]
-    ├── Port 8088 (ou 80 avec reverse proxy)
+    ├── Port 8088 (or 80 with reverse proxy)
     │       └── Hub nginx ─────────────────────────────┐
     │              ├── /api/hub/kanban/*  → kanban-api  │
     │              ├── /api/hub/memory/*  → memory-api  │
@@ -99,32 +99,32 @@ Internet
     │                                      OpenClaw     │
     │                                    (port 3333)    │
     │                                                   │
-    └── Port 3333 — OpenClaw (interne, non exposé)  ◄──┘
+    └── Port 3333 — OpenClaw (internal, not exposed)  ◄──┘
 ```
 
-Le port OpenClaw **n'est pas exposé** à l'extérieur — seul le Hub (port 8088/80) est accessible.
+The OpenClaw port is **not** exposed externally — only the Hub (8088/80) is reachable.
 
 ---
 
-## Ajouter un nom de domaine
+## Add a domain name
 
-Pour accéder à `https://clawvis.mondomaine.com` au lieu d'une IP :
+To use `https://clawvis.mydomain.com` instead of an IP:
 
-1. Dans hPanel → **Domaines** → pointez un sous-domaine vers l'IP du VPS
-2. Installez nginx en reverse proxy sur le VPS :
+1. In hPanel → **Domains** → point a subdomain to the VPS IP
+2. Install nginx as reverse proxy on the VPS:
 
 ```bash
-# Connexion SSH au VPS
-ssh root@<IP-VPS>
+# SSH to VPS
+ssh root@<VPS-IP>
 
-# Installer nginx
+# Install nginx
 apt install nginx -y
 
-# Créer la config (remplacez clawvis.mondomaine.com)
+# Create config (replace clawvis.mydomain.com)
 cat > /etc/nginx/sites-available/clawvis <<'CONF'
 server {
     listen 80;
-    server_name clawvis.mondomaine.com;
+    server_name clawvis.mydomain.com;
     location / {
         proxy_pass http://127.0.0.1:8088;
         proxy_set_header Host $host;
@@ -138,44 +138,44 @@ nginx -t && systemctl reload nginx
 
 # SSL (Let's Encrypt)
 apt install certbot python3-certbot-nginx -y
-certbot --nginx -d clawvis.mondomaine.com
+certbot --nginx -d clawvis.mydomain.com
 ```
 
 ---
 
-## Vérification du déploiement
+## Verify deployment
 
-Après démarrage, vérifiez que tout fonctionne :
+After startup, verify:
 
 ```bash
-# Depuis votre machine locale (remplacez l'IP)
-curl http://<IP-VPS>:8088/api/hub/chat/status
-# Attendu: {"provider":"openclaw","openclaw_configured":true,...}
+# From your machine (replace IP)
+curl http://<VPS-IP>:8088/api/hub/chat/status
+# Expected: {"provider":"openclaw","openclaw_configured":true,...}
 
-curl http://<IP-VPS>:8088/api/hub/kanban/hub/projects
-# Attendu: {"projects":[...]}
+curl http://<VPS-IP>:8088/api/hub/kanban/hub/projects
+# Expected: {"projects":[...]}
 
-curl http://<IP-VPS>:8088/api/hub/memory/settings
-# Attendu: {"projects_root":...}
+curl http://<VPS-IP>:8088/api/hub/memory/settings
+# Expected: {"projects_root":...}
 ```
 
 ---
 
-## Mise à jour
+## Upgrade
 
-Pour mettre à jour Clawvis vers une nouvelle version :
+To upgrade Clawvis to a new version:
 
-**Via Docker Manager :** Ouvrez le projet → **Update** → le manager repull et redémarre.
+**Docker Manager:** Open project → **Update** → manager pulls and restarts.
 
-**Via GitHub Actions :** faites un push sur `main` — le redéploiement est automatique.
+**GitHub Actions:** push to `main` — redeploy is automatic.
 
 ---
 
-## Dépannage
+## Troubleshooting
 
-| Symptôme | Cause probable | Solution |
-|----------|----------------|----------|
-| Chat ne répond pas | OpenClaw injoignable | Vérifier `OPENCLAW_BASE_URL`, tester `curl http://host.docker.internal:3333/v1/models` depuis le conteneur |
-| Kanban vide | `INSTANCE_NAME` pas défini | Vérifier la variable dans hPanel Docker Manager |
-| Brain ne charge pas | Quartz non buildé | `docker exec <hub-memory-api> bash scripts/build-quartz.sh` |
-| Port 8088 inaccessible | Pare-feu VPS | hPanel → VPS → Firewall → autoriser port 8088 |
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| Chat does not respond | OpenClaw unreachable | Check `OPENCLAW_BASE_URL`, test `curl http://host.docker.internal:3333/v1/models` from container |
+| Kanban empty | `INSTANCE_NAME` not set | Check variable in hPanel Docker Manager |
+| Brain does not load | Quartz not built | `docker exec <hub-memory-api> bash scripts/build-quartz.sh` |
+| Port 8088 unreachable | VPS firewall | hPanel → VPS → Firewall → allow port 8088 |

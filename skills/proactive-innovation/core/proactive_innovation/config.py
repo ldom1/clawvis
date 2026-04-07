@@ -60,7 +60,7 @@ def load_openrouter_key() -> str | None:
 
 
 def load_openrouter_model() -> str:
-    return _s(os.getenv("OPENROUTER_MODEL")) or "qwen/qwen3-plus:free"
+    return _s(os.getenv("OPENROUTER_MODEL")) or "google/gemini-2.5-flash-lite"
 
 
 OPENROUTER_API_KEY = load_openrouter_key()

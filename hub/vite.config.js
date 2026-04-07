@@ -32,6 +32,10 @@ export default defineConfig(({ mode }) => {
           target: `http://127.0.0.1:${kanbanPort}`,
           rewrite: (p) => p.replace(/^\/api\/hub\/kanban/, ""),
         },
+        "/api/hub/setup": {
+          target: `http://127.0.0.1:${kanbanPort}`,
+          rewrite: (p) => p.replace(/^\/api\/hub\/setup/, "/setup"),
+        },
         "/api/hub/memory": {
           target: `http://127.0.0.1:${memoryPort}`,
           rewrite: (p) => p.replace(/^\/api\/hub\/memory/, ""),

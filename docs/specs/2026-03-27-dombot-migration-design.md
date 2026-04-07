@@ -1,75 +1,75 @@
-# Design Spec — Phase 1.5 : Migration Dombot (Clawpilot → Clawvis)
+# Design spec — Phase 1.5: Dombot migration (Clawpilot → Clawvis)
 
-**Date :** 2026-03-27
-**Statut :** Approuvé — en attente d'implémentation
-**Scope :** Déploiement production Clawvis sur Dombot server, remplacement de hub-ldom
+**Date:** 2026-03-27  
+**Status:** Approved — pending implementation  
+**Scope:** Production Clawvis deployment on Dombot server, replacing hub-ldom
 
 ---
 
-## Contexte
+## Context
 
-Dombot est un serveur domestique personnel qui fait tourner une instance "Clawpilot" (hub-ldom) — l'ancienne architecture qui a précédé Clawvis. OpenClaw est installé sur ce serveur (`~/.openclaw/`) avec ses propres skills et une mémoire partagée via symlink.
+Dombot is a personal home server running a "Clawpilot" instance (hub-ldom) — the architecture that preceded Clawvis. OpenClaw is installed on this server (`~/.openclaw/`) with its own skills and shared memory via symlink.
 
-L'objectif est de migrer vers Clawvis proprement, en validant le flow d'install et de déploiement production en conditions réelles.
+The goal is to migrate cleanly to Clawvis, validating install and production deployment under real conditions.
 
-### Architecture actuelle (avant migration)
+### Current architecture (before migration)
 
 ```
-~/Lab/hub-ldom/                  ← instance privée (dombot-lab-hub git repo)
+~/Lab/hub-ldom/                  ← private instance (dombot-lab-hub git repo)
   instances/ldom/
     nginx/                        ← nginx config (dombot.tech + lab.dombot.tech)
-    authelia/                     ← SSO derrière lab.dombot.tech
-    memory/                       ← vault mémoire ldom
-    skills/                       ← 4 skills privés
+    authelia/                     ← SSO behind lab.dombot.tech
+    memory/                       ← ldom memory vault
+    skills/                       ← 4 private skills
     public/, scripts/, src/...
 
-~/Lab/clawvis/                   ← core clawvis (public), NON actif
-  instances/example/              ← template seulement
+~/Lab/clawvis/                   ← clawvis core (public), NOT active
+  instances/example/              ← template only
 
 ~/.openclaw/
   workspace/
-    memory → hub-ldom/instances/ldom/memory/   ← symlink
-  skills/                         ← 16 skills (mélange public/privé, vrais dossiers)
+    memory -> hub-ldom/instances/ldom/memory/   ← symlink
+  skills/                         ← 16 skills (mixed public/private, real dirs)
 ```
 
-**Réseau :**
+**Network:**
 ```
 Internet → VPS OVH nginx (lab.dombot.tech) → Tailscale 100.64.162.103:8088
-→ Dombot nginx (hub-ldom nginx) → services derrière Authelia
+→ Dombot nginx (hub-ldom nginx) → services behind Authelia
 ```
 
-Aucun conteneur Clawvis Hub, kanban-api ou memory-api ne tourne actuellement.
+No Clawvis Hub, kanban-api, or memory-api containers are running yet.
 
 ---
 
-## Philosophie cible
+## Target philosophy
 
-> **Clawvis = tour de contrôle d'OpenClaw.**
-> Les skills et la mémoire ont une source de vérité unique dans Clawvis.
-> OpenClaw pointe vers Clawvis, pas l'inverse.
+> **Clawvis = OpenClaw control tower.**  
+> Skills and memory have a single source of truth in Clawvis.  
+> OpenClaw points to Clawvis, not the reverse.
 
 ---
 
-## Architecture cible
+## Target architecture
 
-### Arborescence
+### Layout
 
 ```
 ~/Lab/clawvis/
-  skills/                             ← skills PUBLICS (core Clawvis, upstream)
+  skills/                             ← PUBLIC skills (core Clawvis, upstream)
     logger/
     kanban-implementer/
     git-sync/
     skill-tester/
     ...
   instances/
-    ldom/                             ← créé par clawvis install, git = dombot-lab-hub
-      docker-compose.override.yml     ← override production réel
+    ldom/                             ← created by clawvis install, git = dombot-lab-hub
+      docker-compose.override.yml     ← real production override
       .env.local                      (gitignored — secrets)
-      memory/                         ← vault ldom (source de vérité unique)
-      nginx/nginx.conf                ← config nginx migrée de hub-ldom
-      authelia/                       ← config authelia migrée
-      skills/                         ← skills PRIVÉS ldom
+      memory/                         ← ldom vault (single source of truth)
+      nginx/nginx.conf                ← nginx config migrated from hub-ldom
+      authelia/                       ← authelia config migrated
+      skills/                         ← PRIVATE ldom skills
         brain-pulse/
         dombot-mail/
         hub-refresh/
@@ -77,138 +77,138 @@ Aucun conteneur Clawvis Hub, kanban-api ou memory-api ne tourne actuellement.
       public/
       scripts/
 
-~/Lab/hub-ldom/                      ← DÉPRÉCIÉ, archivé après migration
+~/Lab/hub-ldom/                      ← DEPRECATED, archived after migration
 
 ~/.openclaw/
   workspace/
-    memory → ~/Lab/clawvis/instances/ldom/memory/  ← symlink mis à jour
+    memory -> ~/Lab/clawvis/instances/ldom/memory/  ← updated symlink
   skills/
-    # Skills publics → symlinks vers clawvis/skills/
-    logger        → ~/Lab/clawvis/skills/logger/
-    kanban-*      → ~/Lab/clawvis/skills/kanban-*/
-    git-sync      → ~/Lab/clawvis/skills/git-sync/
-    skill-tester  → ~/Lab/clawvis/skills/skill-tester/
-    brain-maintenance → ~/Lab/clawvis/skills/brain-maintenance/
-    knowledge-consolidator → ~/Lab/clawvis/skills/knowledge-consolidator/
-    morning-briefing → ~/Lab/clawvis/skills/morning-briefing/
-    proactive-innovation → ~/Lab/clawvis/skills/proactive-innovation/
-    qmd           → ~/Lab/clawvis/skills/qmd/
-    reverse-prompt → ~/Lab/clawvis/skills/reverse-prompt/
-    ruflo         → ~/Lab/clawvis/skills/ruflo/
-    self-improvement → ~/Lab/clawvis/skills/self-improvement/
-    # Skills privés → symlinks vers instances/ldom/skills/
-    brain-pulse   → ~/Lab/clawvis/instances/ldom/skills/brain-pulse/
-    dombot-mail   → ~/Lab/clawvis/instances/ldom/skills/dombot-mail/
-    hub-refresh   → ~/Lab/clawvis/instances/ldom/skills/hub-refresh/
-    system-restart → ~/Lab/clawvis/instances/ldom/skills/system-restart/
+    # Public skills → symlinks to clawvis/skills/
+    logger        -> ~/Lab/clawvis/skills/logger/
+    kanban-*      -> ~/Lab/clawvis/skills/kanban-*/
+    git-sync      -> ~/Lab/clawvis/skills/git-sync/
+    skill-tester  -> ~/Lab/clawvis/skills/skill-tester/
+    brain-maintenance -> ~/Lab/clawvis/skills/brain-maintenance/
+    knowledge-consolidator -> ~/Lab/clawvis/skills/knowledge-consolidator/
+    morning-briefing -> ~/Lab/clawvis/skills/morning-briefing/
+    proactive-innovation -> ~/Lab/clawvis/skills/proactive-innovation/
+    qmd           -> ~/Lab/clawvis/skills/qmd/
+    reverse-prompt -> ~/Lab/clawvis/skills/reverse-prompt/
+    ruflo         -> ~/Lab/clawvis/skills/ruflo/
+    self-improvement -> ~/Lab/clawvis/skills/self-improvement/
+    # Private skills → symlinks to instances/ldom/skills/
+    brain-pulse   -> ~/Lab/clawvis/instances/ldom/skills/brain-pulse/
+    dombot-mail   -> ~/Lab/clawvis/instances/ldom/skills/dombot-mail/
+    hub-refresh   -> ~/Lab/clawvis/instances/ldom/skills/hub-refresh/
+    system-restart -> ~/Lab/clawvis/instances/ldom/skills/system-restart/
 ```
 
-### Flux réseau cible
+### Target network flow
 
 ```
 Internet
-  → VPS OVH nginx (lab.dombot.tech, IP fixe)
-    → proxy_pass Tailscale 100.64.162.103:8088
-      → Dombot nginx (instances/ldom/nginx/)   [port 8088]
-          /              → Clawvis Hub SPA (conteneur hub)
-          /api/hub/*     → kanban-api + hub-memory-api
-          /memory/       → Obsidian remote (conservé)
-          /brain-pulse/  → service brain-pulse (conservé)
-          /authelia/     → Authelia (conservé)
-          /plume/, /real-estate/, /debate/, /poems/, /techspend/  (conservés)
+  -> VPS OVH nginx (lab.dombot.tech, fixed IP)
+    -> proxy_pass Tailscale 100.64.162.103:8088
+      -> Dombot nginx (instances/ldom/nginx/)   [port 8088]
+          /              -> Clawvis Hub SPA (hub container)
+          /api/hub/*     -> kanban-api + hub-memory-api
+          /memory/       -> Obsidian remote (kept)
+          /brain-pulse/  -> brain-pulse service (kept)
+          /authelia/     -> Authelia (kept)
+          /plume/, /real-estate/, /debate/, /poems/, /techspend/  (kept)
 ```
 
-### docker-compose production
+### Production docker-compose
 
 ```bash
-# Commande de déploiement production
+# Production deploy command
 docker compose \
   -f ~/Lab/clawvis/docker-compose.yml \
   -f ~/Lab/clawvis/instances/ldom/docker-compose.override.yml \
   up -d
 ```
 
-Le `docker-compose.override.yml` de ldom définit :
-- Ports réels (`HUB_PORT=8088`, `KANBAN_API_PORT=8090`, `HUB_MEMORY_API_PORT=8091`)
-- Volumes : nginx config, authelia, memory vault
-- Services additionnels : kanban-api, hub-memory-api, authelia, nginx
-- Réseaux : bridge nginx avec les services existants (brain-pulse, plume, etc.)
+The ldom `docker-compose.override.yml` defines:
+- Real ports (`HUB_PORT=8088`, `KANBAN_API_PORT=8090`, `HUB_MEMORY_API_PORT=8091`)
+- Volumes: nginx config, authelia, memory vault
+- Extra services: kanban-api, hub-memory-api, authelia, nginx
+- Networks: nginx bridge with existing services (brain-pulse, plume, etc.)
 
 ---
 
-## Auto-symlink des nouveaux skills
+## Auto-symlink for new skills
 
-### Principe
+### Principle
 
-Quand un nouveau skill est créé (dans `clawvis/skills/` ou `instances/ldom/skills/`), il doit être automatiquement disponible dans OpenClaw sans intervention manuelle.
+When a new skill is created (in `clawvis/skills/` or `instances/ldom/skills/`), it must be available in OpenClaw without manual steps.
 
-### Commande
+### Command
 
 ```bash
 clawvis skills sync
 ```
 
-Comportement :
-1. Scanne `~/Lab/clawvis/skills/*/` → crée symlinks publics dans `~/.openclaw/skills/`
-2. Scanne `~/Lab/clawvis/instances/ldom/skills/*/` → crée symlinks privés
-3. Si `~/.openclaw/skills/<name>` est un vrai dossier (ancienne install) → `WARN: manual dir found, skipping`
-4. Ne supprime jamais de symlinks existants (ajout seulement)
+Behavior:
+1. Scan `~/Lab/clawvis/skills/*/` → create public symlinks in `~/.openclaw/skills/`
+2. Scan `~/Lab/clawvis/instances/ldom/skills/*/` → create private symlinks
+3. If `~/.openclaw/skills/<name>` is a real directory (old install) → `WARN: manual dir found, skipping`
+4. Never remove existing symlinks (append only)
 
 ### Git hooks
 
-`.githooks/post-merge` dans `clawvis/` et dans `instances/ldom/` (dombot-lab-hub) :
+`.githooks/post-merge` in `clawvis/` and in `instances/ldom/` (dombot-lab-hub):
 ```bash
 #!/bin/bash
-# Auto-sync skills symlinks après git pull
+# Auto-sync skill symlinks after git pull
 clawvis skills sync
 ```
 
-Installation : `git config core.hooksPath .githooks` (déjà en place pour commit-msg).
+Setup: `git config core.hooksPath .githooks` (already in place for commit-msg).
 
 ---
 
-## Étapes de la phase 1.5
+## Phase 1.5 steps
 
-### 1.5.1 — Audit & snapshot de hub-ldom
+### 1.5.1 — Audit & snapshot of hub-ldom
 
-- Documenter tous les services actifs, ports, variables d'env (sans secrets)
-- Sauvegarder la config nginx générée
-- Inventaire des skills : lequel est dans hub-ldom vs ~/.openclaw uniquement
-- Livrable : `docs/adr/0003-dombot-migration.md`
+- Document all active services, ports, env vars (no secrets)
+- Save generated nginx config
+- Skills inventory: which is in hub-ldom vs ~/.openclaw only
+- Deliverable: `docs/adr/0003-dombot-migration.md`
 
-### 1.5.2 — `clawvis install` sur Dombot
+### 1.5.2 — `clawvis install` on Dombot
 
-- Lancer le wizard Clawvis avec `INSTANCE_NAME=ldom` sur le serveur
-- Valider que la structure `instances/ldom/` est créée correctement (test réel du flow)
-- Initialiser `instances/ldom/` comme repo git avec remote `dombot-lab-hub`
-- Premier commit : structure template standard
+- Run Clawvis wizard with `INSTANCE_NAME=ldom` on the server
+- Validate `instances/ldom/` structure (real flow test)
+- Initialize `instances/ldom/` as git repo with remote `dombot-lab-hub`
+- First commit: standard template structure
 
-### 1.5.3 — Migration hub-ldom → instances/ldom/
+### 1.5.3 — Migrate hub-ldom → instances/ldom/
 
-Contenu à migrer :
-- `nginx/nginx.conf` → adapter les proxy_pass pour pointer vers les conteneurs Clawvis
-- `authelia/` → copie directe
-- `memory/` → conserver en place (déjà à la bonne structure)
-- `skills/` (4 skills privés) → copier dans `instances/ldom/skills/`
-- `docker-compose.override.yml` → réécrire pour production réelle Clawvis
-- `.env.local` → migrer les variables (sans secrets trackés)
+Content to migrate:
+- `nginx/nginx.conf` → adjust `proxy_pass` to Clawvis containers
+- `authelia/` → direct copy
+- `memory/` → keep in place (already correct structure)
+- `skills/` (4 private skills) → copy into `instances/ldom/skills/`
+- `docker-compose.override.yml` → rewrite for real Clawvis production
+- `.env.local` → migrate variables (no tracked secrets)
 
-### 1.5.4 — Symlinks OpenClaw
+### 1.5.4 — OpenClaw symlinks
 
-Mettre à jour `~/.openclaw/workspace/memory` :
+Update `~/.openclaw/workspace/memory`:
 ```bash
 rm ~/.openclaw/workspace/memory
 ln -s ~/Lab/clawvis/instances/ldom/memory ~/.openclaw/workspace/memory
 ```
 
-Vider les anciens dossiers skills et créer les symlinks :
+Clear old skill dirs and create symlinks:
 ```bash
-clawvis skills sync  # premier run manuel
+clawvis skills sync  # first manual run
 ```
 
-Installer le git hook post-merge sur les deux repos.
+Install post-merge git hook on both repos.
 
-### 1.5.5 — Déploiement production
+### 1.5.5 — Production deployment
 
 ```bash
 cd ~/Lab/clawvis
@@ -218,40 +218,40 @@ docker compose \
   up -d
 ```
 
-Validation :
-- `curl http://localhost:8088/` → Hub SPA répond
-- `curl http://localhost:8090/api/kanban/projects` → kanban-api répond
-- `curl http://localhost:8091/api/hub/memory/tree` → memory-api répond
-- `lab.dombot.tech/` → Clawvis Hub accessible depuis le navigateur via VPS
+Validation:
+- `curl http://localhost:8088/` → Hub SPA responds
+- `curl http://localhost:8090/api/kanban/projects` → kanban-api responds
+- `curl http://localhost:8091/api/hub/memory/tree` → memory-api responds
+- `lab.dombot.tech/` → Clawvis Hub reachable from browser via VPS
 
-### 1.5.6 — Validation OpenClaw branché
+### 1.5.6 — OpenClaw wired validation
 
-- Hub Settings → AI Runtime → sélectionner OpenClaw, URL `http://localhost:3333`
+- Hub Settings → AI Runtime → select OpenClaw, URL `http://localhost:3333`
 - `GET /api/hub/chat/status` → `{"openclaw_configured": true}`
-- Envoyer un message depuis `/chat/` → réponse reçue
-- Vérifier que les skills OpenClaw sont bien chargés depuis les symlinks
+- Send message from `/chat/` → reply received
+- Verify OpenClaw skills load from symlinks
 
 ---
 
-## Critères de sortie
+## Exit criteria
 
-- [ ] `clawvis install` a créé `instances/ldom/` proprement (flow validé en conditions réelles)
-- [ ] `hub-ldom` est déprécié et archivé
-- [ ] `~/.openclaw/skills/*` = 100% symlinks (aucun vrai dossier)
+- [ ] `clawvis install` created `instances/ldom/` correctly (real-world flow validated)
+- [ ] `hub-ldom` is deprecated and archived
+- [ ] `~/.openclaw/skills/*` = 100% symlinks (no real directories)
 - [ ] `~/.openclaw/workspace/memory` → `clawvis/instances/ldom/memory/`
-- [ ] `clawvis skills sync` fonctionne et les nouveaux skills sont auto-symlinkés
-- [ ] `docker compose -f ... -f instances/ldom/docker-compose.override.yml up` déploie tout
-- [ ] `lab.dombot.tech/` affiche Clawvis Hub SPA
-- [ ] Authelia toujours fonctionnel sur `lab.dombot.tech`
-- [ ] Services existants (memory, brain-pulse, etc.) toujours accessibles
-- [ ] OpenClaw répond via Hub Chat
+- [ ] `clawvis skills sync` works and new skills auto-symlink
+- [ ] `docker compose -f ... -f instances/ldom/docker-compose.override.yml up` deploys everything
+- [ ] `lab.dombot.tech/` shows Clawvis Hub SPA
+- [ ] Authelia still works on `lab.dombot.tech`
+- [ ] Existing services (memory, brain-pulse, etc.) still reachable
+- [ ] OpenClaw responds via Hub Chat
 
 ---
 
-## Décisions d'architecture
+## Architecture decisions
 
-**ADR-0003 :** `instances/ldom/` dans `clawvis/` (Option B) — clone de dombot-lab-hub posé manuellement, gitignored par clawvis core, `upstream=clawvis` conservé dans dombot-lab-hub pour les éventuels `git fetch upstream`.
+**ADR-0003:** `instances/ldom/` in `clawvis/` (Option B) — dombot-lab-hub clone placed manually, gitignored by clawvis core, `upstream=clawvis` kept in dombot-lab-hub for optional `git fetch upstream`.
 
-**Pourquoi pas submodule :** La gestion des submodules en prod est fragile (init/update oubliés). L'instance est gitignored et gérée indépendamment, ce qui correspond au contrat Clawvis.
+**Why not submodule:** Submodule management in prod is fragile (forgotten init/update). The instance is gitignored and managed independently, matching the Clawvis contract.
 
-**Pourquoi recréer via `clawvis install` :** Valide le flow d'install en conditions réelles. C'est un test de bout en bout de la Phase 1 sur une vraie machine.
+**Why recreate via `clawvis install`:** Validates the install flow under real conditions. End-to-end test of Phase 1 on a real machine.
