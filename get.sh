@@ -69,8 +69,12 @@ if [ ! -t 0 ]; then
     fi
   done
   if [ "${has_non_interactive}" -eq 0 ]; then
-    echo "==> Non-interactive stdin detected; using default non-interactive install flags"
-    INSTALL_ARGS+=(--non-interactive)
+    if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+      echo "==> Piped stdin detected; interactive wizard will use /dev/tty"
+    else
+      echo "==> Non-interactive stdin detected; using default non-interactive install flags"
+      INSTALL_ARGS+=(--non-interactive)
+    fi
   fi
 fi
 

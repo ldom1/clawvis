@@ -17,6 +17,9 @@ MEMORY_TYPE_FLAG=""
 NO_START=0
 LAST_LOG="${CLAWVIS_LAST_LOG:-/tmp/clawvis_last.log}"
 
+# Ensure all relative paths and docker compose commands run from repo root.
+cd "${ROOT_DIR}"
+
 info() { printf "\n==> %s\n" "$1"; }
 warn() { printf "\n[warn] %s\n" "$1"; }
 spinner() {
@@ -49,10 +52,20 @@ ask() {
   local prompt="$1" default="${2:-}"
   local value
   if [ -n "$default" ]; then
-    read -r -p "$prompt [$default]: " value
+    if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
+      printf "%s [%s]: " "$prompt" "$default" > /dev/tty
+      read -r value < /dev/tty
+    else
+      read -r -p "$prompt [$default]: " value
+    fi
     printf "%s" "${value:-$default}"
   else
-    read -r -p "$prompt: " value
+    if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
+      printf "%s: " "$prompt" > /dev/tty
+      read -r value < /dev/tty
+    else
+      read -r -p "$prompt: " value
+    fi
     printf "%s" "$value"
   fi
 }
@@ -62,13 +75,26 @@ ask_choice() {
   local options=("$@")
   local value=""
   while :; do
-    printf "%s\n" "${prompt}"
+    if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
+      printf "%s\n" "${prompt}" > /dev/tty
+    else
+      printf "%s\n" "${prompt}"
+    fi
     local idx=1
     for option in "${options[@]}"; do
-      printf "  %d) %s\n" "${idx}" "${option}"
+      if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
+        printf "  %d) %s\n" "${idx}" "${option}" > /dev/tty
+      else
+        printf "  %d) %s\n" "${idx}" "${option}"
+      fi
       idx=$((idx + 1))
     done
-    read -r -p "Choice [${default}]: " value
+    if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
+      printf "Choice [%s]: " "${default}" > /dev/tty
+      read -r value < /dev/tty
+    else
+      read -r -p "Choice [${default}]: " value
+    fi
     value="${value:-$default}"
     if [[ "${value}" =~ ^[0-9]+$ ]] && [ "${value}" -ge 1 ] && [ "${value}" -le "${#options[@]}" ]; then
       printf "%s" "${options[$((value - 1))]}"
@@ -188,10 +214,15 @@ migrate_memory_if_needed() {
 
 parse_args "$@"
 
+USE_TTY_INPUT=0
 if [ "${NON_INTERACTIVE}" -eq 0 ] && [ ! -t 0 ]; then
-  echo "Error: interactive setup requires a TTY."
-  echo "Run with --non-interactive for CI/piped mode."
-  exit 1
+  if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+    USE_TTY_INPUT=1
+  else
+    echo "Error: interactive setup requires a TTY."
+    echo "Run with --non-interactive for CI/piped mode."
+    exit 1
+  fi
 fi
 
 chmod +x "${ROOT_DIR}/clawvis"
