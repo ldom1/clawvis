@@ -16,6 +16,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MODE="workspace"
 INSTANCE="gettest"
+RUN_MODE="prod"
 RAW_URL="https://raw.githubusercontent.com/ldom1/clawvis/main/get.sh"
 
 while [ "$#" -gt 0 ]; do
@@ -23,6 +24,7 @@ while [ "$#" -gt 0 ]; do
     --workspace) MODE="workspace" ;;
     --clone) MODE="clone" ;;
     --from-github) MODE="github" ;;
+    --run-mode) RUN_MODE="${2:-}"; shift ;;
     -h|--help)
       grep '^#' "$0" | grep -v '#!/'; exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -33,12 +35,21 @@ done
 INSTALL_ARGS=(
   --non-interactive
   --instance "${INSTANCE}"
-  --mode docker
+  --mode "${RUN_MODE}"
   --no-start
   --hub-port 8088
   --memory-port 3099
   --kanban-api-port 8090
 )
+
+case "${RUN_MODE}" in
+  dev) EXPECT_MODE="dev" ;;
+  prod|minimal|docker) EXPECT_MODE="docker" ;;
+  *)
+    echo "Unsupported run mode for test: ${RUN_MODE}" >&2
+    exit 1
+    ;;
+esac
 
 TEST_HOME=""
 TMP_WORK=""
@@ -104,13 +115,13 @@ check() {
 }
 
 echo ""
-echo "=== test-get-sh.sh (${MODE}) ==="
+echo "=== test-get-sh.sh (${MODE}, run-mode=${RUN_MODE}) ==="
 echo ""
 check ".env created" "[ -f ${BASE}/.env ]"
 check ".env INSTANCE_NAME" "grep -q 'INSTANCE_NAME=${INSTANCE}' ${BASE}/.env"
 check ".env HUB_PORT=8088" "grep -q 'HUB_PORT=8088' ${BASE}/.env"
 check ".env MEMORY_ROOT" "grep -q 'MEMORY_ROOT=' ${BASE}/.env"
-check ".env MODE=docker" "grep -q 'MODE=docker' ${BASE}/.env"
+check ".env MODE=${EXPECT_MODE}" "grep -q 'MODE=${EXPECT_MODE}' ${BASE}/.env"
 check "instance dir" "[ -d ${BASE}/instances/${INSTANCE} ]"
 check "memory/projects" "[ -d ${BASE}/instances/${INSTANCE}/memory/projects ]"
 check "example project" "[ -f ${BASE}/instances/${INSTANCE}/memory/projects/example-project.md ]"
