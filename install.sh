@@ -7,21 +7,44 @@ EXAMPLE_FILE="${ROOT_DIR}/.env.example"
 INSTANCES_DIR="${ROOT_DIR}/instances"
 NON_INTERACTIVE=0
 INSTANCE_NAME_FLAG=""
-PROVIDER_FLAG=""
 HUB_PORT_FLAG=""
 MEMORY_PORT_FLAG=""
 KANBAN_API_PORT_FLAG=""
 PROJECTS_ROOT_FLAG=""
-OPENCLAW_BASE_URL_FLAG=""
-OPENCLAW_API_KEY_FLAG=""
-CLAUDE_API_KEY_FLAG=""
-MISTRAL_API_KEY_FLAG=""
 MODE_FLAG=""
-SKIP_PRIMARY=0
+BRAIN_PATH_FLAG=""
+MEMORY_TYPE_FLAG=""
 NO_START=0
+LAST_LOG="${CLAWVIS_LAST_LOG:-/tmp/clawvis_last.log}"
 
 info() { printf "\n==> %s\n" "$1"; }
 warn() { printf "\n[warn] %s\n" "$1"; }
+spinner() {
+  local pid="$1" msg="$2"
+  local spin='|/-\'
+  local i=0
+  tput civis 2>/dev/null || true
+  while kill -0 "${pid}" 2>/dev/null; do
+    printf "\r  %s  %s" "${spin:$((i % ${#spin})):1}" "${msg}"
+    sleep 0.08
+    i=$((i + 1))
+  done
+  tput cnorm 2>/dev/null || true
+}
+run_quiet() {
+  local msg="$1"
+  shift
+  "$@" >"${LAST_LOG}" 2>&1 &
+  local pid=$!
+  spinner "${pid}" "${msg}"
+  wait "${pid}"
+  local code=$?
+  if [ "${code}" -ne 0 ]; then
+    printf "\r  ✗  %s (failed — see %s)\n" "${msg}" "${LAST_LOG}"
+    exit "${code}"
+  fi
+  printf "\r  ✓  %s\n" "${msg}"
+}
 ask() {
   local prompt="$1" default="${2:-}"
   local value
@@ -32,6 +55,27 @@ ask() {
     read -r -p "$prompt: " value
     printf "%s" "$value"
   fi
+}
+ask_choice() {
+  local prompt="$1" default="$2"
+  shift 2
+  local options=("$@")
+  local value=""
+  while :; do
+    printf "%s\n" "${prompt}"
+    local idx=1
+    for option in "${options[@]}"; do
+      printf "  %d) %s\n" "${idx}" "${option}"
+      idx=$((idx + 1))
+    done
+    read -r -p "Choice [${default}]: " value
+    value="${value:-$default}"
+    if [[ "${value}" =~ ^[0-9]+$ ]] && [ "${value}" -ge 1 ] && [ "${value}" -le "${#options[@]}" ]; then
+      printf "%s" "${options[$((value - 1))]}"
+      return
+    fi
+    warn "Invalid choice: ${value}"
+  done
 }
 ensure_cli_shim() {
   local bin_dir="${HOME}/.local/bin"
@@ -71,17 +115,13 @@ Non-interactive mode: pass --non-interactive and required flags.
 Options:
   --non-interactive
   --instance <name>
-  --provider <openclaw|claude|mistral>
   --hub-port <port>
   --memory-port <port>
   --kanban-api-port <port>
   --projects-root <path>
-  --openclaw-base-url <url>
-  --openclaw-api-key <key>
-  --claude-api-key <key>
-  --mistral-api-key <key>
-  --mode <docker|dev>
-  --skip-primary  Skip primary AI runtime setup (dev-only)
+  --mode <dev|prod|minimal|docker>
+  --brain-path <path>
+  --memory-type <local|symlink>
   --no-start      Create instance structure only, do not launch services
   -h, --help
 EOF
@@ -113,18 +153,14 @@ parse_args() {
     case "$1" in
       --non-interactive) NON_INTERACTIVE=1 ;;
       --instance) INSTANCE_NAME_FLAG="${2:-}"; shift ;;
-      --provider) PROVIDER_FLAG="${2:-}"; shift ;;
-      --skip-primary) SKIP_PRIMARY=1 ;;
       --no-start) NO_START=1 ;;
       --hub-port) HUB_PORT_FLAG="${2:-}"; shift ;;
       --memory-port) MEMORY_PORT_FLAG="${2:-}"; shift ;;
       --kanban-api-port) KANBAN_API_PORT_FLAG="${2:-}"; shift ;;
       --projects-root) PROJECTS_ROOT_FLAG="${2:-}"; shift ;;
-      --openclaw-base-url) OPENCLAW_BASE_URL_FLAG="${2:-}"; shift ;;
-      --openclaw-api-key) OPENCLAW_API_KEY_FLAG="${2:-}"; shift ;;
-      --claude-api-key) CLAUDE_API_KEY_FLAG="${2:-}"; shift ;;
-      --mistral-api-key) MISTRAL_API_KEY_FLAG="${2:-}"; shift ;;
       --mode) MODE_FLAG="${2:-}"; shift ;;
+      --brain-path) BRAIN_PATH_FLAG="${2:-}"; shift ;;
+      --memory-type) MEMORY_TYPE_FLAG="${2:-}"; shift ;;
       -h|--help) usage; exit 0 ;;
       *) echo "Unknown option: $1"; usage; exit 1 ;;
     esac
@@ -142,9 +178,9 @@ migrate_memory_if_needed() {
     info "Migrating legacy memory -> ${target_rel}"
     mkdir -p "${target_abs}"
     if command -v rsync >/dev/null 2>&1; then
-      rsync -a "${legacy_abs}/" "${target_abs}/"
+      run_quiet "Migrating legacy memory files" rsync -a "${legacy_abs}/" "${target_abs}/"
     else
-      cp -a "${legacy_abs}/." "${target_abs}/"
+      run_quiet "Migrating legacy memory files" cp -a "${legacy_abs}/." "${target_abs}/"
     fi
     warn "Legacy memory kept at ${legacy_abs} (not deleted)."
   fi
@@ -152,50 +188,18 @@ migrate_memory_if_needed() {
 
 parse_args "$@"
 
-# When called directly (not from CLI), redirect to pretty CLI wizard if node is available
-if [ "${NON_INTERACTIVE}" -eq 0 ] && [ -z "${CLAWVIS_NO_NODE_WRAPPER:-}" ]; then
-  CLI_MJS="${ROOT_DIR}/clawvis-cli/cli.mjs"
-  CLI_PKG="${ROOT_DIR}/clawvis-cli"
-  if command -v node >/dev/null 2>&1 && [ -f "${CLI_MJS}" ]; then
-    # Require Node >= 18
-    NODE_MAJOR="$(node -e 'process.stdout.write(String(process.versions.node.split(".")[0]))' 2>/dev/null || echo "0")"
-    if [ "${NODE_MAJOR}" -ge 18 ] 2>/dev/null; then
-      if [ ! -d "${CLI_PKG}/node_modules/commander" ]; then
-        if command -v npm >/dev/null 2>&1; then
-          info "Installing CLI dependencies"
-          (cd "${CLI_PKG}" && npm ci --no-audit --no-fund 2>/dev/null) || (cd "${CLI_PKG}" && npm install --no-audit --no-fund)
-        else
-          warn "npm not found; skipping Node install wizard (set CLAWVIS_NO_NODE_WRAPPER=1 to silence)"
-        fi
-      fi
-      if [ -d "${CLI_PKG}/node_modules/commander" ]; then
-        exec node "${CLI_MJS}" install "$@"
-      fi
-    else
-      warn "Node.js >= 18 required for interactive wizard (found: $(node --version 2>/dev/null || echo 'unknown')); continuing with shell mode"
-    fi
-  fi
+if [ "${NON_INTERACTIVE}" -eq 0 ] && [ ! -t 0 ]; then
+  echo "Error: interactive setup requires a TTY."
+  echo "Run with --non-interactive for CI/piped mode."
+  exit 1
 fi
 
 chmod +x "${ROOT_DIR}/clawvis"
 ensure_cli_shim
 
-for cmd in docker; do
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Error: Docker is required but not found."
-    echo "  Install Docker: https://docs.docker.com/get-docker/"
-    exit 1
-  fi
-  if ! docker info >/dev/null 2>&1; then
-    echo "Error: Docker is installed but not running."
-    echo "  Start Docker Desktop or run: sudo systemctl start docker"
-    exit 1
-  fi
-done
-
+info "Clawvis bootstrap"
 if [ ! -f "${ENV_FILE}" ]; then
-  info "Creating .env from .env.example"
-  cp "${EXAMPLE_FILE}" "${ENV_FILE}"
+  run_quiet "Creating .env from template" cp "${EXAMPLE_FILE}" "${ENV_FILE}"
 else
   info ".env already exists, keeping current values"
 fi
@@ -225,58 +229,81 @@ else
   fi
 fi
 
-info "Provider configuration"
-if [ "${SKIP_PRIMARY}" -eq 1 ]; then
-  info "Skipping primary AI runtime setup (dev)."
+if [ "${NON_INTERACTIVE}" -eq 1 ]; then
+  case "${MODE_FLAG:-prod}" in
+    docker|prod) WIZARD_MODE="prod"; RUN_MODE="docker" ;;
+    dev) WIZARD_MODE="dev"; RUN_MODE="dev" ;;
+    minimal) WIZARD_MODE="minimal"; RUN_MODE="docker"; NO_START=1 ;;
+    *) echo "Invalid --mode value: ${MODE_FLAG}"; exit 1 ;;
+  esac
 else
-  if [ "${NON_INTERACTIVE}" -eq 1 ]; then
-    case "${PROVIDER_FLAG:-claude}" in
-      openclaw) PRIMARY="1" ;;
-      claude) PRIMARY="2" ;;
-      mistral) PRIMARY="3" ;;
-      *) echo "Invalid --provider value: ${PROVIDER_FLAG}"; exit 1 ;;
-    esac
-  else
-    echo "Choose your primary AI runtime:"
-    echo "  1) OpenClaw (self-hosted)"
-    echo "  2) Claude Code (Anthropic API key)"
-    echo "  3) Mistral vibe (Mistral API key)"
-    PRIMARY="$(ask "Select 1/2/3" "2")"
-  fi
-
-  case "${PRIMARY}" in
-    1)
-      if [ "${NON_INTERACTIVE}" -eq 1 ]; then
-        OPENCLAW_BASE_URL="${OPENCLAW_BASE_URL_FLAG:-http://localhost:3333}"
-        OPENCLAW_API_KEY="${OPENCLAW_API_KEY_FLAG:-}"
-      else
-        OPENCLAW_BASE_URL="$(ask "OpenClaw base URL" "http://localhost:3333")"
-        OPENCLAW_API_KEY="$(ask "OpenClaw API key (optional)")"
-      fi
-      upsert_env "OPENCLAW_BASE_URL" "${OPENCLAW_BASE_URL}"
-      upsert_env "OPENCLAW_API_KEY" "${OPENCLAW_API_KEY}"
-      ;;
-    2)
-      if [ "${NON_INTERACTIVE}" -eq 1 ]; then
-        CLAUDE_API_KEY="${CLAUDE_API_KEY_FLAG:-}"
-      else
-        CLAUDE_API_KEY="$(ask "Claude API key (sk-ant-...)" "")"
-      fi
-      upsert_env "CLAUDE_API_KEY" "${CLAUDE_API_KEY}"
-      ;;
-    3)
-      if [ "${NON_INTERACTIVE}" -eq 1 ]; then
-        MISTRAL_API_KEY="${MISTRAL_API_KEY_FLAG:-}"
-      else
-        MISTRAL_API_KEY="$(ask "Mistral API key" "")"
-      fi
-      upsert_env "MISTRAL_API_KEY" "${MISTRAL_API_KEY}"
-      ;;
-    *)
-      warn "Unknown selection, skipping provider setup."
-      ;;
+  info "Choose run mode"
+  MODE_PICK="$(ask_choice "? Choose run mode:" "1" "dev" "prod" "minimal")"
+  case "${MODE_PICK}" in
+    dev) WIZARD_MODE="dev"; RUN_MODE="dev" ;;
+    prod) WIZARD_MODE="prod"; RUN_MODE="docker" ;;
+    minimal) WIZARD_MODE="minimal"; RUN_MODE="docker"; NO_START=1 ;;
   esac
 fi
+upsert_env "MODE" "${RUN_MODE}"
+
+info "Memory configuration"
+MEMORY_ROOT="instances/${INSTANCE_NAME}/memory"
+INSTANCE_MEMORY_PATH="${ROOT_DIR}/${MEMORY_ROOT}"
+if [ "${NON_INTERACTIVE}" -eq 1 ]; then
+  BRAIN_PATH_INPUT="${BRAIN_PATH_FLAG:-}"
+  if [ -n "${BRAIN_PATH_INPUT}" ] || [ "${MEMORY_TYPE_FLAG:-}" = "symlink" ]; then
+    MEMORY_TYPE="symlink"
+  else
+    MEMORY_TYPE="local"
+  fi
+else
+  MEMORY_CHOICE="$(ask_choice "? Do you already have a brain/memory directory you want to point to?" "2" "Yes, I have an existing memory path" "No, create a fresh memory for this instance")"
+  if [ "${MEMORY_CHOICE}" = "Yes, I have an existing memory path" ]; then
+    MEMORY_TYPE="symlink"
+    BRAIN_PATH_INPUT="$(ask "? Enter the path to your existing brain/memory directory")"
+  else
+    MEMORY_TYPE="local"
+    BRAIN_PATH_INPUT=""
+  fi
+fi
+
+if [ "${MEMORY_TYPE}" = "symlink" ]; then
+  if [ -z "${BRAIN_PATH_INPUT}" ]; then
+    echo "Error: --brain-path is required when using symlink memory type."
+    exit 1
+  fi
+  if [ ! -e "${BRAIN_PATH_INPUT}" ]; then
+    echo "Error: memory path does not exist: ${BRAIN_PATH_INPUT}"
+    exit 1
+  fi
+  BRAIN_PATH="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${BRAIN_PATH_INPUT}")"
+  mkdir -p "$(dirname "${INSTANCE_MEMORY_PATH}")"
+  if [ -d "${INSTANCE_MEMORY_PATH}" ] && [ ! -L "${INSTANCE_MEMORY_PATH}" ]; then
+    run_quiet "Removing default local memory directory" rm -rf "${INSTANCE_MEMORY_PATH}"
+  elif [ -L "${INSTANCE_MEMORY_PATH}" ]; then
+    rm -f "${INSTANCE_MEMORY_PATH}"
+  fi
+  ln -s "${BRAIN_PATH}" "${INSTANCE_MEMORY_PATH}"
+  if [ ! -L "${INSTANCE_MEMORY_PATH}" ]; then
+    echo "Error: Failed to create memory symlink"
+    exit 1
+  fi
+else
+  BRAIN_PATH="${INSTANCE_MEMORY_PATH}"
+  chmod +x "${ROOT_DIR}/scripts/init-memory.sh"
+  export INSTANCE_NAME MEMORY_ROOT
+  migrate_memory_if_needed "${MEMORY_ROOT}"
+  run_quiet "Initializing fresh memory structure" bash "${ROOT_DIR}/scripts/init-memory.sh"
+  if [ -f "${ROOT_DIR}/${MEMORY_ROOT}/projects/example-project.md" ]; then
+    info "Validation log: example project seeded at ${MEMORY_ROOT}/projects/example-project.md"
+  fi
+fi
+
+upsert_env "INSTANCE_NAME" "${INSTANCE_NAME}"
+upsert_env "MEMORY_ROOT" "${MEMORY_ROOT}"
+upsert_env "BRAIN_PATH" "${BRAIN_PATH}"
+upsert_env "MEMORY_TYPE" "${MEMORY_TYPE}"
 
 if [ "${NON_INTERACTIVE}" -eq 1 ]; then
   PROJECTS_ROOT="${PROJECTS_ROOT_FLAG:-/home/${USER}/lab_perso/projects}"
@@ -289,52 +316,25 @@ else
   MEMORY_PORT="$(ask "Brain port" "3099")"
   KANBAN_API_PORT="$(ask "Kanban API port (dev mode)" "8090")"
 fi
-MEMORY_ROOT="instances/${INSTANCE_NAME}/memory"
 upsert_env "PROJECTS_ROOT" "${PROJECTS_ROOT}"
 upsert_env "HUB_PORT" "${HUB_PORT}"
 upsert_env "MEMORY_PORT" "${MEMORY_PORT}"
 upsert_env "KANBAN_API_PORT" "${KANBAN_API_PORT}"
-upsert_env "INSTANCE_NAME" "${INSTANCE_NAME}"
-upsert_env "MEMORY_ROOT" "${MEMORY_ROOT}"
 upsert_env "HOST_UID" "$(id -u)"
 upsert_env "HOST_GID" "$(id -g)"
 
-info "Initialize memory structure"
-chmod +x "${ROOT_DIR}/scripts/init-memory.sh"
-export INSTANCE_NAME MEMORY_ROOT
-migrate_memory_if_needed "${MEMORY_ROOT}"
-bash "${ROOT_DIR}/scripts/init-memory.sh"
-if [ -f "${ROOT_DIR}/${MEMORY_ROOT}/projects/example-project.md" ]; then
-  info "Validation log: example project seeded at ${MEMORY_ROOT}/projects/example-project.md"
-fi
-
-info "Quartz (Brain display)"
+info "Brain display (Quartz)"
 if [ "${CLAWVIS_SKIP_QUARTZ:-0}" = "1" ]; then
   warn "Quartz setup skipped (CLAWVIS_SKIP_QUARTZ=1)."
 else
   if command -v git >/dev/null 2>&1 && command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
     chmod +x "${ROOT_DIR}/scripts/setup-quartz.sh"
     export INSTANCE_NAME MEMORY_ROOT
-    bash "${ROOT_DIR}/scripts/setup-quartz.sh" || warn "Quartz setup failed — continuing without Quartz."
+    run_quiet "Rebuilding Quartz" bash "${ROOT_DIR}/scripts/setup-quartz.sh" || warn "Quartz setup failed — continuing without Quartz."
   else
     warn "Quartz setup skipped (requires: git + node>=18 + npm)."
   fi
 fi
-
-info "Choose run mode"
-if [ "${NON_INTERACTIVE}" -eq 1 ]; then
-  case "${MODE_FLAG:-docker}" in
-    docker) MODE="1"; RUN_MODE="docker" ;;
-    dev) MODE="2"; RUN_MODE="dev" ;;
-    *) echo "Invalid --mode value: ${MODE_FLAG}"; exit 1 ;;
-  esac
-else
-  echo "  1) Docker (hub + kanban + brain)"
-  echo "  2) Local dev (hub Vite + kanban API + brain)"
-  MODE="$(ask "Select 1/2" "1")"
-  if [ "${MODE}" = "1" ]; then RUN_MODE="docker"; else RUN_MODE="dev"; fi
-fi
-upsert_env "MODE" "${RUN_MODE}"
 
 if [ "${NO_START}" -eq 1 ]; then
   info "Instance ready (--no-start: services not launched)"
@@ -344,9 +344,19 @@ if [ "${NO_START}" -eq 1 ]; then
   echo "To start manually:"
   echo "  docker compose up -d hub kanban-api hub-memory-api"
   echo "  # or: clawvis start"
-elif [ "${MODE}" = "1" ]; then
+elif [ "${RUN_MODE}" = "docker" ]; then
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Error: Docker is required for prod mode."
+    echo "  Install Docker: https://docs.docker.com/get-docker/"
+    exit 1
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "Error: Docker is installed but not running."
+    echo "  Start Docker Desktop or run: sudo systemctl start docker"
+    exit 1
+  fi
   # hub depends_on kanban-api + hub-memory-api; list them explicitly so all modes match.
-  docker compose up -d hub kanban-api hub-memory-api
+  run_quiet "Starting Docker services" docker compose up -d hub kanban-api hub-memory-api
   info "Instance started"
   echo "- Hub:    http://localhost:${HUB_PORT}"
   echo "- Brain:  http://localhost:${MEMORY_PORT}"
@@ -372,10 +382,13 @@ else
   exec "${ROOT_DIR}/scripts/start.sh"
 fi
 
-info "Next step: connect your runtime"
-echo "- OpenClaw: set OPENCLAW_BASE_URL / OPENCLAW_API_KEY in .env"
-echo "- Claude Code: set CLAUDE_API_KEY in .env"
-echo "- Mistral vibe: set MISTRAL_API_KEY in .env"
-echo "- Re-run: docker compose up -d --build"
-echo "- Upgrade lifecycle: clawvis update --tag <tag>"
-echo "- New CLI: clawvis --help"
+info "Done"
+echo "╔══════════════════════════════════════════════════════╗"
+echo "║              Clawvis — Setup complete                ║"
+echo "╠══════════════════════════════════════════════════════╣"
+printf "║  Instance   : %-38s║\n" "${INSTANCE_NAME}"
+printf "║  Mode       : %-38s║\n" "${WIZARD_MODE}"
+printf "║  Memory     : %-38s║\n" "${BRAIN_PATH}"
+printf "║  Type       : %-38s║\n" "${MEMORY_TYPE}"
+printf "║  Brain UI   : %-38s║\n" "${ROOT_DIR}/quartz/public/"
+echo "╚══════════════════════════════════════════════════════╝"

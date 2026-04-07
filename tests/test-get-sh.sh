@@ -34,7 +34,6 @@ INSTALL_ARGS=(
   --non-interactive
   --instance "${INSTANCE}"
   --mode docker
-  --skip-primary
   --no-start
   --hub-port 8088
   --memory-port 3099
