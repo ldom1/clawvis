@@ -14,17 +14,24 @@ if [ -z "${CLAWVIS_QUIET_START:-}" ]; then
 fi
 
 QUARTZ_AVAILABLE=0
-# If a real Quartz workspace exists, build it.
+# If a real Quartz workspace exists, build it (needs Node/npm — e.g. in Docker image).
 if [ -d "${QUARTZ_DIR}" ] && [ -f "${QUARTZ_DIR}/package.json" ] && [ -f "${QUARTZ_DIR}/quartz.config.ts" ]; then
-  QUARTZ_AVAILABLE=1
-  (
-    cd "${QUARTZ_DIR}"
-    npm install --silent >/dev/null 2>&1
-    # npx quartz build: output lands in quartz/public/
-    npx quartz build >/dev/null 2>&1
-  )
-  if [ -z "${CLAWVIS_QUIET_START:-}" ]; then
-    echo "Quartz build: completed (output: ${QUARTZ_DIR}/public/)"
+  if command -v npm >/dev/null 2>&1; then
+    (
+      set +e
+      cd "${QUARTZ_DIR}"
+      npm install --silent >/dev/null 2>&1
+      # npx quartz build: output lands in quartz/public/
+      npx quartz build >/dev/null 2>&1
+    ) || true
+    if [ -d "${QUARTZ_DIR}/public" ] && ls "${QUARTZ_DIR}/public"/*.html >/dev/null 2>&1; then
+      QUARTZ_AVAILABLE=1
+      if [ -z "${CLAWVIS_QUIET_START:-}" ]; then
+        echo "Quartz build: completed (output: ${QUARTZ_DIR}/public/)"
+      fi
+    fi
+  elif [ -z "${CLAWVIS_QUIET_START:-}" ]; then
+    echo "Quartz workspace present but npm not found — skipping npx quartz build (install Node or run build on host)."
   fi
 fi
 

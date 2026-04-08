@@ -388,7 +388,7 @@ main() {
       case "${sub}" in
         quartz) shift; CLAWVIS_NO_NODE_WRAPPER=1 bash "${ROOT_DIR}/scripts/setup-quartz.sh" "$@" ;;
         provider) shift; CLAWVIS_NO_NODE_WRAPPER=1 bash "${ROOT_DIR}/scripts/setup-runtime.sh" --non-interactive "$@" 2>/dev/null || \
-          log "To configure a provider: clawvis setup provider --provider claude --key <key>" ;;
+          log "To configure a provider: clawvis setup provider --provider openclaw|claude" ;;
         *) cmd_install "$@" ;;
       esac
       ;;

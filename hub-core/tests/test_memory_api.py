@@ -51,3 +51,26 @@ def test_projects_list_monkeypatched(client: TestClient, monkeypatch: pytest.Mon
     r = client.get("/projects")
     assert r.status_code == 200
     assert r.json() == ["x.md"]
+
+
+def test_quartz_static_serves_memory_projects_when_no_quartz_build(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    """Brain iframe uses /quartz-static/; without quartz/public, files must come from memory/projects/."""
+    mem = tmp_path / "m"
+    proj = mem / "projects"
+    proj.mkdir(parents=True)
+    (proj / "index.html").write_text(
+        "<!DOCTYPE html><html><head><title>t</title></head><body>ok</body></html>",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(memory_api, "_CLAWVIS_ROOT", tmp_path)
+    monkeypatch.setattr(memory_api, "active_brain_memory_root", lambda _data=None: mem)
+    monkeypatch.setattr(
+        memory_api,
+        "get_hub_settings",
+        lambda: {"linked_instances": [], "projects_root": "", "instances_external_root": ""},
+    )
+    r = client.get("/quartz-static/index.html")
+    assert r.status_code == 200
+    assert "ok" in r.text

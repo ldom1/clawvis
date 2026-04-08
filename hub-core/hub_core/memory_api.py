@@ -114,6 +114,24 @@ def read_quartz_page_endpoint(filename: str):
         raise HTTPException(404, "Quartz page not found")
 
 
+def _resolve_quartz_static_file(safe: Path) -> tuple[Path | None, Path | None]:
+    """Prefer quartz/public; else active memory projects/ (same list as /quartz fallback)."""
+    quartz_public = _CLAWVIS_ROOT / "quartz" / "public"
+    if quartz_public.is_dir():
+        t = (quartz_public / safe).resolve()
+        qroot = quartz_public.resolve()
+        if str(t).startswith(str(qroot)) and t.is_file():
+            return t, qroot
+    projects_root = active_brain_memory_root(get_hub_settings()) / "projects"
+    if not projects_root.is_dir():
+        return None, None
+    t2 = (projects_root / safe).resolve()
+    proot = projects_root.resolve()
+    if str(t2).startswith(str(proot)) and t2.is_file():
+        return t2, proot
+    return None, None
+
+
 @app.get("/quartz-static/{path:path}")
 def quartz_static_endpoint(path: str):
     # Serve Quartz build output as real files (CSS/JS/assets) so the Hub iframe can render properly.
@@ -125,22 +143,14 @@ def quartz_static_endpoint(path: str):
     if safe.is_absolute() or ".." in safe.parts:
         raise HTTPException(400, "Invalid path")
 
-    # Same root as kanban_api (works in Docker + editable installs; not Path(__file__).parents).
-    quartz_public = _CLAWVIS_ROOT / "quartz" / "public"
-    target = (quartz_public / safe).resolve()
-    qroot = quartz_public.resolve()
-    if not str(target).startswith(str(qroot)):
-        raise HTTPException(400, "Invalid path")
-    if not target.exists() or not target.is_file():
-        # Quartz often has README.html as home but no root index.html; clients still request index.html.
-        if safe.parent == Path(".") and safe.name == "index.html":
-            for alt in ("README.html", "home.html", "clawvis.html"):
-                cand = (quartz_public / alt).resolve()
-                if cand.is_file() and str(cand).startswith(str(qroot)):
-                    target = cand
-                    safe = Path(alt)
-                    break
-    if not target.exists() or not target.is_file():
+    target, _root = _resolve_quartz_static_file(safe)
+    if target is None and safe.parent == Path(".") and safe.name == "index.html":
+        for alt in ("README.html", "home.html", "clawvis.html"):
+            t2, _ = _resolve_quartz_static_file(Path(alt))
+            if t2 is not None:
+                target, safe = t2, Path(alt)
+                break
+    if target is None:
         raise HTTPException(404, "Not found")
 
     media, _ = mimetypes.guess_type(str(target))

@@ -24,7 +24,6 @@ jobs:
             --non-interactive \
             --instance gettestlive \
             --mode docker \
-            --skip-primary \
             --no-start \
             --hub-port 18088 \
             --memory-port 13099 \

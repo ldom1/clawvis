@@ -26,6 +26,10 @@ fi
 init_instance_memory
 # Memory API démarre plus bas (uvicorn hub_core.memory_api). Il n’y a pas de service compose nommé « memory ».
 
+if [ -z "${CLAWVIS_SKIP_SETUP_SYNC:-}" ]; then
+  uv run --directory "${ROOT_DIR}/hub-core" python -m hub_core setup-sync-apply || true
+fi
+
 uvicorn_extra=()
 if [ -n "${CLAWVIS_QUIET_START:-}" ]; then
   uvicorn_extra+=(--log-level warning --no-access-log)

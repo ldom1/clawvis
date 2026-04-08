@@ -24,6 +24,16 @@ from .streaming import stream_anthropic, stream_openai_compat
 router = APIRouter()
 
 
+def primary_provider_from_env() -> str | None:
+    """Hub UI: openclaw | claude if PRIMARY_AI_PROVIDER is set accordingly; else None."""
+    raw = (os.environ.get("PRIMARY_AI_PROVIDER") or "").strip().lower()
+    if raw == "openclaw":
+        return "openclaw"
+    if raw in ("claude", "anthropic"):
+        return "claude"
+    return None
+
+
 def _normalize_provider_str(v: str) -> str:
     s = (v or "").strip().lower()
     if not s:
@@ -72,6 +82,7 @@ def status():
         "anthropic_configured": bool(cfg.anthropic_token),
         "mammouth_configured": bool(cfg.mammouth_token),
         "openclaw_available": cfg.openclaw_available,
+        "primary_provider": primary_provider_from_env(),
     }
 
 
@@ -88,6 +99,7 @@ def get_config():
         "effective_provider": eff,
         "runtime_ready": runtime_ready(cfg, eff),
         "primary_from_env": cfg.primary_from_env,
+        "primary_provider": primary_provider_from_env(),
     }
 
 
