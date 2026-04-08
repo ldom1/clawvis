@@ -3946,18 +3946,28 @@ async function wireSetupRuntime() {
   const t = SETUP_RUNTIME_TEXT[isFr ? "fr" : "en"];
 
   let selectedProvider = "";
+  const confirmBtn = document.getElementById("setup-confirm");
+  const cardsRoot = document.querySelector(".setup-provider-cards");
+  const feedbackEl = document.getElementById("setup-provider-feedback");
 
-  document.querySelectorAll("[data-provider]").forEach((card) => {
-    card.addEventListener("click", () => {
-      document
-        .querySelectorAll("[data-provider]")
-        .forEach((c) => c.classList.remove("selected"));
-      card.classList.add("selected");
-      selectedProvider = card.dataset.provider;
-      const btn = document.getElementById("setup-confirm");
-      if (btn) btn.disabled = false;
+  const setSelectedProvider = (provider) => {
+    const ok = provider === "openclaw" || provider === "claude";
+    selectedProvider = ok ? provider : "";
+    document.querySelectorAll("[data-provider]").forEach((c) => {
+      const active = c.dataset.provider === selectedProvider;
+      c.classList.toggle("selected", active);
+      c.setAttribute("aria-pressed", active ? "true" : "false");
     });
-  });
+    if (confirmBtn) confirmBtn.disabled = !selectedProvider;
+  };
+
+  if (cardsRoot) {
+    cardsRoot.addEventListener("click", (ev) => {
+      const card = ev.target.closest("[data-provider]");
+      if (!card) return;
+      setSelectedProvider(card.dataset.provider || "");
+    });
+  }
 
   try {
     const r = await fetch("/api/hub/agent/config");
@@ -3965,18 +3975,25 @@ async function wireSetupRuntime() {
       const cfg = await r.json();
       const pp = cfg.primary_provider;
       if (pp === "openclaw" || pp === "claude") {
-        const card = document.querySelector(`[data-provider="${pp}"]`);
-        if (card) card.click();
+        setSelectedProvider(pp);
       }
     }
   } catch {
     /* ignore */
   }
 
-  const confirmBtn = document.getElementById("setup-confirm");
   if (!confirmBtn) return;
   confirmBtn.addEventListener("click", async () => {
-    const fb = document.getElementById("setup-provider-feedback");
+    if (!selectedProvider) {
+      if (feedbackEl) {
+        feedbackEl.className = "setup-test-result err";
+        feedbackEl.textContent = isFr
+          ? "Sélectionne d'abord un agent."
+          : "Select an agent first.";
+      }
+      return;
+    }
+    const fb = feedbackEl;
     if (fb) {
       fb.className = "setup-test-result loading";
       fb.textContent = isFr ? "Enregistrement…" : "Saving…";

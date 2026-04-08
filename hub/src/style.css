@@ -823,6 +823,9 @@ body {
   flex-direction: column;
   gap: 4px;
 }
+.card-project-dropdown[hidden] {
+  display: none !important;
+}
 .card-project-dropdown .btn {
   width: 100%;
   justify-content: center;
@@ -2967,7 +2970,7 @@ body {
 }
 .grid-3 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
 }
 .card {
@@ -3382,7 +3385,7 @@ body {
   cursor: default;
   border: 2px solid var(--border);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted);
   transition:
     background 0.15s,
     border-color 0.15s,
@@ -3416,7 +3419,7 @@ body {
 }
 .setup-step-badge {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-bottom: 0.5rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -3427,7 +3430,7 @@ body {
   margin: 0 0 0.5rem;
 }
 .setup-step-desc {
-  color: var(--text-muted);
+  color: var(--muted);
   margin: 0 0 1.5rem;
   font-size: 0.95rem;
 }
@@ -3446,12 +3449,14 @@ body {
   border: 2px solid var(--border);
   border-radius: 10px;
   padding: 1rem 0.75rem;
-  background: transparent;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
   cursor: pointer;
   text-align: center;
+  color: var(--text);
   transition:
     border-color 0.15s,
-    background 0.15s;
+    background 0.15s,
+    box-shadow 0.15s;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -3459,10 +3464,12 @@ body {
 }
 .setup-provider-card:hover {
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 .setup-provider-card.selected {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 .setup-provider-icon {
   font-size: 1.75rem;
@@ -3472,20 +3479,20 @@ body {
 }
 .setup-provider-card span {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 .setup-provider-badge {
   font-size: 0.7rem;
   padding: 2px 6px;
   border-radius: 4px;
   background: var(--bg-secondary);
-  color: var(--text-muted);
+  color: var(--muted);
   margin-top: 0.2rem;
 }
 .setup-provider-card-desc {
   font-size: 0.75rem;
   line-height: 1.35;
-  color: var(--text-muted);
+  color: var(--muted);
   text-align: center;
   max-width: 100%;
 }
@@ -3527,12 +3534,12 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.8rem;
 }
 .setup-security-note {
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-top: 0.5rem;
 }
 
@@ -3559,7 +3566,7 @@ body {
 .setup-test-result.loading {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--muted);
   opacity: 0.9;
 }
 .setup-test-result.ok {
@@ -3612,7 +3619,7 @@ body {
 }
 .setup-hint {
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin: 0.35rem 0 0;
 }
 .setup-recap {
