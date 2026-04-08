@@ -795,6 +795,12 @@ body {
 }
 .card-project-wrap {
   position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.card-project-wrap > a.card.card-project {
+  flex: 1 1 auto;
 }
 .card-project-actions {
   position: absolute;
@@ -838,9 +844,12 @@ body {
 .card-project-row {
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
 .card-project-logo {
+  align-self: flex-start;
   flex-shrink: 0;
   width: 52px;
   height: 52px;
@@ -881,10 +890,11 @@ body {
 }
 .card-project-main {
   min-width: 0;
+  min-height: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 .card-project-name {
   font-weight: 700;
@@ -922,15 +932,19 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 .card.card-project {
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.14);
   padding: 16px 14px 14px;
-  min-height: 140px;
+  min-height: 168px;
+  overflow: hidden;
+  text-decoration: none;
 }
 body.theme-light .card.card-project {
   box-shadow: 0 2px 12px rgba(24, 24, 27, 0.08);
 }
 .card-project-footer {
-  margin-top: 12px;
+  margin-top: auto;
   padding-top: 10px;
   border-top: 1px solid var(--border);
 }
@@ -991,16 +1005,7 @@ body.theme-light .card.card-project {
   background: var(--surface-2);
   color: var(--muted);
 }
-.new {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 140px;
-  border-style: dashed;
-  cursor: pointer;
-  font-size: 40px;
-  color: var(--accent);
-}
+/* Add-project tile — scoped to #new-project (avoid generic .new blowing up size) */
 .modal {
   position: fixed;
   inset: 0;
@@ -2970,8 +2975,9 @@ body {
 }
 .grid-3 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1rem;
+  align-items: stretch;
 }
 .card {
   background: var(--surface);
@@ -2979,10 +2985,35 @@ body {
   border-radius: 1.1rem;
   padding: 1.1rem;
 }
-.card.new {
-  font-size: 1.8rem;
+#new-project.card {
+  align-self: start;
+  justify-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  border-width: 1px;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  cursor: pointer;
+  font: inherit;
   color: var(--accent);
-  min-height: 130px;
+  box-sizing: border-box;
+  line-height: 1;
+}
+#new-project.card:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--surface) 92%, var(--accent));
+}
+#new-project .projects-add-icon {
+  font-size: 1.65rem;
+  font-weight: 500;
+  line-height: 1;
 }
 .onboarding-hint {
   grid-column: 1 / -1;
