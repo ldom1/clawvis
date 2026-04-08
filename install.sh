@@ -77,16 +77,14 @@ run_quiet() {
 
 print_banner() {
   local version
-  version="$(python3 -c "import json; print(json.load(open('${ROOT_DIR}/hub/package.json')).get('version','dev'))" 2>/dev/null || echo "dev")"
-  local R="" B="" D="" Y="" C=""
+  version="$(git -C "${ROOT_DIR}" describe --tags --always 2>/dev/null || echo "dev")"
+  [ "${version#v}" = "${version}" ] && version="v${version}"
+  local R="" M=""
   if [ -t 1 ]; then
-    R=$'\033[0m'; B=$'\033[1m'; D=$'\033[2m'; Y=$'\033[33m'; C=$'\033[36m'
+    R=$'\033[0m'; M=$'\033[35m'
   fi
   printf "\n"
-  printf "%s┌──────────────────────────────────────┐%s\n" "${C}" "${R}"
-  printf "%s│%s  %s♛ Clawvis%s  %sv%-24s%s%s│%s\n" \
-    "${C}" "${R}" "${Y}${B}" "${R}" "${D}" "${version}" "${R}" "${C}" "${R}"
-  printf "%s└──────────────────────────────────────┘%s\n" "${C}" "${R}"
+  printf "%s------ ♛ Clawvis  %s%s\n" "${M}" "${version}" "${R}"
   printf "\n"
 }
 
@@ -192,7 +190,7 @@ Options:
   --memory-port <port>       (default: 3099)
   --kanban-api-port <port>   (default: 8090)
   --projects-root <path>
-  --mode <Franc|Soisson|Merovingien>   (legacy: docker|prod|dev|minimal accepted)
+  --mode <Franc|Soissons|Merovingien>  (legacy: docker|prod|dev|minimal accepted)
   --brain-path <path>
   --memory-type <local|symlink>
   --no-start      Create instance structure only, do not launch services
@@ -331,25 +329,25 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Run mode — Franc (Docker), Soisson (local dev), Merovingien (VPS/no-start)
+# Run mode — Franc (Docker), Soissons (local dev), Merovingien (VPS/no-start)
 # Legacy values (docker, prod, dev, minimal) accepted for backward compatibility.
 # ---------------------------------------------------------------------------
 if [ "${NON_INTERACTIVE}" -eq 1 ]; then
   case "${MODE_FLAG:-Franc}" in
     Franc|franc|docker|prod)         WIZARD_MODE="Franc";       RUN_MODE="docker" ;;
-    Soisson|soisson|dev)             WIZARD_MODE="Soisson";     RUN_MODE="dev" ;;
+    Soissons|soissons|Soisson|soisson|dev) WIZARD_MODE="Soissons"; RUN_MODE="dev" ;;
     Merovingien|merovingien|minimal) WIZARD_MODE="Merovingien"; RUN_MODE="docker"; NO_START=1 ;;
     *) error_msg "Invalid --mode value: ${MODE_FLAG}"; exit 1 ;;
   esac
 else
   info "Choose run mode"
-  MODE_PICK="$(ask_choice "? Choose run mode:" "1" \
+  MODE_PICK="$(ask_choice "? Choose run mode (1=Franc, 2=Soissons, 3=Merovingien):" "1" \
     "Franc       — Docker, quick start (recommended)" \
-    "Soisson     — Local dev (Vite + uvicorn)" \
+    "Soissons    — Local dev / contribution (Vite + uvicorn)" \
     "Merovingien — VPS / server deploy (configure only, no local start)")"
   case "${MODE_PICK}" in
     Franc*)       WIZARD_MODE="Franc";       RUN_MODE="docker" ;;
-    Soisson*)     WIZARD_MODE="Soisson";     RUN_MODE="dev" ;;
+    Soissons*)    WIZARD_MODE="Soissons";    RUN_MODE="dev" ;;
     Merovingien*) WIZARD_MODE="Merovingien"; RUN_MODE="docker"; NO_START=1 ;;
   esac
 fi
@@ -417,15 +415,30 @@ upsert_env "MEMORY_ROOT" "${MEMORY_ROOT}"
 upsert_env "BRAIN_PATH" "${BRAIN_PATH}"
 upsert_env "MEMORY_TYPE" "${MEMORY_TYPE}"
 
+AUTO_PROJECTS_ROOT=""
+if [ "${MEMORY_TYPE}" = "symlink" ]; then
+  CANDIDATE_PROJECTS_ROOT="$(python3 -c 'import os,sys; p=os.path.realpath(sys.argv[1]); inside=os.path.join(p,"projects"); sibling=os.path.join(os.path.dirname(p),"projects"); print(inside if os.path.isdir(inside) else sibling)' "${BRAIN_PATH}")"
+  if [ -d "${CANDIDATE_PROJECTS_ROOT}" ]; then
+    AUTO_PROJECTS_ROOT="${CANDIDATE_PROJECTS_ROOT}"
+  fi
+fi
+
 # ---------------------------------------------------------------------------
 # Configuration — ports are never prompted interactively.
 # Override via --hub-port / --memory-port / --kanban-api-port flags (CI),
 # or edit .env directly after first run. Defaults documented in .env.example.
 # ---------------------------------------------------------------------------
 if [ "${NON_INTERACTIVE}" -eq 1 ]; then
-  PROJECTS_ROOT="${PROJECTS_ROOT_FLAG:-/home/${USER}/lab_perso/projects}"
+  if [ -n "${PROJECTS_ROOT_FLAG:-}" ]; then
+    PROJECTS_ROOT="${PROJECTS_ROOT_FLAG}"
+  elif [ -n "${AUTO_PROJECTS_ROOT}" ]; then
+    PROJECTS_ROOT="${AUTO_PROJECTS_ROOT}"
+  else
+    PROJECTS_ROOT="/home/${USER}/lab_perso/projects"
+  fi
 else
-  PROJECTS_ROOT="$(ask "Projects root path" "/home/${USER}/lab_perso/projects")"
+  PROJECTS_ROOT_DEFAULT="${AUTO_PROJECTS_ROOT:-/home/${USER}/lab_perso/projects}"
+  PROJECTS_ROOT="$(ask "Projects root path" "${PROJECTS_ROOT_DEFAULT}")"
 fi
 HUB_PORT="${HUB_PORT_FLAG:-8088}"
 MEMORY_PORT="${MEMORY_PORT_FLAG:-3099}"
@@ -510,9 +523,9 @@ elif [ "${RUN_MODE}" = "docker" ]; then
     warn "Hub health check timed out — services may still be starting."
   fi
 else
-  # Soisson — local dev stack (foreground, replaces this process)
+  # Soissons — local dev stack (foreground, replaces this process)
   if ! command -v npm >/dev/null 2>&1; then
-    error_msg "npm is required for Soisson (dev) mode."
+    error_msg "npm is required for Soissons (dev) mode."
     step "Install Node.js (>= 18): https://nodejs.org/"
     exit 1
   fi

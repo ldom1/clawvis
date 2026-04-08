@@ -35,3 +35,15 @@ def test_first_linked_when_no_runtime_match(tmp_path: Path) -> None:
         memory_root=default,
         linked_instances=[str(tmp_path / "ldom")],
     ).resolve() == ldom.resolve()
+
+
+def test_prefers_runtime_when_runtime_has_projects_md(tmp_path: Path) -> None:
+    runtime = tmp_path / "runtime" / "memory"
+    (runtime / "projects").mkdir(parents=True)
+    (runtime / "projects" / "clawvis.md").write_text("# clawvis\n", encoding="utf-8")
+    linked = tmp_path / "linked" / "memory"
+    linked.mkdir(parents=True)
+    assert active_brain_memory_root(
+        memory_root=runtime,
+        linked_instances=[str(tmp_path / "linked")],
+    ).resolve() == runtime.resolve()

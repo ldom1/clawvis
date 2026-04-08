@@ -15,6 +15,7 @@ def active_brain_memory_root(
 
     - Collects ``<instance>/memory`` for each path in ``linked_instances`` that exists.
     - If ``memory_root`` (resolved) equals one of those, returns it.
+    - Else prefers runtime ``memory_root`` when it already contains ``projects/*.md``.
     - Else returns the first candidate (paths sorted lexicographically).
     - If no valid linked memory dirs, returns ``memory_root`` (unchanged default).
     """
@@ -37,6 +38,9 @@ def active_brain_memory_root(
     for mem in candidates:
         if mem.resolve() == runtime_mem:
             return mem
+    runtime_projects = runtime_mem / "projects"
+    if runtime_projects.is_dir() and any(runtime_projects.glob("*.md")):
+        return runtime_mem
     if candidates:
         return candidates[0]
     return runtime_mem
