@@ -12,13 +12,14 @@ REF="${CLAWVIS_REF:-}"
 INSTALL_DIR="${CLAWVIS_DIR:-$HOME/.clawvis}"
 LAST_LOG="${CLAWVIS_LAST_LOG:-/tmp/clawvis_last.log}"
 
+_braille=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 spinner() {
   local pid="$1" msg="$2"
-  local spin='|/-\'
-  local i=0
+  local i=0 nf="${#_braille[@]}"
+  [ -t 1 ] || { wait "${pid}"; return; }
   tput civis 2>/dev/null || true
   while kill -0 "${pid}" 2>/dev/null; do
-    printf "\r  %s  %s" "${spin:$((i % ${#spin})):1}" "${msg}"
+    printf "\r  %s  %s" "${_braille[$((i % nf))]}" "${msg}"
     sleep 0.08
     i=$((i + 1))
   done

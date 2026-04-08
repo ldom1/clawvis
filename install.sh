@@ -16,19 +16,28 @@ BRAIN_PATH_FLAG=""
 MEMORY_TYPE_FLAG=""
 NO_START=0
 LAST_LOG="${CLAWVIS_LAST_LOG:-/tmp/clawvis_last.log}"
+TTY_FD=""        # file descriptor for /dev/tty when stdin is piped
+STEP_CURRENT=0   # incremented by run_quiet
+STEP_TOTAL=5     # rough estimate; keeps percentage meaningful
 
 # Ensure all relative paths and docker compose commands run from repo root.
 cd "${ROOT_DIR}"
 
 info() { printf "\n==> %s\n" "$1"; }
 warn() { printf "\n[warn] %s\n" "$1"; }
+
+_braille=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 spinner() {
-  local pid="$1" msg="$2"
-  local spin='|/-\'
-  local i=0
+  local pid="$1" msg="$2" pct="${3:-}"
+  local i=0 nf="${#_braille[@]}"
+  [ -t 1 ] || { wait "${pid}"; return; }  # degrade if no ANSI
   tput civis 2>/dev/null || true
   while kill -0 "${pid}" 2>/dev/null; do
-    printf "\r  %s  %s" "${spin:$((i % ${#spin})):1}" "${msg}"
+    if [ -n "${pct}" ]; then
+      printf "\r  %s  %s  %d%%" "${_braille[$((i % nf))]}" "${msg}" "${pct}"
+    else
+      printf "\r  %s  %s" "${_braille[$((i % nf))]}" "${msg}"
+    fi
     sleep 0.08
     i=$((i + 1))
   done
@@ -37,32 +46,51 @@ spinner() {
 run_quiet() {
   local msg="$1"
   shift
+  STEP_CURRENT=$((STEP_CURRENT + 1))
+  local pct=0
+  [ "${STEP_TOTAL}" -gt 0 ] && pct=$(( (STEP_CURRENT * 100) / STEP_TOTAL ))
   "$@" >"${LAST_LOG}" 2>&1 &
   local pid=$!
-  spinner "${pid}" "${msg}"
+  spinner "${pid}" "${msg}" "${pct}"
   wait "${pid}"
   local code=$?
   if [ "${code}" -ne 0 ]; then
-    printf "\r  ✗  %s (failed — see %s)\n" "${msg}" "${LAST_LOG}"
+    printf "\r  ✗  %s (failed)\n" "${msg}"
+    cat "${LAST_LOG}" >&2
     exit "${code}"
   fi
   printf "\r  ✓  %s\n" "${msg}"
+}
+
+print_banner() {
+  local version
+  version="$(python3 -c "import json; print(json.load(open('${ROOT_DIR}/hub/package.json')).get('version','dev'))" 2>/dev/null || echo "dev")"
+  local R="" B="" D="" Y="" C=""
+  if [ -t 1 ]; then
+    R=$'\033[0m'; B=$'\033[1m'; D=$'\033[2m'; Y=$'\033[33m'; C=$'\033[36m'
+  fi
+  printf "\n"
+  printf "%s┌──────────────────────────────────────┐%s\n" "${C}" "${R}"
+  printf "%s│%s  %s♛ Clawvis%s  %sv%-24s%s%s│%s\n" \
+    "${C}" "${R}" "${Y}${B}" "${R}" "${D}" "${version}" "${R}" "${C}" "${R}"
+  printf "%s└──────────────────────────────────────┘%s\n" "${C}" "${R}"
+  printf "\n"
 }
 ask() {
   local prompt="$1" default="${2:-}"
   local value
   if [ -n "$default" ]; then
-    if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
-      printf "%s [%s]: " "$prompt" "$default" > /dev/tty
-      read -r value < /dev/tty
+    if [ -n "${TTY_FD}" ]; then
+      printf "%s [%s]: " "$prompt" "$default" >&"${TTY_FD}"
+      read -r value <&"${TTY_FD}"
     else
       read -r -p "$prompt [$default]: " value
     fi
     printf "%s" "${value:-$default}"
   else
-    if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
-      printf "%s: " "$prompt" > /dev/tty
-      read -r value < /dev/tty
+    if [ -n "${TTY_FD}" ]; then
+      printf "%s: " "$prompt" >&"${TTY_FD}"
+      read -r value <&"${TTY_FD}"
     else
       read -r -p "$prompt: " value
     fi
@@ -75,23 +103,23 @@ ask_choice() {
   local options=("$@")
   local value=""
   while :; do
-    if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
-      printf "%s\n" "${prompt}" > /dev/tty
+    if [ -n "${TTY_FD}" ]; then
+      printf "%s\n" "${prompt}" >&"${TTY_FD}"
     else
       printf "%s\n" "${prompt}"
     fi
     local idx=1
     for option in "${options[@]}"; do
-      if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
-        printf "  %d) %s\n" "${idx}" "${option}" > /dev/tty
+      if [ -n "${TTY_FD}" ]; then
+        printf "  %d) %s\n" "${idx}" "${option}" >&"${TTY_FD}"
       else
         printf "  %d) %s\n" "${idx}" "${option}"
       fi
       idx=$((idx + 1))
     done
-    if [ "${USE_TTY_INPUT:-0}" = "1" ]; then
-      printf "Choice [%s]: " "${default}" > /dev/tty
-      read -r value < /dev/tty
+    if [ -n "${TTY_FD}" ]; then
+      printf "Choice [%s]: " "${default}" >&"${TTY_FD}"
+      read -r value <&"${TTY_FD}"
     else
       read -r -p "Choice [${default}]: " value
     fi
@@ -100,7 +128,11 @@ ask_choice() {
       printf "%s" "${options[$((value - 1))]}"
       return
     fi
-    warn "Invalid choice: ${value}"
+    if [ -n "${TTY_FD}" ]; then
+      printf "\n[warn] Invalid choice: %s\n" "${value}" >&"${TTY_FD}"
+    else
+      warn "Invalid choice: ${value}"
+    fi
   done
 }
 ensure_cli_shim() {
@@ -217,6 +249,8 @@ parse_args "$@"
 USE_TTY_INPUT=0
 if [ "${NON_INTERACTIVE}" -eq 0 ] && [ ! -t 0 ]; then
   if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+    exec 3<>/dev/tty   # open /dev/tty once as FD 3; reused by ask/ask_choice
+    TTY_FD=3
     USE_TTY_INPUT=1
   else
     echo "Error: interactive setup requires a TTY."
@@ -228,7 +262,7 @@ fi
 chmod +x "${ROOT_DIR}/clawvis"
 ensure_cli_shim
 
-info "Clawvis bootstrap"
+print_banner
 if [ ! -f "${ENV_FILE}" ]; then
   run_quiet "Creating .env from template" cp "${EXAMPLE_FILE}" "${ENV_FILE}"
 else
@@ -413,13 +447,9 @@ else
   exec "${ROOT_DIR}/scripts/start.sh"
 fi
 
-info "Done"
-echo "╔══════════════════════════════════════════════════════╗"
-echo "║              Clawvis — Setup complete                ║"
-echo "╠══════════════════════════════════════════════════════╣"
-printf "║  Instance   : %-38s║\n" "${INSTANCE_NAME}"
-printf "║  Mode       : %-38s║\n" "${WIZARD_MODE}"
-printf "║  Memory     : %-38s║\n" "${BRAIN_PATH}"
-printf "║  Type       : %-38s║\n" "${MEMORY_TYPE}"
-printf "║  Brain UI   : %-38s║\n" "${ROOT_DIR}/quartz/public/"
-echo "╚══════════════════════════════════════════════════════╝"
+print_banner
+printf "  Setup complete\n"
+printf "  Instance : %s\n" "${INSTANCE_NAME}"
+printf "  Mode     : %s\n" "${WIZARD_MODE}"
+printf "  Memory   : %s\n" "${BRAIN_PATH}"
+printf "  Brain UI : %s/quartz/public/\n\n" "${ROOT_DIR}"
