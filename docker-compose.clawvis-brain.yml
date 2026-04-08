@@ -1,0 +1,16 @@
+# Optional compose fragment: merged when install sets COMPOSE_FILE (symlinked memory).
+# `instances/<name>/memory` → BRAIN_PATH outside the repo (e.g. WSL /mnt/c/...).
+# Without this bind, APIs in Docker cannot follow the symlink — Brain/Quartz on the host
+# can still work while Kanban returns zero projects.
+#
+# :rw required: Kanban persists memory/kanban/{hub_settings.json,tasks.json} on the brain tree.
+services:
+  hub:
+    volumes:
+      - "${BRAIN_PATH:?Set BRAIN_PATH in .env (resolved brain root)}:${BRAIN_PATH}:rw"
+  kanban-api:
+    volumes:
+      - "${BRAIN_PATH}:${BRAIN_PATH}:rw"
+  hub-memory-api:
+    volumes:
+      - "${BRAIN_PATH}:${BRAIN_PATH}:rw"

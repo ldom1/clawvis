@@ -154,6 +154,14 @@ json_check "Kanban tasks is array"          "/api/hub/kanban/tasks"        "task
 json_check "Chat status has provider field" "/api/hub/chat/status"         "provider"
 json_check "Memory settings shape"          "/api/hub/memory/settings"     "projects_root"
 
+# Home/Kanban project cards need at least one project (memory/projects/*.md or PROJECTS_ROOT).
+projects_body="$(curl -s --max-time 10 "${BASE_URL}/api/hub/kanban/hub/projects" 2>/dev/null || echo "{}")"
+if echo "${projects_body}" | python3 -c "import json,sys; d=json.load(sys.stdin); assert len(d.get('projects') or [])>=1" 2>/dev/null; then
+  ok "Kanban hub projects non-empty (home grid)"
+else
+  fail "Kanban hub/projects empty or invalid — ${projects_body:0:180}"
+fi
+
 echo ""
 printf "Curl results: %d failed\n" "${FAILURES}"
 

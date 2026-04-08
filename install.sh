@@ -23,8 +23,23 @@ STEP_TOTAL=5     # rough estimate; keeps percentage meaningful
 # Ensure all relative paths and docker compose commands run from repo root.
 cd "${ROOT_DIR}"
 
-info() { printf "\n==> %s\n" "$1"; }
-warn() { printf "\n[warn] %s\n" "$1"; }
+# ---------------------------------------------------------------------------
+# Display helpers — degrade gracefully on non-TTY
+# ---------------------------------------------------------------------------
+_K=$'\033[K' # erase to end of line (clears spinner % / trailing chars)
+if [ -t 1 ]; then
+  _R=$'\033[0m' _B=$'\033[1m' _D=$'\033[2m'
+  _M=$'\033[35m' _C=$'\033[36m' _G=$'\033[32m' _Y=$'\033[33m' _RE=$'\033[31m'
+else
+  _R='' _B='' _D='' _M='' _C='' _G='' _Y='' _RE=''
+fi
+
+# Magenta section titles — parity with clawvis-cli printSection / box border
+info()      { printf "\n${_B}${_M}==> %s${_R}\n" "$1"; }
+warn()      { printf "  ${_Y}⚠${_R}  %s\n" "$1"; }
+error_msg() { printf "  ${_RE}✗${_R}  %s\n" "$1" >&2; }
+# Informative status only (no subprocess). Long tasks use run_quiet → green ✓ when done.
+step()      { printf "  ${_D}→${_R}  %s\n" "$1"; }
 
 _braille=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 spinner() {
@@ -34,15 +49,16 @@ spinner() {
   tput civis 2>/dev/null || true
   while kill -0 "${pid}" 2>/dev/null; do
     if [ -n "${pct}" ]; then
-      printf "\r  %s  %s  %d%%" "${_braille[$((i % nf))]}" "${msg}" "${pct}"
+      printf "\r  %s  %s  %d%%%s" "${_braille[$((i % nf))]}" "${msg}" "${pct}" "${_K}"
     else
-      printf "\r  %s  %s" "${_braille[$((i % nf))]}" "${msg}"
+      printf "\r  %s  %s%s" "${_braille[$((i % nf))]}" "${msg}" "${_K}"
     fi
     sleep 0.08
     i=$((i + 1))
   done
   tput cnorm 2>/dev/null || true
 }
+
 run_quiet() {
   local msg="$1"
   shift
@@ -55,27 +71,42 @@ run_quiet() {
   wait "${pid}"
   local code=$?
   if [ "${code}" -ne 0 ]; then
-    printf "\r  ✗  %s (failed)\n" "${msg}"
+    printf "\r  ${_RE}✗${_R}  %s (failed)%s\n" "${msg}" "${_K}"
     cat "${LAST_LOG}" >&2
     exit "${code}"
   fi
-  printf "\r  ✓  %s\n" "${msg}"
+  printf "\r  ${_G}✓${_R}  %s%s\n" "${msg}" "${_K}"
+}
+
+# Same wordmark as clawvis-cli/cli.mjs (keep get.sh + clawvis copies in sync).
+clawvis_cli_print_header() {
+  local root="${1:-.}"
+  local v
+  v="$(git -C "${root}" describe --tags --always 2>/dev/null || echo "dev")"
+  [ "${v#v}" = "${v}" ] && v="v${v}"
+  if [ ! -t 1 ]; then
+    printf '\n♛ CLAWVIS %s\n\n' "${v}"
+    return 0
+  fi
+  local M=$'\033[35m' B=$'\033[1;35m' D=$'\033[2m' R=$'\033[0m'
+  local inner=36
+  local row1_pad=$((inner - 12))
+  [ "${row1_pad}" -lt 0 ] && row1_pad=0
+  local row2_pad=$((inner - 5 - ${#v}))
+  [ "${row2_pad}" -lt 0 ] && row2_pad=0
+  printf '\n'
+  printf '%b╭────────────────────────────────────╮%b\n' "${M}" "${R}"
+  printf '%b│%b  %s♛%s  %sCLAWVIS%s%*s%b│%b\n' \
+    "${M}" "${R}" "${M}" "${R}" "${B}" "${R}" "${row1_pad}" "" "${M}" "${R}"
+  printf '%b│%b     %s%s%*s%b│%b\n' \
+    "${M}" "${R}" "${D}" "${v}" "${row2_pad}" "" "${M}" "${R}"
+  printf '%b╰────────────────────────────────────╯%b\n\n' "${M}" "${R}"
 }
 
 print_banner() {
-  local version
-  version="$(python3 -c "import json; print(json.load(open('${ROOT_DIR}/hub/package.json')).get('version','dev'))" 2>/dev/null || echo "dev")"
-  local R="" B="" D="" Y="" C=""
-  if [ -t 1 ]; then
-    R=$'\033[0m'; B=$'\033[1m'; D=$'\033[2m'; Y=$'\033[33m'; C=$'\033[36m'
-  fi
-  printf "\n"
-  printf "%s┌──────────────────────────────────────┐%s\n" "${C}" "${R}"
-  printf "%s│%s  %s♛ Clawvis%s  %sv%-24s%s%s│%s\n" \
-    "${C}" "${R}" "${Y}${B}" "${R}" "${D}" "${version}" "${R}" "${C}" "${R}"
-  printf "%s└──────────────────────────────────────┘%s\n" "${C}" "${R}"
-  printf "\n"
+  clawvis_cli_print_header "${ROOT_DIR}"
 }
+
 ask() {
   local prompt="$1" default="${2:-}"
   local value
@@ -129,7 +160,7 @@ ask_choice() {
       return
     fi
     if [ -n "${TTY_FD}" ]; then
-      printf "\n[warn] Invalid choice: %s\n" "${value}" >&"${TTY_FD}"
+      printf "\n  ${_Y}⚠${_R}  Invalid choice: %s\n" "${value}" >&"${TTY_FD}"
     else
       warn "Invalid choice: ${value}"
     fi
@@ -163,6 +194,7 @@ ensure_cli_shim() {
       ;;
   esac
 }
+
 usage() {
   cat <<'EOF'
 Usage: ./install.sh [options]
@@ -173,17 +205,18 @@ Non-interactive mode: pass --non-interactive and required flags.
 Options:
   --non-interactive
   --instance <name>
-  --hub-port <port>
-  --memory-port <port>
-  --kanban-api-port <port>
+  --hub-port <port>          (default: 8088; documented in .env.example)
+  --memory-port <port>       (default: 3099)
+  --kanban-api-port <port>   (default: 8090)
   --projects-root <path>
-  --mode <dev|prod|minimal|docker>
+  --mode <Franc|Soissons|Merovingien>  (legacy: docker|prod|dev|minimal accepted)
   --brain-path <path>
   --memory-type <local|symlink>
   --no-start      Create instance structure only, do not launch services
   -h, --help
 EOF
 }
+
 upsert_env() {
   local key="$1" value="$2"
   if grep -q "^${key}=" "${ENV_FILE}" 2>/dev/null; then
@@ -206,6 +239,22 @@ PY
     printf "%s=%s\n" "$key" "$value" >> "${ENV_FILE}"
   fi
 }
+
+delete_env_key() {
+  local key="$1"
+  [ -f "${ENV_FILE}" ] || return 0
+  python3 - "$ENV_FILE" "$key" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+key = sys.argv[2]
+lines = path.read_text(encoding="utf-8").splitlines()
+out = [ln for ln in lines if not ln.startswith(f"{key}=")]
+path.write_text("\n".join(out) + "\n", encoding="utf-8")
+PY
+}
+
 parse_args() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -220,11 +269,12 @@ parse_args() {
       --brain-path) BRAIN_PATH_FLAG="${2:-}"; shift ;;
       --memory-type) MEMORY_TYPE_FLAG="${2:-}"; shift ;;
       -h|--help) usage; exit 0 ;;
-      *) echo "Unknown option: $1"; usage; exit 1 ;;
+      *) error_msg "Unknown option: $1"; usage; exit 1 ;;
     esac
     shift
   done
 }
+
 migrate_memory_if_needed() {
   local target_rel="$1"
   local target_abs="${ROOT_DIR}/${target_rel}"
@@ -244,6 +294,21 @@ migrate_memory_if_needed() {
   fi
 }
 
+# ---------------------------------------------------------------------------
+# Open URL in default browser — cross-platform (Linux / macOS / WSL)
+# ---------------------------------------------------------------------------
+open_browser() {
+  local url="$1"
+  if command -v wslview >/dev/null 2>&1; then
+    wslview "${url}" >/dev/null 2>&1 &
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "${url}" >/dev/null 2>&1 &
+  elif command -v open >/dev/null 2>&1; then
+    open "${url}" >/dev/null 2>&1 &
+  fi
+}
+
+# ---------------------------------------------------------------------------
 parse_args "$@"
 
 USE_TTY_INPUT=0
@@ -253,8 +318,8 @@ if [ "${NON_INTERACTIVE}" -eq 0 ] && [ ! -t 0 ]; then
     TTY_FD=3
     USE_TTY_INPUT=1
   else
-    echo "Error: interactive setup requires a TTY."
-    echo "Run with --non-interactive for CI/piped mode."
+    error_msg "Interactive setup requires a TTY."
+    step "Run with --non-interactive for CI/piped mode."
     exit 1
   fi
 fi
@@ -269,6 +334,9 @@ else
   info ".env already exists, keeping current values"
 fi
 
+# ---------------------------------------------------------------------------
+# Instance name
+# ---------------------------------------------------------------------------
 info "Instance setup"
 if [ "${NON_INTERACTIVE}" -eq 1 ]; then
   INSTANCE_NAME="${INSTANCE_NAME_FLAG:-${USER}}"
@@ -281,37 +349,48 @@ if [ "${INSTANCE_NAME}" = "example" ]; then
   warn "Instance name 'example' keeps template semantics; choose a custom name for production."
 fi
 if [ -d "${INSTANCE_PATH}" ] && [ "${INSTANCE_NAME}" != "example" ]; then
-  info "Instance folder already exists: ${INSTANCE_PATH}"
+  step "Instance folder already exists: ${INSTANCE_PATH}"
 else
   if [ -d "${EXAMPLE_PATH}" ] && [ "${INSTANCE_NAME}" != "example" ]; then
-    info "Renaming instances/example -> instances/${INSTANCE_NAME}"
+    step "Renaming instances/example -> instances/${INSTANCE_NAME}"
     mv "${EXAMPLE_PATH}" "${INSTANCE_PATH}"
   elif [ -d "${EXAMPLE_PATH}" ] && [ "${INSTANCE_NAME}" = "example" ]; then
-    info "Using existing instances/example"
+    step "Using existing instances/example"
   else
     warn "instances/example not found; creating empty instance directory."
     mkdir -p "${INSTANCE_PATH}"
   fi
 fi
 
+# ---------------------------------------------------------------------------
+# Run mode — Franc (Docker), Soissons (local dev), Merovingien (VPS/no-start)
+# Legacy values (docker, prod, dev, minimal) accepted for backward compatibility.
+# ---------------------------------------------------------------------------
 if [ "${NON_INTERACTIVE}" -eq 1 ]; then
-  case "${MODE_FLAG:-prod}" in
-    docker|prod) WIZARD_MODE="prod"; RUN_MODE="docker" ;;
-    dev) WIZARD_MODE="dev"; RUN_MODE="dev" ;;
-    minimal) WIZARD_MODE="minimal"; RUN_MODE="docker"; NO_START=1 ;;
-    *) echo "Invalid --mode value: ${MODE_FLAG}"; exit 1 ;;
+  case "${MODE_FLAG:-Franc}" in
+    Franc|franc|docker|prod)         WIZARD_MODE="Franc";       RUN_MODE="docker" ;;
+    Soissons|soissons|Soisson|soisson|dev) WIZARD_MODE="Soissons"; RUN_MODE="dev" ;;
+    Merovingien|merovingien|minimal) WIZARD_MODE="Merovingien"; RUN_MODE="docker"; NO_START=1 ;;
+    *) error_msg "Invalid --mode value: ${MODE_FLAG}"; exit 1 ;;
   esac
 else
   info "Choose run mode"
-  MODE_PICK="$(ask_choice "? Choose run mode:" "1" "dev" "prod" "minimal")"
+  MODE_PICK="$(ask_choice "? Choose run mode (1=Franc, 2=Soissons, 3=Merovingien):" "1" \
+    "Franc       — Docker, quick start (recommended)" \
+    "Soissons    — Local dev / contribution (Vite + uvicorn)" \
+    "Merovingien — VPS / server deploy (configure only, no local start)")"
   case "${MODE_PICK}" in
-    dev) WIZARD_MODE="dev"; RUN_MODE="dev" ;;
-    prod) WIZARD_MODE="prod"; RUN_MODE="docker" ;;
-    minimal) WIZARD_MODE="minimal"; RUN_MODE="docker"; NO_START=1 ;;
+    Franc*)       WIZARD_MODE="Franc";       RUN_MODE="docker" ;;
+    Soissons*)    WIZARD_MODE="Soissons";    RUN_MODE="dev" ;;
+    Merovingien*) WIZARD_MODE="Merovingien"; RUN_MODE="docker"; NO_START=1 ;;
   esac
 fi
 upsert_env "MODE" "${RUN_MODE}"
+step "Mode: ${WIZARD_MODE}"
 
+# ---------------------------------------------------------------------------
+# Memory configuration
+# ---------------------------------------------------------------------------
 info "Memory configuration"
 MEMORY_ROOT="instances/${INSTANCE_NAME}/memory"
 INSTANCE_MEMORY_PATH="${ROOT_DIR}/${MEMORY_ROOT}"
@@ -335,11 +414,11 @@ fi
 
 if [ "${MEMORY_TYPE}" = "symlink" ]; then
   if [ -z "${BRAIN_PATH_INPUT}" ]; then
-    echo "Error: --brain-path is required when using symlink memory type."
+    error_msg "--brain-path is required when using symlink memory type."
     exit 1
   fi
   if [ ! -e "${BRAIN_PATH_INPUT}" ]; then
-    echo "Error: memory path does not exist: ${BRAIN_PATH_INPUT}"
+    error_msg "Memory path does not exist: ${BRAIN_PATH_INPUT}"
     exit 1
   fi
   BRAIN_PATH="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${BRAIN_PATH_INPUT}")"
@@ -351,7 +430,7 @@ if [ "${MEMORY_TYPE}" = "symlink" ]; then
   fi
   ln -s "${BRAIN_PATH}" "${INSTANCE_MEMORY_PATH}"
   if [ ! -L "${INSTANCE_MEMORY_PATH}" ]; then
-    echo "Error: Failed to create memory symlink"
+    error_msg "Failed to create memory symlink"
     exit 1
   fi
 else
@@ -361,7 +440,7 @@ else
   migrate_memory_if_needed "${MEMORY_ROOT}"
   run_quiet "Initializing fresh memory structure" bash "${ROOT_DIR}/scripts/init-memory.sh"
   if [ -f "${ROOT_DIR}/${MEMORY_ROOT}/projects/example-project.md" ]; then
-    info "Validation log: example project seeded at ${MEMORY_ROOT}/projects/example-project.md"
+    step "Example project seeded at ${MEMORY_ROOT}/projects/example-project.md"
   fi
 fi
 
@@ -370,76 +449,133 @@ upsert_env "MEMORY_ROOT" "${MEMORY_ROOT}"
 upsert_env "BRAIN_PATH" "${BRAIN_PATH}"
 upsert_env "MEMORY_TYPE" "${MEMORY_TYPE}"
 
-if [ "${NON_INTERACTIVE}" -eq 1 ]; then
-  PROJECTS_ROOT="${PROJECTS_ROOT_FLAG:-/home/${USER}/lab_perso/projects}"
-  HUB_PORT="${HUB_PORT_FLAG:-8088}"
-  MEMORY_PORT="${MEMORY_PORT_FLAG:-3099}"
-  KANBAN_API_PORT="${KANBAN_API_PORT_FLAG:-8090}"
-else
-  PROJECTS_ROOT="$(ask "Projects root path" "/home/${USER}/lab_perso/projects")"
-  HUB_PORT="$(ask "Hub port" "8088")"
-  MEMORY_PORT="$(ask "Brain port" "3099")"
-  KANBAN_API_PORT="$(ask "Kanban API port (dev mode)" "8090")"
+AUTO_PROJECTS_ROOT=""
+if [ "${MEMORY_TYPE}" = "symlink" ]; then
+  CANDIDATE_PROJECTS_ROOT="$(python3 -c 'import os,sys; p=os.path.realpath(sys.argv[1]); inside=os.path.join(p,"projects"); sibling=os.path.join(os.path.dirname(p),"projects"); print(inside if os.path.isdir(inside) else sibling)' "${BRAIN_PATH}")"
+  if [ -d "${CANDIDATE_PROJECTS_ROOT}" ]; then
+    AUTO_PROJECTS_ROOT="${CANDIDATE_PROJECTS_ROOT}"
+  fi
 fi
+
+# ---------------------------------------------------------------------------
+# Configuration — ports are never prompted interactively.
+# Override via --hub-port / --memory-port / --kanban-api-port flags (CI),
+# or edit .env directly after first run. Defaults documented in .env.example.
+# ---------------------------------------------------------------------------
+if [ "${NON_INTERACTIVE}" -eq 1 ]; then
+  if [ -n "${PROJECTS_ROOT_FLAG:-}" ]; then
+    PROJECTS_ROOT="${PROJECTS_ROOT_FLAG}"
+  elif [ -n "${AUTO_PROJECTS_ROOT}" ]; then
+    PROJECTS_ROOT="${AUTO_PROJECTS_ROOT}"
+  else
+    PROJECTS_ROOT="/home/${USER}/lab_perso/projects"
+  fi
+else
+  PROJECTS_ROOT_DEFAULT="${AUTO_PROJECTS_ROOT:-/home/${USER}/lab_perso/projects}"
+  PROJECTS_ROOT="$(ask "Projects root path" "${PROJECTS_ROOT_DEFAULT}")"
+fi
+HUB_PORT="${HUB_PORT_FLAG:-8088}"
+MEMORY_PORT="${MEMORY_PORT_FLAG:-3099}"
+KANBAN_API_PORT="${KANBAN_API_PORT_FLAG:-8090}"
+HUB_MEMORY_API_PORT="${HUB_MEMORY_API_PORT:-8091}"
 upsert_env "PROJECTS_ROOT" "${PROJECTS_ROOT}"
 upsert_env "HUB_PORT" "${HUB_PORT}"
 upsert_env "MEMORY_PORT" "${MEMORY_PORT}"
 upsert_env "KANBAN_API_PORT" "${KANBAN_API_PORT}"
+upsert_env "HUB_MEMORY_API_PORT" "${HUB_MEMORY_API_PORT}"
 upsert_env "HOST_UID" "$(id -u)"
 upsert_env "HOST_GID" "$(id -g)"
 
+# Docker project name controls the container name prefix: clawvis-{instance}-{service}
+# (Fix 4: container_name in docker-compose.yml uses INSTANCE_NAME; COMPOSE_PROJECT_NAME
+# is a belt-and-suspenders fallback for any service without an explicit container_name.)
+COMPOSE_PROJECT_NAME="clawvis-${INSTANCE_NAME}"
+upsert_env "COMPOSE_PROJECT_NAME" "${COMPOSE_PROJECT_NAME}"
+export COMPOSE_PROJECT_NAME INSTANCE_NAME
+
+# Docker: bind-mount symlink target so Kanban/Memory APIs can read memory/projects/*.md.
+if [ "${MEMORY_TYPE}" = "symlink" ]; then
+  upsert_env "COMPOSE_FILE" "docker-compose.yml:docker-compose.clawvis-brain.yml"
+else
+  delete_env_key "COMPOSE_FILE"
+fi
+
+# ---------------------------------------------------------------------------
+# Brain display (Quartz)
+# ---------------------------------------------------------------------------
 info "Brain display (Quartz)"
 if [ "${CLAWVIS_SKIP_QUARTZ:-0}" = "1" ]; then
   warn "Quartz setup skipped (CLAWVIS_SKIP_QUARTZ=1)."
 else
   if command -v git >/dev/null 2>&1 && command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
     chmod +x "${ROOT_DIR}/scripts/setup-quartz.sh"
-    export INSTANCE_NAME MEMORY_ROOT
+    export MEMORY_ROOT
     run_quiet "Rebuilding Quartz" bash "${ROOT_DIR}/scripts/setup-quartz.sh" || warn "Quartz setup failed — continuing without Quartz."
   else
     warn "Quartz setup skipped (requires: git + node>=18 + npm)."
   fi
 fi
 
+# ---------------------------------------------------------------------------
+# Launch
+# ---------------------------------------------------------------------------
 if [ "${NO_START}" -eq 1 ]; then
-  info "Instance ready (--no-start: services not launched)"
-  echo "- Instance: ${INSTANCE_PATH}"
-  echo "- .env:     ${ENV_FILE}"
-  echo ""
-  echo "To start manually:"
-  echo "  docker compose up -d hub kanban-api hub-memory-api"
-  echo "  # or: clawvis start"
+  # Merovingien — instance configured, services not started locally
+  print_banner
+  info "Instance ready — ${WIZARD_MODE} mode"
+  step "Instance : ${INSTANCE_PATH}"
+  step ".env     : ${ENV_FILE}"
+  printf "\n"
+  step "To start : docker compose up -d hub kanban-api hub-memory-api"
+  step "       or : clawvis start"
+  printf "\n"
+  exit 0
 elif [ "${RUN_MODE}" = "docker" ]; then
+  # Franc — Docker launch
   if ! command -v docker >/dev/null 2>&1; then
-    echo "Error: Docker is required for prod mode."
-    echo "  Install Docker: https://docs.docker.com/get-docker/"
+    error_msg "Docker is required for Franc mode."
+    step "Install Docker: https://docs.docker.com/get-docker/"
     exit 1
   fi
   if ! docker info >/dev/null 2>&1; then
-    echo "Error: Docker is installed but not running."
-    echo "  Start Docker Desktop or run: sudo systemctl start docker"
+    error_msg "Docker is installed but not running."
+    step "Start Docker Desktop or run: sudo systemctl start docker"
     exit 1
   fi
   # hub depends_on kanban-api + hub-memory-api; list them explicitly so all modes match.
   run_quiet "Starting Docker services" docker compose up -d hub kanban-api hub-memory-api
-  info "Instance started"
-  echo "- Hub:    http://localhost:${HUB_PORT}"
-  echo "- Brain:  http://localhost:${MEMORY_PORT}"
-  echo "- Memory API (Quartz/settings): http://localhost:${HUB_MEMORY_API_PORT:-8091}"
-  echo "- Logs:   http://localhost:${HUB_PORT}/logs/"
-  echo "- Kanban: http://localhost:${HUB_PORT}/kanban/"
+
+  # Wait for hub container to become healthy (up to 60s)
+  info "Waiting for services"
+  _wait_healthy() {
+    local container="$1" max=60 i=0
+    while [ "${i}" -lt "${max}" ]; do
+      local status
+      status="$(docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/dev/null || echo "unknown")"
+      [ "${status}" = "healthy" ] && return 0
+      sleep 2
+      i=$((i + 2))
+    done
+    return 1
+  }
+  if _wait_healthy "clawvis-${INSTANCE_NAME}-hub"; then
+    printf "  ${_G}✓${_R}  Hub healthy\n"
+  else
+    warn "Hub health check timed out — services may still be starting."
+  fi
 else
+  # Soissons — local dev stack (foreground, replaces this process)
   if ! command -v npm >/dev/null 2>&1; then
-    echo "Error: npm is required for dev mode."
-    echo "  Install Node.js (>= 18): https://nodejs.org/"
+    error_msg "npm is required for Soissons (dev) mode."
+    step "Install Node.js (>= 18): https://nodejs.org/"
     exit 1
   fi
   # shellcheck disable=SC1090
   . "${ROOT_DIR}/scripts/lifecycle.sh"
   ensure_yarn
   if ! command -v uv >/dev/null 2>&1; then
-    echo "Error: uv is required for local Kanban API."
-    echo "  Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    error_msg "uv is required for local Kanban API."
+    step "Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
     exit 1
   fi
   info "Starting dev stack (foreground)"
@@ -447,9 +583,21 @@ else
   exec "${ROOT_DIR}/scripts/start.sh"
 fi
 
+# ---------------------------------------------------------------------------
+# Setup complete (reached only for Franc/docker mode)
+# ---------------------------------------------------------------------------
 print_banner
-printf "  Setup complete\n"
-printf "  Instance : %s\n" "${INSTANCE_NAME}"
-printf "  Mode     : %s\n" "${WIZARD_MODE}"
-printf "  Memory   : %s\n" "${BRAIN_PATH}"
-printf "  Brain UI : %s/quartz/public/\n\n" "${ROOT_DIR}"
+printf "\n"
+info "Setup complete"
+printf "  ${_G}✓${_R}  All services running\n"
+printf "  ${_D}→${_R}  Hub:        ${_C}http://localhost:${HUB_PORT}${_R}\n"
+printf "  ${_D}→${_R}  Brain:      ${_C}http://localhost:${HUB_PORT}/memory/${_R}\n"
+printf "  ${_D}→${_R}  Kanban API: ${_C}http://localhost:${KANBAN_API_PORT}${_R}\n"
+printf "  ${_D}→${_R}  Instance:   %s\n" "${INSTANCE_NAME}"
+printf "  ${_D}→${_R}  Mode:       %s\n" "${WIZARD_MODE}"
+printf "\n"
+
+# Open the Hub in the default browser (skip in CI / non-interactive runs)
+if [ "${NON_INTERACTIVE}" -eq 0 ]; then
+  open_browser "http://localhost:${HUB_PORT}"
+fi

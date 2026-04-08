@@ -6,7 +6,9 @@
     "clawvis": "./cli.mjs"
   },
   "scripts": {
-    "start": "node ./cli.mjs --help"
+    "start": "node ./cli.mjs --help",
+    "format": "npx prettier --write cli.mjs",
+    "format:check": "npx prettier --check cli.mjs"
   },
   "dependencies": {
     "boxen": "^8.0.1",

@@ -621,7 +621,7 @@ function renderHome() {
         <div class="section-header">
           <div class="section-label">Projects</div>
         </div>
-        <div id="projects-grid" class="grid-3"><button id="new-project" class="card new" type="button">+</button></div>
+        <div id="projects-grid" class="grid-3"><button id="new-project" class="card" type="button" aria-label="+"><span class="projects-add-icon">+</span></button></div>
         <div class="project-hub" id="project-hub"></div>
       </section>
     </div>
@@ -3946,37 +3946,65 @@ async function wireSetupRuntime() {
   const t = SETUP_RUNTIME_TEXT[isFr ? "fr" : "en"];
 
   let selectedProvider = "";
+  /** Once the user picks a card, do not let a late GET /agent/config overwrite the choice. */
+  let userPickedProvider = false;
+  const confirmBtn = document.getElementById("setup-confirm");
+  const cardsRoot = document.querySelector(".setup-provider-cards");
+  const feedbackEl = document.getElementById("setup-provider-feedback");
 
-  document.querySelectorAll("[data-provider]").forEach((card) => {
-    card.addEventListener("click", () => {
-      document
-        .querySelectorAll("[data-provider]")
-        .forEach((c) => c.classList.remove("selected"));
-      card.classList.add("selected");
-      selectedProvider = card.dataset.provider;
-      const btn = document.getElementById("setup-confirm");
-      if (btn) btn.disabled = false;
+  const setSelectedProvider = (provider) => {
+    const ok = provider === "openclaw" || provider === "claude";
+    selectedProvider = ok ? provider : "";
+    const scope = cardsRoot || document;
+    scope.querySelectorAll("[data-provider]").forEach((c) => {
+      const active = c.dataset.provider === selectedProvider;
+      c.classList.toggle("selected", active);
+      c.setAttribute("aria-pressed", active ? "true" : "false");
     });
-  });
+    if (confirmBtn) confirmBtn.disabled = !selectedProvider;
+  };
+
+  if (cardsRoot) {
+    cardsRoot.addEventListener("click", (ev) => {
+      const raw = ev.target;
+      const el =
+        raw instanceof Element
+          ? raw
+          : raw?.parentElement instanceof Element
+            ? raw.parentElement
+            : null;
+      const card = el?.closest("[data-provider]");
+      if (!card || !cardsRoot.contains(card)) return;
+      userPickedProvider = true;
+      setSelectedProvider(card.dataset.provider || "");
+    });
+  }
 
   try {
     const r = await fetch("/api/hub/agent/config");
-    if (r.ok) {
+    if (r.ok && !userPickedProvider) {
       const cfg = await r.json();
       const pp = cfg.primary_provider;
       if (pp === "openclaw" || pp === "claude") {
-        const card = document.querySelector(`[data-provider="${pp}"]`);
-        if (card) card.click();
+        setSelectedProvider(pp);
       }
     }
   } catch {
     /* ignore */
   }
 
-  const confirmBtn = document.getElementById("setup-confirm");
   if (!confirmBtn) return;
   confirmBtn.addEventListener("click", async () => {
-    const fb = document.getElementById("setup-provider-feedback");
+    if (!selectedProvider) {
+      if (feedbackEl) {
+        feedbackEl.className = "setup-test-result err";
+        feedbackEl.textContent = isFr
+          ? "Sélectionne d'abord un agent."
+          : "Select an agent first.";
+      }
+      return;
+    }
+    const fb = feedbackEl;
     if (fb) {
       fb.className = "setup-test-result loading";
       fb.textContent = isFr ? "Enregistrement…" : "Saving…";
