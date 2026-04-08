@@ -111,7 +111,6 @@ ask() {
     printf "%s" "$value"
   fi
 }
-
 ask_choice() {
   local prompt="$1" default="$2"
   shift 2
@@ -150,7 +149,6 @@ ask_choice() {
     fi
   done
 }
-
 ensure_cli_shim() {
   local bin_dir="${HOME}/.local/bin"
   mkdir -p "${bin_dir}"
@@ -433,7 +431,6 @@ HUB_PORT="${HUB_PORT_FLAG:-8088}"
 MEMORY_PORT="${MEMORY_PORT_FLAG:-3099}"
 KANBAN_API_PORT="${KANBAN_API_PORT_FLAG:-8090}"
 HUB_MEMORY_API_PORT="${HUB_MEMORY_API_PORT:-8091}"
-
 upsert_env "PROJECTS_ROOT" "${PROJECTS_ROOT}"
 upsert_env "HUB_PORT" "${HUB_PORT}"
 upsert_env "MEMORY_PORT" "${MEMORY_PORT}"
