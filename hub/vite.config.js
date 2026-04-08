@@ -8,10 +8,12 @@ const repoRoot = path.resolve(
 );
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, repoRoot, ["HUB_", "KANBAN_"]);
+  const env = loadEnv(mode, repoRoot, ["HUB_", "KANBAN_", "AGENT_"]);
   const port = Number(env.HUB_PORT || 8088);
   const kanbanPort = Number(env.KANBAN_API_PORT || 8090);
   const memoryPort = Number(env.HUB_MEMORY_API_PORT || 8091);
+  const agentPort = Number(env.AGENT_PORT || 8092);
+  const appsOrigin = (env.HUB_APPS_ORIGIN || "").trim();
 
   return {
     server: {
@@ -19,6 +21,10 @@ export default defineConfig(({ mode }) => {
       port,
       strictPort: false,
       proxy: {
+        "/api/hub/agent": {
+          target: `http://127.0.0.1:${agentPort}`,
+          rewrite: (p) => p.replace(/^\/api\/hub\/agent/, ""),
+        },
         "/api/hub/chat": {
           target: `http://127.0.0.1:${kanbanPort}`,
           rewrite: (p) => p.replace(/^\/api\/hub\/chat/, "/hub/chat"),
@@ -27,10 +33,22 @@ export default defineConfig(({ mode }) => {
           target: `http://127.0.0.1:${kanbanPort}`,
           rewrite: (p) => p.replace(/^\/api\/hub\/kanban/, ""),
         },
+        "/api/hub/setup": {
+          target: `http://127.0.0.1:${kanbanPort}`,
+          rewrite: (p) => p.replace(/^\/api\/hub\/setup/, "/setup"),
+        },
         "/api/hub/memory": {
           target: `http://127.0.0.1:${memoryPort}`,
           rewrite: (p) => p.replace(/^\/api\/hub\/memory/, ""),
         },
+        ...(appsOrigin
+          ? {
+              "/apps": {
+                target: appsOrigin,
+                changeOrigin: true,
+              },
+            }
+          : {}),
       },
     },
     preview: {

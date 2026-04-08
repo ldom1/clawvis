@@ -12,7 +12,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from hub_core.brain_memory import active_brain_memory_root as resolve_active_brain_memory_root
+from hub_core.brain_memory import (
+    active_brain_memory_root as resolve_active_brain_memory_root,
+)
 
 from .models import (
     STATUSES,
@@ -26,7 +28,11 @@ from .models import (
     TaskUpdate,
 )
 
-_CLAWVIS_ROOT = Path(__file__).resolve().parents[2]
+_CLAWVIS_ROOT = (
+    Path(os.environ["CLAWVIS_ROOT"]).expanduser().resolve()
+    if os.environ.get("CLAWVIS_ROOT")
+    else Path(__file__).resolve().parents[2]
+)
 _memory_root_env = os.environ.get("MEMORY_ROOT")
 if _memory_root_env:
     _memory_root_path = Path(_memory_root_env).expanduser()
@@ -657,7 +663,9 @@ def _scan_instances(root: Path, source: str) -> list[dict]:
                 "path": str(entry.resolve()),
                 "source": source,
                 "has_memory": (entry / "memory").exists(),
-                "has_compose_override": (entry / "docker-compose.override.yml").exists(),
+                "has_compose_override": (
+                    entry / "docker-compose.override.yml"
+                ).exists(),
             }
         )
     return out
@@ -683,7 +691,9 @@ def list_instances() -> dict:
             "path": path,
             "source": "linked",
             "has_memory": (Path(path) / "memory").exists(),
-            "has_compose_override": (Path(path) / "docker-compose.override.yml").exists(),
+            "has_compose_override": (
+                Path(path) / "docker-compose.override.yml"
+            ).exists(),
             "linked": True,
             "missing": not Path(path).exists(),
         }
@@ -767,6 +777,73 @@ def _memory_file_for(slug: str) -> Path:
     return active_brain_memory_root() / "projects" / f"{slug}.md"
 
 
+def _parse_brain_md_frontmatter(content: str) -> dict:
+    """Minimal YAML frontmatter (--- … ---) for memory/projects/*.md."""
+    out: dict[str, object] = {}
+    lines = content.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return out
+    i = 1
+    while i < len(lines) and lines[i].strip() != "---":
+        line = lines[i]
+        if ":" in line and not line.lstrip().startswith("#"):
+            key, _, rest = line.partition(":")
+            k = key.strip()
+            v = rest.strip()
+            if k == "tags":
+                m = re.search(r"\[([^\]]*)\]", v)
+                if m:
+                    raw = m.group(1)
+                    out["tags"] = [t.strip() for t in raw.split(",") if t.strip()]
+                else:
+                    out["tags"] = []
+            elif k in (
+                "title",
+                "status",
+                "path",
+                "repo",
+                "caps",
+                "start",
+                "end",
+                "description",
+            ):
+                out[k] = v.strip().strip("\"'")
+        i += 1
+    return out
+
+
+def _metadata_from_brain_only(slug: str, md_path: Path) -> dict:
+    content = md_path.read_text(encoding="utf-8", errors="ignore")
+    fm = _parse_brain_md_frontmatter(content)
+    name = str(fm.get("title") or slug).strip() or slug
+    tags = _normalize_tags(list(fm.get("tags") or []))
+    status = str(fm.get("status") or "").strip()
+    major = _parse_markdown_major_info(content)
+    description = (
+        (major.get("description") or "").strip()
+        or (major.get("objective") or "").strip()
+        or (major.get("context") or "").strip()
+    )
+    if not description:
+        tail = content.split("---", 2)[-1].strip()
+        one_line = " ".join(tail.split())[:280]
+        description = one_line + ("…" if len(tail) > 280 else "")
+    stage = "PoC" if not status else status[:24]
+    return {
+        "name": name,
+        "slug": slug,
+        "stage": stage,
+        "tags": tags,
+        "template": "empty",
+        "description": description[:2000],
+        "repo_path": "",
+        "memory_path": str(md_path),
+        "has_logo": False,
+        "brain_only": True,
+        "brain_status": status,
+    }
+
+
 def _ensure_memory_structure() -> None:
     root = active_brain_memory_root()
     for name in ("projects", "resources", "daily", "archive", "todo"):
@@ -816,8 +893,10 @@ def _parse_memory_md_structure(content: str) -> tuple[str, str, list[tuple[str, 
     lines = content.splitlines()
     idx = 0
     title = ""
-    if idx < len(lines) and lines[idx].startswith("# ") and not lines[idx].startswith(
-        "##"
+    if (
+        idx < len(lines)
+        and lines[idx].startswith("# ")
+        and not lines[idx].startswith("##")
     ):
         title = lines[idx][2:].strip()
         idx += 1
@@ -1229,27 +1308,105 @@ def _load_project_metadata(project_dir: Path) -> dict:
             meta = {}
     slug = project_dir.name
     memory_file = _memory_file_for(slug)
+    description = (meta.get("description") or "").strip()
+    brain_content = ""
+    brain_fm: dict[str, object] = {}
+    if memory_file.exists():
+        try:
+            brain_content = memory_file.read_text(encoding="utf-8", errors="ignore")
+            brain_fm = _parse_brain_md_frontmatter(brain_content)
+        except OSError:
+            pass
+    if not description and brain_content:
+        major = _parse_markdown_major_info(brain_content)
+        description = (
+            (major.get("description") or "").strip()
+            or (major.get("objective") or "").strip()
+            or (major.get("context") or "").strip()
+        )
+        if not description:
+            description = str(brain_fm.get("description") or "").strip()
+        if not description:
+            tail = brain_content.split("---", 2)[-1].strip()
+            one_line = " ".join(tail.split())[:280]
+            description = (one_line + ("…" if len(tail) > 280 else "")).strip()
+    fm_status = str(brain_fm.get("status") or "").strip()
     return {
         "name": meta.get("name") or project_dir.name,
         "slug": meta.get("slug") or slug,
         "stage": meta.get("stage") or "PoC",
         "tags": _normalize_tags(meta.get("tags") or []),
         "template": meta.get("template") or "empty",
-        "description": meta.get("description") or "",
+        "description": (description or "")[:2000],
         "repo_path": str(project_dir),
         "memory_path": str(meta.get("memory_path") or memory_file),
         "has_logo": project_logo_file(project_dir) is not None,
+        "brain_status": fm_status,
     }
+
+
+def _brain_projects_scan_dirs(settings: dict) -> list[Path]:
+    """`memory/projects` dirs that may contain `*.md` hub projects.
+
+    Order: resolved active memory first, then ``BRAIN_PATH``/projects from the
+    environment. External brains symlinked under ``instances/<name>/memory`` often
+    fail inside Docker unless the target is bind-mounted; ``BRAIN_PATH`` is that
+    host target and may be the only readable location for ``projects/*.md``.
+    """
+    seen_keys: set[str] = set()
+    dirs: list[Path] = []
+
+    def add(p: Path) -> None:
+        if not p.is_dir():
+            return
+        try:
+            key = str(p.resolve(strict=False))
+        except OSError:
+            key = str(p)
+        if key in seen_keys:
+            return
+        seen_keys.add(key)
+        dirs.append(p)
+
+    add(active_brain_memory_root(settings) / "projects")
+    bp = os.environ.get("BRAIN_PATH", "").strip()
+    if bp:
+        add(Path(bp).expanduser() / "projects")
+    return dirs
 
 
 def list_projects() -> dict:
     settings = get_hub_settings()
     items = []
+    seen_slugs: set[str] = set()
     root = Path(settings["projects_root"]).expanduser()
     if root.exists():
         for entry in sorted(root.iterdir()):
-            if entry.is_dir():
-                items.append(_load_project_metadata(entry))
+            if not entry.is_dir():
+                continue
+            if entry.name == "archived":
+                continue
+            slug = entry.name
+            has_metadata = (entry / HUB_METADATA_FILE).is_file()
+            has_memory = _memory_file_for(slug).is_file()
+            has_clawvis_marker = (entry / ".clawvis").is_dir()
+            if not (has_metadata or has_memory or has_clawvis_marker):
+                continue
+            meta = _load_project_metadata(entry)
+            items.append(meta)
+            seen_slugs.add(meta.get("slug") or slug)
+    for projects_dir in _brain_projects_scan_dirs(settings):
+        for md in sorted(projects_dir.glob("*.md")):
+            if md.name.startswith("_") or md.name.lower() == "index.md":
+                continue
+            slug = md.stem
+            if slug in seen_slugs:
+                continue
+            try:
+                items.append(_metadata_from_brain_only(slug, md))
+                seen_slugs.add(slug)
+            except OSError:
+                pass
     return {"projects": items}
 
 
@@ -1279,7 +1436,10 @@ def _find_project_or_raise(project_slug: str) -> dict:
 
 def get_project_logo_path(project_slug: str) -> Path:
     project = _find_project_or_raise(project_slug)
-    repo = Path(project["repo_path"]).expanduser()
+    rp = project.get("repo_path") or ""
+    if not rp:
+        raise KeyError("Logo not found")
+    repo = Path(rp).expanduser()
     path = project_logo_file(repo)
     if not path:
         raise KeyError("Logo not found")
@@ -1293,7 +1453,10 @@ def save_project_logo(project_slug: str, data: bytes, upload_name: str) -> dict:
     if ext not in _LOGO_ALLOWED_EXT:
         raise ValueError("Use PNG, JPEG, GIF, WebP, or SVG")
     project = _find_project_or_raise(project_slug)
-    repo = Path(project["repo_path"]).expanduser()
+    rp = project.get("repo_path") or ""
+    if not rp:
+        raise KeyError("Project not found")
+    repo = Path(rp).expanduser()
     if not repo.is_dir():
         raise KeyError("Project not found")
     d = _project_clawvis_dir(repo)
@@ -1316,7 +1479,10 @@ def save_project_logo(project_slug: str, data: bytes, upload_name: str) -> dict:
 
 def delete_project_logo(project_slug: str) -> dict:
     project = _find_project_or_raise(project_slug)
-    repo = Path(project["repo_path"]).expanduser()
+    rp = project.get("repo_path") or ""
+    if not rp:
+        raise KeyError("Logo not found")
+    repo = Path(rp).expanduser()
     d = _project_clawvis_dir(repo)
     removed = False
     if d.is_dir():
@@ -1364,16 +1530,17 @@ def _delete_project_tasks(project_slug: str) -> int:
 
 def archive_project(project_slug: str) -> dict:
     project = _find_project_or_raise(project_slug)
-    repo_dir = Path(project["repo_path"]).expanduser()
-    if not repo_dir.exists():
-        raise KeyError("Project not found")
-    settings = get_hub_settings()
-    projects_root = Path(settings["projects_root"]).expanduser()
-    archived_root = projects_root / "archived"
-    archived_root.mkdir(parents=True, exist_ok=True)
     suffix = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    target = archived_root / f"{project_slug}-{suffix}"
-    shutil.move(str(repo_dir), str(target))
+    rp = project.get("repo_path") or ""
+    repo_dir = Path(rp).expanduser() if rp else Path()
+    target: Path | None = None
+    if rp and repo_dir.exists():
+        settings = get_hub_settings()
+        projects_root = Path(settings["projects_root"]).expanduser()
+        archived_root = projects_root / "archived"
+        archived_root.mkdir(parents=True, exist_ok=True)
+        target = archived_root / f"{project_slug}-{suffix}"
+        shutil.move(str(repo_dir), str(target))
 
     memory_file = _memory_file_for(project_slug)
     archived_memory_dir = active_brain_memory_root() / "archive" / "projects"
@@ -1392,7 +1559,7 @@ def archive_project(project_slug: str) -> dict:
     return {
         "ok": True,
         "slug": project_slug,
-        "repo_archived_to": str(target),
+        "repo_archived_to": str(target) if target else "",
         "memory_archived_to": str(archived_memory_file)
         if archived_memory_file.exists()
         else "",
@@ -1422,9 +1589,11 @@ def _cleanup_nginx_route(slug: str) -> bool:
 
 def delete_project(project_slug: str) -> dict:
     project = _find_project_or_raise(project_slug)
-    repo_dir = Path(project["repo_path"]).expanduser()
-    if repo_dir.exists():
-        shutil.rmtree(repo_dir)
+    rp = project.get("repo_path") or ""
+    if rp:
+        repo_dir = Path(rp).expanduser()
+        if repo_dir.exists():
+            shutil.rmtree(repo_dir)
     memory_file = _memory_file_for(project_slug)
     if memory_file.exists():
         memory_file.unlink()
@@ -1491,7 +1660,11 @@ def read_memory_quartz_page(filename: str) -> dict:
         path = active_brain_memory_root() / "projects" / safe
     if not path.exists():
         raise KeyError("Quartz page not found")
-    return {"filename": safe, "content": path.read_text(encoding="utf-8"), "source": "quartz" if quartz_dir else "fallback"}
+    return {
+        "filename": safe,
+        "content": path.read_text(encoding="utf-8"),
+        "source": "quartz" if quartz_dir else "fallback",
+    }
 
 
 def read_memory_project_file(filename: str) -> dict:

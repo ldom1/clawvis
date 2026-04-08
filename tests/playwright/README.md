@@ -33,14 +33,22 @@ Tests automatically **skip** when the Hub is not reachable — they never fail s
 
 ## Personas
 
-### Persona 1 — Onboarding
-**File:** `tests/personas/onboarding.spec.ts`
+### Persona 1 — Onboarding & runtime setup
+**Files:** `tests/personas/onboarding.spec.ts`, `tests/personas/setup-runtime-stubs.ts`
 
-**User story:** A brand-new user lands on the Hub home page and completes the AI runtime setup wizard for the first time.
+**User story:** A user lands on the Hub, sees the runtime banner when nothing is configured, opens `/setup/runtime/`, picks **OpenClaw** or **Claude Code**, confirms (POST `/api/hub/setup/provider`), and returns home. Stubs mock `GET /api/hub/agent/config` and `POST /api/hub/setup/provider` so the flow is deterministic.
 
-**Tests:**
-- `home, setup runtime wizard through failed connection test` — Verifies the home page loads with the AI runtime "Not configured" banner, navigates to `/setup/runtime/`, walks through the 4-step wizard (provider selection → API key entry → connection test), and confirms the test result is shown. Accepts both success and expected failure when no real API key is provided.
-- `AI runtime badge in French` (FR locale) — Verifies the runtime status badge renders correctly in French.
+**Tests (EN):**
+- `home, setup runtime wizard — choose Claude and confirm` — Home smoke, opens setup from the banner CTA, selects Claude, asserts POST body and redirect `/`.
+- `setup runtime — choose OpenClaw and confirm` — Same for OpenClaw.
+- `setup runtime — preselects OpenClaw / Claude from GET /agent/config` — Confirms initial selection from `primary_provider` without clicking a card.
+- `setup runtime — user overrides API preselection (OpenClaw → Claude)` — Clicks another provider after the API pre-filled OpenClaw.
+- `setup runtime — POST error surfaces in feedback` — 400 from setup/provider shows an error in `#setup-provider-feedback`.
+- `setup runtime — Claude stays selected if config arrives late as openclaw` — Regression: user picks Claude before a delayed config response; choice must not be overwritten.
+
+**Tests (FR):**
+- `wizard copy and confirm Claude` — `navigator.language` FR, clears `clawvis-locale`, checks headings/copy on `/setup/runtime/`, confirms Claude.
+- `AI runtime badge in French` — Home badge shows *Non configuré*.
 
 ---
 
@@ -141,6 +149,7 @@ Tests automatically **skip** when the Hub is not reachable — they never fail s
 tests/playwright/
   tests/personas/
     hub-gate.ts                    # registerHubGate() — skips suite when Hub is unreachable
+    setup-runtime-stubs.ts         # Mock GET agent/config + POST setup/provider for onboarding tests
     onboarding.spec.ts             # Persona 1
     kanban.spec.ts                 # Persona 2
     projects.spec.ts               # Persona 3

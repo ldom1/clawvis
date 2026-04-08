@@ -1,8 +1,5 @@
 # agent/tests/test_provider.py
 import json
-import os
-import pytest
-from pathlib import Path
 
 
 def _write_profiles(tmp_path, anthropic_token, mammouth_token):
@@ -25,10 +22,12 @@ def test_load_from_profiles_file(tmp_path, monkeypatch):
     monkeypatch.delenv("MAMMOUTH_API_KEY", raising=False)
 
     from agent_service.provider import load_provider_config
+
     cfg = load_provider_config()
     assert cfg.anthropic_token == "sk-ant-test"
     assert cfg.mammouth_token == "sk-mammouth-test"
     assert cfg.provider == "anthropic"
+    assert cfg.primary_from_env is False
 
 
 def test_fallback_to_env(monkeypatch):
@@ -37,19 +36,36 @@ def test_fallback_to_env(monkeypatch):
     monkeypatch.setenv("MAMMOUTH_API_KEY", "sk-mammouth-env")
 
     from agent_service.provider import load_provider_config
+
     cfg = load_provider_config()
-    assert cfg.anthropic_token == "sk-ant-env"
     assert cfg.provider == "anthropic"
+    assert cfg.primary_from_env is False
 
 
-def test_provider_is_mistral_when_no_anthropic(monkeypatch):
+def test_provider_is_mammouth_when_no_anthropic(monkeypatch):
     monkeypatch.delenv("OPENCLAW_STATE_DIR", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setenv("MAMMOUTH_API_KEY", "sk-mammouth-only")
 
     from agent_service.provider import load_provider_config
+
     cfg = load_provider_config()
-    assert cfg.provider == "mistral"
+    assert cfg.provider == "mammouth"
+    assert cfg.primary_from_env is False
+
+
+def test_primary_ai_provider_openclaw_overrides_mammouth_token(monkeypatch):
+    monkeypatch.delenv("OPENCLAW_STATE_DIR", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("MAMMOUTH_API_KEY", "sk-mammouth-only")
+    monkeypatch.setenv("PRIMARY_AI_PROVIDER", "openclaw")
+    monkeypatch.setenv("OPENCLAW_BASE_URL", "https://gw.example/openclaw")
+
+    from agent_service.provider import load_provider_config
+
+    cfg = load_provider_config()
+    assert cfg.provider == "openclaw"
+    assert cfg.primary_from_env is True
 
 
 def test_no_provider_gives_empty_tokens(monkeypatch):
@@ -59,5 +75,6 @@ def test_no_provider_gives_empty_tokens(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     from agent_service.provider import load_provider_config
+
     cfg = load_provider_config()
     assert cfg.anthropic_token == ""

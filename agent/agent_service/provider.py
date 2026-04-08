@@ -8,9 +8,23 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+def _normalize_primary_env() -> str | None:
+    raw = (os.environ.get("PRIMARY_AI_PROVIDER") or "").strip().lower()
+    if not raw:
+        return None
+    if raw in ("openclaw",):
+        return "openclaw"
+    if raw in ("anthropic", "claude"):
+        return "anthropic"
+    if raw in ("mammouth", "mistral", "mammoth"):
+        return "mammouth"
+    return None
+
+
 @dataclass
 class ProviderConfig:
-    provider: str            # "anthropic" | "openrouter"
+    provider: str  # "anthropic" | "mammouth" | "openclaw"
+    primary_from_env: bool
     anthropic_token: str
     mammouth_token: str
     mammouth_base_url: str
@@ -54,7 +68,6 @@ def load_provider_config() -> ProviderConfig:
                     "baseUrl", mammouth_base_url
                 )
 
-    # Env var fallbacks
     anthropic_token = anthropic_token or os.environ.get("ANTHROPIC_API_KEY", "")
     mammouth_token = (
         mammouth_token
@@ -63,20 +76,27 @@ def load_provider_config() -> ProviderConfig:
         or os.environ.get("OPENAI_API_KEY", "")
     )
 
-    provider = "anthropic" if anthropic_token else "mistral"
+    primary = _normalize_primary_env()
+    primary_from_env = primary is not None
+    if primary is not None:
+        provider = primary
+    else:
+        provider = (
+            "anthropic"
+            if anthropic_token
+            else ("mammouth" if mammouth_token else "anthropic")
+        )
 
     openclaw_bin = os.environ.get("OPENCLAW_BIN") or shutil.which("openclaw")
-    openclaw_available = (
-        os.environ.get("OPENCLAW_AVAILABLE", "").lower() == "true"
-        and bool(openclaw_bin)
-    )
+    from .openclaw_runner import openclaw_available as _openclaw_available
 
     return ProviderConfig(
         provider=provider,
+        primary_from_env=primary_from_env,
         anthropic_token=anthropic_token,
         mammouth_token=mammouth_token,
         mammouth_base_url=mammouth_base_url,
-        openclaw_available=openclaw_available,
+        openclaw_available=_openclaw_available(),
         openclaw_bin=openclaw_bin,
         openclaw_state_dir=state_dir,
     )

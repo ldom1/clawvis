@@ -11,6 +11,7 @@ from loguru import logger
 from hub_core.main import get_hub_state
 from hub_core.openclaw_audio_config import run_openclaw_audio_config
 from hub_core.setup_runtime import run_setup_runtime
+from hub_core.setup_sync import apply_sync_check
 
 
 def cmd_status(args):
@@ -54,6 +55,17 @@ def cmd_openclaw_audio_config(args):
         apply=args.apply,
         json_path=Path(args.json) if args.json else None,
     )
+
+
+def cmd_setup_sync_apply(args):
+    """Idempotent skills + memory sync (clawvis start)."""
+    out = apply_sync_check()
+    actions = out.get("actions") or []
+    for a in actions:
+        print(f"[warn] clawvis setup-sync: {a}", file=sys.stderr)
+    if getattr(args, "verbose", False):
+        print(json.dumps(out, indent=2))
+    return 0
 
 
 def cmd_setup_runtime(args):
@@ -121,6 +133,18 @@ def main():
         help="openclaw.json path (default: OPENCLAW_JSON or ~/.openclaw/openclaw.json)",
     )
     parser_oac.set_defaults(func=cmd_openclaw_audio_config)
+
+    parser_sync = subparsers.add_parser(
+        "setup-sync-apply",
+        help="Apply idempotent skills/memory sync (PRIMARY_AI_PROVIDER from .env)",
+    )
+    parser_sync.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print JSON result to stdout",
+    )
+    parser_sync.set_defaults(func=cmd_setup_sync_apply)
 
     # setup-runtime command
     parser_setup_runtime = subparsers.add_parser(

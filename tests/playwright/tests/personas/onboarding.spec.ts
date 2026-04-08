@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { registerHubGate, enLocale, frLocale } from "./hub-gate";
+import {
+  stubAgentConfigGet,
+  stubSetupProviderError,
+  stubSetupProviderSuccess,
+} from "./setup-runtime-stubs";
 
 registerHubGate();
 
@@ -8,7 +13,13 @@ test.describe("Persona 1 — onboarding (EN)", () => {
     await enLocale(page);
   });
 
-  test("home, setup runtime wizard through failed connection test", async ({ page, request }) => {
+  test("home, setup runtime wizard — choose Claude and confirm", async ({ page, request }) => {
+    let posted: string | null = null;
+    await stubAgentConfigGet(page, { primary_provider: null });
+    await stubSetupProviderSuccess(page, (raw) => {
+      posted = raw;
+    });
+
     const home = await request.get("/");
     expect(home.ok()).toBeTruthy();
     await page.goto("/");
@@ -25,38 +36,175 @@ test.describe("Persona 1 — onboarding (EN)", () => {
     await expect(page).toHaveURL(/\/setup\/runtime\/?/);
     await expect(page.locator(".settings-page-header h1")).toContainText(/Setup/i);
     await expect(page.locator(".settings-page-header h1")).toContainText(/Clawvis/);
-    await expect(page.locator("#setup-stepper .setup-step-circle")).toHaveCount(4);
+    await expect(page.getByRole("heading", { name: "Choose your agent" })).toBeVisible();
 
-    await expect(page.locator("[data-provider]")).toHaveCount(3);
-    await expect(page.getByRole("button", { name: /Claude/i }).first()).toBeVisible();
-    const next1 = page.locator("#setup-next-1");
-    await expect(next1).toBeDisabled();
+    await expect(page.locator(".setup-provider-cards [data-provider]")).toHaveCount(2);
+    await expect(page.getByRole("button", { name: /Claude Code/i }).first()).toBeVisible();
+    const confirm = page.locator("#setup-confirm");
+    await expect(confirm).toBeDisabled();
     await page.locator('[data-provider="claude"]').click();
-    await expect(next1).toBeEnabled();
-    await next1.click();
+    await expect(confirm).toBeEnabled();
+    await expect(page.locator('[data-provider="claude"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await confirm.click();
+    await expect(page).toHaveURL(/\//);
+    expect(posted).toContain('"provider":"claude"');
+  });
 
-    await expect(page.locator("#step-circle-2.active")).toBeVisible();
-    const keyInput = page.locator("#setup-cred-key");
-    await expect(keyInput).toBeVisible();
-    await expect(keyInput).toHaveAttribute("type", "password");
-    const next2 = page.locator("#setup-next-2");
-    await expect(next2).toBeDisabled();
-    await keyInput.fill("sk-ant-test-key-00000000");
-    await expect(next2).toBeEnabled();
-    await next2.click();
+  test("setup runtime — choose OpenClaw and confirm", async ({ page }) => {
+    let posted: string | null = null;
+    await stubAgentConfigGet(page, { primary_provider: null });
+    await stubSetupProviderSuccess(page, (raw) => {
+      posted = raw;
+    });
+    await page.goto("/setup/runtime/");
+    await expect(page.getByRole("button", { name: /OpenClaw/i }).first()).toBeVisible();
+    await page.locator('[data-provider="openclaw"]').click();
+    await expect(page.locator("#setup-confirm")).toBeEnabled();
+    await expect(page.locator('[data-provider="openclaw"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.locator("#setup-confirm").click();
+    await expect(page).toHaveURL(/\//);
+    expect(posted).toContain('"provider":"openclaw"');
+  });
 
-    await expect(page.locator("#step-circle-3.active")).toBeVisible();
-    const next3 = page.locator("#setup-next-3");
-    await expect(next3).toBeDisabled();
-    await page.locator("#setup-test-btn").click();
-    const result = page.locator("#setup-test-result");
-    await expect(result).not.toBeEmpty({ timeout: 30000 });
-    if (await page.locator("#setup-test-result.err").isVisible()) {
-      await expect(next3).toBeDisabled();
-    } else {
-      await expect(page.locator("#setup-test-result.ok")).toBeVisible();
-      await expect(next3).toBeEnabled();
-    }
+  test("setup runtime — preselects OpenClaw from GET /agent/config", async ({ page }) => {
+    let posted: string | null = null;
+    await stubAgentConfigGet(page, { primary_provider: "openclaw" });
+    await stubSetupProviderSuccess(page, (raw) => {
+      posted = raw;
+    });
+    await page.goto("/setup/runtime/");
+    await expect(page.locator('[data-provider="openclaw"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(page.locator("#setup-confirm")).toBeEnabled();
+    await page.locator("#setup-confirm").click();
+    await expect(page).toHaveURL(/\//);
+    expect(posted).toContain('"provider":"openclaw"');
+  });
+
+  test("setup runtime — preselects Claude from GET /agent/config", async ({ page }) => {
+    let posted: string | null = null;
+    await stubAgentConfigGet(page, { primary_provider: "claude" });
+    await stubSetupProviderSuccess(page, (raw) => {
+      posted = raw;
+    });
+    await page.goto("/setup/runtime/");
+    await expect(page.locator('[data-provider="claude"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(page.locator("#setup-confirm")).toBeEnabled();
+    await page.locator("#setup-confirm").click();
+    await expect(page).toHaveURL(/\//);
+    expect(posted).toContain('"provider":"claude"');
+  });
+
+  test("setup runtime — user overrides API preselection (OpenClaw → Claude)", async ({
+    page,
+  }) => {
+    let posted: string | null = null;
+    await stubAgentConfigGet(page, { primary_provider: "openclaw" });
+    await stubSetupProviderSuccess(page, (raw) => {
+      posted = raw;
+    });
+    await page.goto("/setup/runtime/");
+    await expect(page.locator('[data-provider="openclaw"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.locator('[data-provider="claude"]').click();
+    await expect(page.locator('[data-provider="claude"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.locator("#setup-confirm").click();
+    await expect(page).toHaveURL(/\//);
+    expect(posted).toContain('"provider":"claude"');
+  });
+
+  test("setup runtime — POST error surfaces in feedback", async ({ page }) => {
+    await stubAgentConfigGet(page, { primary_provider: null });
+    await stubSetupProviderError(page, 400, { detail: "cannot write .env" });
+    await page.goto("/setup/runtime/");
+    await page.locator('[data-provider="claude"]').click();
+    await page.locator("#setup-confirm").click();
+    const fb = page.locator("#setup-provider-feedback");
+    await expect(fb).toBeVisible();
+    await expect(fb).toHaveAttribute("class", /\berr\b/);
+    await expect(fb).toContainText(/cannot write/i);
+  });
+
+  test("setup runtime — Claude stays selected if config arrives late as openclaw", async ({
+    page,
+  }) => {
+    let posted: string | null = null;
+    await page.route("**/api/hub/agent/config", async (route) => {
+      if (route.request().method() !== "GET") {
+        await route.continue();
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 600));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ primary_provider: "openclaw" }),
+      });
+    });
+    await stubSetupProviderSuccess(page, (raw) => {
+      posted = raw;
+    });
+
+    const configDone = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/hub/agent/config") &&
+        res.request().method() === "GET" &&
+        res.status() === 200,
+    );
+    await page.goto("/setup/runtime/");
+    await page.locator('[data-provider="claude"]').click();
+    await expect(page.locator("#setup-confirm")).toBeEnabled();
+    await expect(page.locator('[data-provider="claude"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await configDone;
+    // Allow the in-page fetch().then(…) to run after the response is received.
+    await expect
+      .poll(async () =>
+        page.locator('[data-provider="claude"]').getAttribute("aria-pressed"),
+      )
+      .toBe("true");
+    await page.locator("#setup-confirm").click();
+    expect(posted).toContain('"provider":"claude"');
+  });
+});
+
+test.describe("Persona 1 — setup runtime (FR)", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.removeItem("clawvis-locale");
+    });
+    await frLocale(page);
+  });
+
+  test("wizard copy and confirm Claude", async ({ page }) => {
+    await stubAgentConfigGet(page, { primary_provider: null });
+    await stubSetupProviderSuccess(page);
+    await page.goto("/setup/runtime/");
+    await expect(page.locator(".settings-page-header h1")).toContainText(/Setup/i);
+    await expect(page.getByRole("heading", { name: /Choisir ton agent/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Claude Code/i }).first()).toBeVisible();
+    await expect(page.locator("#setup-confirm")).toBeDisabled();
+    await page.locator('[data-provider="claude"]').click();
+    await page.locator("#setup-confirm").click();
+    await expect(page).toHaveURL(/\//);
   });
 });
 

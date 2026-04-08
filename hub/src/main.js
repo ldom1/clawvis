@@ -123,7 +123,7 @@ const SETTINGS_TEXT = {
       "Configure ton runtime IA, ton workspace et l'apparence en un seul endroit.",
     back: "Retour au hub",
     intro:
-      "Configure le provider IA actif, puis teste la connexion avant de sauvegarder.",
+      "Workspace, instances et apparence. Le provider IA se règle via Setup (PRIMARY_AI_PROVIDER dans le .env).",
     step1: "1. Runtime IA",
     step2: "2. Workspace",
     step3: "3. Instances",
@@ -135,22 +135,7 @@ const SETTINGS_TEXT = {
     configured: "Configure",
     notConfigured: "À configurer",
     linked: "liée(s)",
-    runtimeTitle: "Runtime IA",
-    runtimeDesc:
-      "Le modele ou service utilise quand le Hub appelle l'intelligence artificielle.",
-    runtimeInfo:
-      "Le runtime IA relie le Hub a un fournisseur : Claude (Anthropic), Mistral ou OpenClaw (auto-heberge). La cle active est transmise via le backend Clawvis — configure le fichier .env sur le serveur pour la persistance.",
     moreInfo: "Plus d'infos",
-    configureRuntime: "Configurer",
-    modifyRuntime: "Modifier",
-    getClaudeKey: "Obtiens ta cle sur console.anthropic.com.",
-    getMistralKey: "Obtiens ta cle sur console.mistral.ai.",
-    openclawHint:
-      "Pour un serveur distant, renseigne une URL complete (ex: https://openclaw.domain.tld).",
-    saveRuntime: "Sauvegarder le runtime",
-    testConnection: "Tester la connexion",
-    gotoActiveProvider: "Aller au provider actif",
-    runtimeSaved: "Runtime IA sauvegarde",
     workspaceTitle: "Workspace",
     workspaceDesc:
       "Chemins sur ta machine que le Hub utilise pour retrouver projets et instances.",
@@ -180,11 +165,9 @@ const SETTINGS_TEXT = {
     appearanceDesc: "Theme clair ou sombre du Hub (ce navigateur).",
     appearanceInfo:
       "Le choix est enregistre localement : il s'applique a cette session et sera reutilise au prochain passage sur le Hub.",
-    connected: "Connecte",
-    connectionFailed: "Connexion echouee",
-    checkKeyOrUrl: "Erreur: verifie la cle ou l'URL",
     runtimeBannerTitle: "Runtime IA",
     runtimeBannerNotConfigured: "Non configuré",
+    runtimeBannerAgentUnavailable: "Service agent indisponible",
     runtimeBannerCta: "Configurer →",
     runtimeBannerConfigured: "Connecté",
     runtimeBannerChange: "Modifier",
@@ -200,6 +183,12 @@ const SETTINGS_TEXT = {
       "Le choix est enregistré localement et appliqué immédiatement.",
     languageFr: "Français",
     languageEn: "English",
+    setupSectionTitle: "Setup IA (Clawvis)",
+    setupSectionDesc:
+      "Un seul réglage côté Hub : PRIMARY_AI_PROVIDER. Skills et mémoire : hors wizard.",
+    setupStep1: "PRIMARY_AI_PROVIDER — wizard ci-dessous",
+    setupStep2: "Chemins Brain et skills",
+    setupWizardCta: "OpenClaw ou Claude Code →",
   },
   en: {
     title: "Settings",
@@ -207,7 +196,7 @@ const SETTINGS_TEXT = {
       "Configure your AI runtime, workspace, and appearance in one place.",
     back: "Back to hub",
     intro:
-      "Configure the active AI provider, then test the connection before saving.",
+      "Workspace, instances, and appearance. Set the AI provider via Setup (PRIMARY_AI_PROVIDER in .env).",
     step1: "1. AI runtime",
     step2: "2. Workspace",
     step3: "3. Instances",
@@ -219,22 +208,7 @@ const SETTINGS_TEXT = {
     configured: "Configured",
     notConfigured: "Needs setup",
     linked: "linked",
-    runtimeTitle: "AI runtime",
-    runtimeDesc:
-      "The model or service used when the Hub calls artificial intelligence.",
-    runtimeInfo:
-      "The AI runtime connects the Hub to a provider: Claude (Anthropic), Mistral, or self-hosted OpenClaw. The active key is forwarded via the Clawvis backend — set .env on the server for persistence.",
     moreInfo: "More info",
-    configureRuntime: "Configure",
-    modifyRuntime: "Change",
-    getClaudeKey: "Get your key at console.anthropic.com.",
-    getMistralKey: "Get your key at console.mistral.ai.",
-    openclawHint:
-      "For a remote server, use a full URL (e.g. https://openclaw.domain.tld).",
-    saveRuntime: "Save runtime",
-    testConnection: "Test connection",
-    gotoActiveProvider: "Go to active provider",
-    runtimeSaved: "AI runtime saved",
     workspaceTitle: "Workspace",
     workspaceDesc: "Paths on disk the Hub uses to find projects and instances.",
     workspaceInfo:
@@ -262,11 +236,9 @@ const SETTINGS_TEXT = {
     appearanceDesc: "Light or dark Hub theme (this browser).",
     appearanceInfo:
       "Your choice is stored locally and reused the next time you open the Hub.",
-    connected: "Connected",
-    connectionFailed: "Connection failed",
-    checkKeyOrUrl: "Error: check key or URL",
     runtimeBannerTitle: "AI Runtime",
     runtimeBannerNotConfigured: "Not configured",
+    runtimeBannerAgentUnavailable: "Agent service unavailable",
     runtimeBannerCta: "Configure →",
     runtimeBannerConfigured: "Connected",
     runtimeBannerChange: "Change",
@@ -281,6 +253,12 @@ const SETTINGS_TEXT = {
     languageInfo: "Your choice is stored locally and applied immediately.",
     languageFr: "Français",
     languageEn: "English",
+    setupSectionTitle: "AI setup (Clawvis)",
+    setupSectionDesc:
+      "Only PRIMARY_AI_PROVIDER in .env. Skills and memory are outside the wizard.",
+    setupStep1: "PRIMARY_AI_PROVIDER — wizard below",
+    setupStep2: "Brain and skills paths",
+    setupWizardCta: "OpenClaw or Claude Code →",
   },
 };
 
@@ -304,7 +282,7 @@ const SUBPAGE_TEXT = {
     },
     runtime: {
       title: "Runtime IA",
-      sub: "Statut, test de connexion et accès au chat OpenClaw.",
+      sub: "Statut de connexion et skills disponibles.",
     },
   },
   en: {
@@ -326,7 +304,7 @@ const SUBPAGE_TEXT = {
     },
     runtime: {
       title: "AI Runtime",
-      sub: "Status, connection test, and access to OpenClaw chat.",
+      sub: "Connection status and available skills.",
     },
   },
 };
@@ -632,9 +610,9 @@ function renderHome() {
               </svg>
             </div>
             <div class="tool-meta">
-              <div class="tool-name">Runtime IA</div>
-              <div class="tool-desc">Statut du runtime, test de connexion et accès OpenClaw.</div>
-              <div class="tool-chiprow"><span class="tool-chip">Status</span><span class="tool-chip">Test</span><span class="tool-chip">OpenClaw</span></div>
+              <div class="tool-name">${escapeHtml(t.runtimeBannerTitle)}</div>
+              <div class="tool-desc">${fr ? "Statut de connexion, test et skills disponibles." : "Connection status, test, and available skills."}</div>
+              <div class="tool-chiprow"><span class="tool-chip">${fr ? "Statut" : "Status"}</span><span class="tool-chip">${fr ? "Test" : "Test"}</span><span class="tool-chip">Skills</span></div>
             </div>
           </a>
         </div>
@@ -643,7 +621,7 @@ function renderHome() {
         <div class="section-header">
           <div class="section-label">Projects</div>
         </div>
-        <div id="projects-grid" class="grid-3"><button id="new-project" class="card new" type="button">+</button></div>
+        <div id="projects-grid" class="grid-3"><button id="new-project" class="card" type="button" aria-label="+"><span class="projects-add-icon">+</span></button></div>
         <div class="project-hub" id="project-hub"></div>
       </section>
     </div>
@@ -886,7 +864,13 @@ function renderMemoryPage() {
         <div class="brain-rebuild-loading-label">${fr ? "Reconstruction de la prévisualisation…" : "Rebuilding preview…"}</div>
         <div class="brain-rebuild-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
       </div>
-      <iframe id="quartz-frame" class="quartz-frame" title="Quartz preview"></iframe>
+      <div id="brain-frame-shell" class="brain-frame-shell">
+        <div id="brain-frame-error" class="brain-frame-error" hidden role="alert">
+          <p id="brain-frame-error-msg" class="brain-frame-error-msg"></p>
+          <button type="button" id="brain-frame-retry" class="btn btn-primary">${fr ? "Réessayer" : "Retry"}</button>
+        </div>
+        <iframe id="quartz-frame" class="quartz-frame" title="Quartz preview"></iframe>
+      </div>
     </div>
   `;
 }
@@ -974,6 +958,19 @@ function renderSettings() {
       </div>
 
       <div class="settings-sections">
+        <section class="card settings-card settings-section" id="setup-ia-section">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">${escapeHtml(t.setupSectionTitle)}</h2>
+          </div>
+          <div class="card-desc">${escapeHtml(t.setupSectionDesc)}</div>
+          <ol class="setup-settings-steps">
+            <li><strong>1.</strong> ${escapeHtml(t.setupStep1)}</li>
+            <li><strong>2.</strong> ${escapeHtml(t.setupStep2)} — <code id="setup-settings-memory">—</code> · <code id="setup-settings-skills">—</code></li>
+          </ol>
+          <div class="settings-actions" style="margin-top:8px;">
+            <a href="/setup/runtime/" class="btn btn-primary">${escapeHtml(t.setupWizardCta)}</a>
+          </div>
+        </section>
         <section class="card settings-card settings-section">
           <div class="settings-heading-row">
             <h2 class="card-title settings-section-title">${t.workspaceTitle}</h2>
@@ -1715,6 +1712,8 @@ function createKanbanBoard(
   }
 }
 
+let _projectCardMenuCloseBound = false;
+
 async function loadProjects() {
   const grid = document.getElementById("projects-grid");
   const res = await fetch("/api/hub/kanban/hub/projects");
@@ -1729,35 +1728,152 @@ async function loadProjects() {
   const data = await res.json();
   const v = Date.now();
   if (!(data.projects || []).length) {
+    console.warn("[loadProjects] empty projects; raw response:", data);
     const fr = settingsLocale() === "fr";
     grid.insertAdjacentHTML(
       "beforeend",
       `<div class="onboarding-hint">${fr ? "Aucun projet — clique sur <strong>+</strong> pour créer le premier." : "No projects yet — click <strong>+</strong> to create your first one."}</div>`,
     );
   }
+  const fr = settingsLocale() === "fr";
   (data.projects || []).forEach((project) => {
+    const slug = project.slug;
+    const wrap = document.createElement("div");
+    wrap.className = "card-project-wrap";
+
     const card = document.createElement("a");
-    card.href = `/project/${encodeURIComponent(project.slug)}`;
+    card.href = `/project/${encodeURIComponent(slug)}`;
     card.className = "card card-project";
-    const hue = projectAvatarHue(project.slug);
+    const hue = projectAvatarHue(slug);
     const logoBlock = project.has_logo
-      ? `<div class="card-project-logo"><img src="/api/hub/kanban/hub/projects/${encodeURIComponent(project.slug)}/logo?v=${v}" alt="" loading="lazy" /></div>`
+      ? `<div class="card-project-logo"><img src="/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/logo?v=${v}" alt="" loading="lazy" /></div>`
       : `<div class="card-project-logo" style="padding:0"><div class="card-project-logo-initials" style="--avatar-h:${hue}">${escapeHtml(projectInitials(project.name))}</div></div>`;
-    const stage = project.stage || "PoC";
     const tmpl = (project.template || "").toLowerCase();
     const typeChip =
       tmpl && tmpl !== "empty"
         ? `<span class="card-project-type-chip">${escapeHtml(tmpl)}</span>`
         : "";
-    const stageChip = `<span class="chip">${escapeHtml(stage)}</span>`;
+    const statusRaw = (project.brain_status || project.stage || "PoC").trim();
+    const stLower = statusRaw.toLowerCase();
+    const isArchived = /archiv/i.test(statusRaw);
+    const isActive =
+      /^(active|production|mvp)/i.test(statusRaw) || stLower === "active";
+    let statusChipClass = "chip chip-status-neutral";
+    if (isArchived) statusChipClass = "chip chip-status-archived";
+    else if (isActive) statusChipClass = "chip chip-status-active";
+    const stageChip = `<span class="${statusChipClass}">${escapeHtml(statusRaw)}</span>`;
     const userTags = (project.tags || [])
+      .slice(0, 3)
       .map((t) => `<span class="chip">${escapeHtml(t)}</span>`)
       .join("");
     const chipsRow = [typeChip, stageChip, userTags].filter(Boolean).join("");
-    const main = `<div class="card-project-main"><div class="title">${escapeHtml(project.name)}</div><div class="desc">${escapeHtml(project.description || "")}</div><div class="chips" style="margin-top:6px">${chipsRow}</div></div>`;
+    const descText = (project.description || "").trim();
+    const desc = descText
+      ? `<p class="card-project-desc">${escapeHtml(descText.length > 180 ? descText.slice(0, 177) + "…" : descText)}</p>`
+      : `<p class="card-project-desc card-project-desc-empty">${fr ? "Aucune description dans le Brain pour ce projet." : "No description in the Brain for this project yet."}</p>`;
+    const ctaLabel = fr ? "Ouvrir le projet →" : "Open project →";
+    const main = `<div class="card-project-main">
+      <div class="card-project-name">${escapeHtml(project.name)}</div>
+      ${desc}
+      <div class="chips" style="margin-top:8px">${chipsRow}</div>
+      <div class="card-project-footer"><span class="card-project-cta">${escapeHtml(ctaLabel)}</span></div>
+    </div>`;
     card.innerHTML = `<div class="card-project-row">${logoBlock}${main}</div>`;
-    grid.appendChild(card);
+    wrap.appendChild(card);
+
+    const actions = document.createElement("div");
+    actions.className = "card-project-actions";
+    const kebab = document.createElement("button");
+    kebab.type = "button";
+    kebab.className = "btn card-project-kebab";
+    kebab.setAttribute("aria-expanded", "false");
+    kebab.setAttribute(
+      "aria-label",
+      fr ? "Actions sur le projet" : "Project actions",
+    );
+    kebab.textContent = "⋮";
+    const drop = document.createElement("div");
+    drop.className = "card-project-dropdown";
+    drop.hidden = true;
+    const btnArch = document.createElement("button");
+    btnArch.type = "button";
+    btnArch.className = "btn";
+    btnArch.textContent = fr ? "Archiver" : "Archive";
+    const btnDel = document.createElement("button");
+    btnDel.type = "button";
+    btnDel.className = "btn btn-danger";
+    btnDel.textContent = fr ? "Supprimer" : "Delete";
+    drop.append(btnArch, btnDel);
+
+    function closeDrop() {
+      drop.hidden = true;
+      kebab.setAttribute("aria-expanded", "false");
+    }
+    kebab.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const next = drop.hidden;
+      grid.querySelectorAll(".card-project-dropdown").forEach((d) => {
+        d.hidden = true;
+      });
+      drop.hidden = !next;
+      kebab.setAttribute("aria-expanded", next ? "true" : "false");
+    });
+    btnArch.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeDrop();
+      if (
+        !confirm(
+          fr
+            ? "Archiver ce projet ? Le dépôt ira dans archived/ et les tâches seront archivées."
+            : "Archive this project? Repo will move to archived folder and tasks will be archived.",
+        )
+      )
+        return;
+      const res = await fetch(
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/archive`,
+        { method: "POST" },
+      );
+      if (!res.ok) return alert(fr ? "Échec archivage" : "Archive failed");
+      window.location.href = "/";
+    });
+    btnDel.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeDrop();
+      const ok = await showConfirm({
+        title: fr ? "Êtes-vous sûr ?" : "Are you sure?",
+        message: fr
+          ? "Supprimer définitivement ce projet ? Dépôt, mémoire et tâches seront effacés."
+          : "Delete this project permanently? Repo, memory file and tasks will be removed.",
+        confirmLabel: fr ? "Supprimer le projet" : "Delete project",
+        cancelLabel: fr ? "Annuler" : "Cancel",
+      });
+      if (!ok) return;
+      const res = await fetch(
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) return alert(fr ? "Échec suppression" : "Delete failed");
+      window.location.href = "/";
+    });
+
+    actions.append(kebab, drop);
+    wrap.appendChild(actions);
+    grid.appendChild(wrap);
   });
+  if (!_projectCardMenuCloseBound) {
+    _projectCardMenuCloseBound = true;
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".card-project-dropdown").forEach((d) => {
+        d.hidden = true;
+      });
+      document.querySelectorAll(".card-project-kebab").forEach((k) => {
+        k.setAttribute("aria-expanded", "false");
+      });
+    });
+  }
 }
 
 function wireProjectHeaderCollapse(slug) {
@@ -1819,6 +1935,19 @@ async function wireProjectPage() {
   const launchBtn = document.getElementById("project-launch-btn");
   if (launchBtn) {
     launchBtn.href = `/apps/${encodeURIComponent(slug)}/`;
+    const devMode = Boolean(import.meta?.env?.DEV);
+    const devAppsOrigin = (
+      import.meta?.env?.VITE_HUB_APPS_ORIGIN ||
+      import.meta?.env?.HUB_APPS_ORIGIN ||
+      ""
+    ).trim();
+    if (devMode && !devAppsOrigin) {
+      launchBtn.hidden = true;
+      launchBtn.title = fr
+        ? "Apps hébergées indisponibles en mode dev sans HUB_APPS_ORIGIN."
+        : "Hosted apps unavailable in dev mode without HUB_APPS_ORIGIN.";
+      return;
+    }
     try {
       const serveCheck = await fetch(`/apps/${encodeURIComponent(slug)}/`, {
         method: "HEAD",
@@ -2202,8 +2331,21 @@ async function wireLogs() {
   function renderRows(logs) {
     const tbody = document.getElementById("logs-tbody");
     if (!tbody) return;
+    const fr = settingsLocale() === "fr";
+    if (!allLogs.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="muted-cell">${
+        fr
+          ? "Aucun log disponible. Vérifie que les services sont actifs."
+          : "No logs available. Verify that services are running."
+      }</td></tr>`;
+      return;
+    }
     if (!logs.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="muted-cell">No logs yet.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="muted-cell">${
+        fr
+          ? "Aucun résultat pour ces filtres."
+          : "No matching logs for these filters."
+      }</td></tr>`;
       return;
     }
     tbody.innerHTML = logs
@@ -2706,28 +2848,19 @@ async function wireRuntimeTileDot() {
   dot.setAttribute("aria-hidden", "true");
   tile.appendChild(dot);
 
-  const provider = localStorage.getItem("ai-provider") || "claude";
-  const localConfigured =
-    (provider === "claude" && !!localStorage.getItem("ai-claude-key")) ||
-    (provider === "mistral" && !!localStorage.getItem("ai-mistral-key")) ||
-    (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"));
-
-  let backendOk = false;
   try {
     const r = await fetch("/api/hub/agent/config", {
       signal: AbortSignal.timeout(3000),
     });
-    if (r.ok) {
-      const cfg = await r.json();
-      backendOk = !!(cfg.anthropic_available || cfg.mammouth_available || cfg.openclaw_available);
+    if (!r.ok) {
+      dot.className = "tile-status-dot err";
+      return;
     }
-  } catch (_) {}
-
-  if (backendOk) {
-    dot.className = "tile-status-dot ok";
-  } else if (localConfigured) {
-    dot.className = "tile-status-dot warn";
-  } else {
+    const cfg = await r.json();
+    dot.className = cfg.primary_provider
+      ? "tile-status-dot ok"
+      : "tile-status-dot warn";
+  } catch (_) {
     dot.className = "tile-status-dot err";
   }
 }
@@ -2831,63 +2964,53 @@ function wireSystemStatus() {
   const loc = settingsLocale();
   const t = SETTINGS_TEXT[loc];
 
-  // AI Runtime banner — checks localStorage AND backend agent config
+  // AI Runtime banner — PRIMARY_AI_PROVIDER from GET /api/hub/agent/config only
   async function refreshRuntimeBanner() {
     const statusEl = document.getElementById("ai-runtime-status");
     const labelEl = document.getElementById("ai-runtime-provider-label");
     const ctaEl = document.getElementById("ai-runtime-cta");
     if (!statusEl) return;
-    const provider = localStorage.getItem("ai-provider") || "claude";
-    const localConfigured =
-      (provider === "claude" && !!localStorage.getItem("ai-claude-key")) ||
-      (provider === "mistral" && !!localStorage.getItem("ai-mistral-key")) ||
-      (provider === "openclaw" && !!localStorage.getItem("ai-openclaw-url"));
 
-    // Also check if backend has a working provider (anthropic, mammouth, or openclaw)
-    let backendConfigured = false;
-    let backendProvider = null;
-    try {
-      const r = await fetch("/api/hub/agent/config", {
-        signal: AbortSignal.timeout(3000),
-      });
-      if (r.ok) {
-        const cfg = await r.json();
-        if (cfg.anthropic_available) {
-          backendConfigured = true;
-          backendProvider = "claude";
-        } else if (cfg.mammouth_available) {
-          backendConfigured = true;
-          backendProvider = "mistral";
-        } else if (cfg.openclaw_available) {
-          backendConfigured = true;
-          backendProvider = "openclaw";
-        }
-      }
-    } catch (_) {}
+    const labels = {
+      openclaw: "OpenClaw",
+      claude: "Claude Code",
+    };
 
-    const configured = localConfigured || backendConfigured;
-    const activeProvider = localConfigured ? provider : backendProvider;
     const banner = document.getElementById("ai-runtime-banner");
     const chip = document.getElementById("ai-runtime-chip");
     const chipProvider = document.getElementById("ai-runtime-chip-provider");
     const chipPanelStatus = document.getElementById(
       "ai-runtime-chip-panel-status",
     );
-    const labels = {
-      claude: "Claude",
-      mistral: "Mistral",
-      openclaw: "OpenClaw",
-    };
+
+    let cfg;
+    try {
+      const r = await fetch("/api/hub/agent/config", {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) throw new Error("config");
+      cfg = await r.json();
+    } catch (_) {
+      if (banner) banner.style.display = "";
+      if (chip) chip.style.display = "none";
+      statusEl.className = "ai-runtime-status-badge warn";
+      statusEl.textContent = t.runtimeBannerAgentUnavailable;
+      if (labelEl) labelEl.textContent = "";
+      if (ctaEl) ctaEl.textContent = t.runtimeBannerCta;
+      return;
+    }
+
+    const pp = cfg.primary_provider;
+    const configured = !!pp;
+    const providerLabel = pp ? labels[pp] || pp : "";
+
     if (configured) {
-      // Hide full banner, show compact chip
       if (banner) banner.style.display = "none";
       if (chip) chip.style.display = "inline-flex";
-      const providerLabel = labels[activeProvider] || activeProvider || "IA";
       if (chipProvider) chipProvider.textContent = providerLabel;
       if (chipPanelStatus)
         chipPanelStatus.textContent = `${t.runtimeBannerConfigured} · ${providerLabel}`;
     } else {
-      // Show full banner, hide chip
       if (banner) banner.style.display = "";
       if (chip) chip.style.display = "none";
       statusEl.className = "ai-runtime-status-badge warn";
@@ -2897,7 +3020,6 @@ function wireSystemStatus() {
     }
   }
   refreshRuntimeBanner();
-  window.addEventListener("storage", refreshRuntimeBanner);
 
   // Wire chip toggle
   const chipBtn = document.getElementById("ai-runtime-chip-btn");
@@ -3028,10 +3150,39 @@ async function wireSettings() {
     el.className = `health-pill ${ok ? "ok" : "warn"}`;
     el.textContent = text;
   };
-  const refreshWorkspaceHealth = () => {
+
+  async function refreshHealthPills() {
     const root = document.getElementById("projects-root")?.value?.trim() || "";
     setHealth(workspaceHealth, !!root, !!root ? t.configured : t.notConfigured);
-  };
+    try {
+      const [cfgRes, instRes] = await Promise.all([
+        fetch("/api/hub/agent/config", { signal: AbortSignal.timeout(8000) }),
+        fetch("/api/hub/memory/instances"),
+      ]);
+      if (cfgRes.ok) {
+        const cfg = await cfgRes.json();
+        const ok = !!cfg.primary_provider;
+        setHealth(runtimeHealth, ok, ok ? t.configured : t.notConfigured);
+      } else {
+        setHealth(runtimeHealth, false, t.notConfigured);
+      }
+      if (instRes.ok) {
+        const payload = await instRes.json();
+        const linkedCount = (payload.instances || []).filter(
+          (it) => !!it.linked,
+        ).length;
+        setHealth(
+          instancesHealth,
+          linkedCount > 0,
+          `${linkedCount} ${t.linked}`,
+        );
+      } else {
+        setHealth(instancesHealth, false, `0 ${t.linked}`);
+      }
+    } catch {
+      setHealth(runtimeHealth, false, t.notConfigured);
+    }
+  }
 
   const res = await fetch("/api/hub/memory/settings");
   if (res.ok) {
@@ -3050,7 +3201,20 @@ async function wireSettings() {
       activeInstanceEl.textContent = data.active_brain_memory || "—";
     if (activeProjectsEl)
       activeProjectsEl.textContent = data.projects_root || "—";
-    refreshWorkspaceHealth();
+  } else {
+    await refreshHealthPills();
+  }
+  try {
+    const ctxRes = await fetch("/api/hub/setup/context");
+    if (ctxRes.ok) {
+      const ctx = await ctxRes.json();
+      const memEl = document.getElementById("setup-settings-memory");
+      const skEl = document.getElementById("setup-settings-skills");
+      if (memEl) memEl.textContent = ctx.memory_root || "—";
+      if (skEl) skEl.textContent = ctx.skills_path || "—";
+    }
+  } catch {
+    /* ignore */
   }
   document
     .getElementById("save-settings")
@@ -3079,7 +3243,7 @@ async function wireSettings() {
         settingsFeedback.textContent = t.workspaceSaved;
         settingsFeedback.style.display = "inline-block";
       }
-      refreshWorkspaceHealth();
+      await refreshHealthPills();
     });
 
   async function loadInstances() {
@@ -3089,13 +3253,11 @@ async function wireSettings() {
     const r = await fetch("/api/hub/memory/instances");
     if (!r.ok) {
       list.innerHTML = `<div class="instances-empty">${escapeHtml(t.loadInstancesFailed)}</div>`;
-      setHealth(instancesHealth, false, `0 ${t.linked}`);
+      await refreshHealthPills();
       return;
     }
     const payload = await r.json();
     const instances = payload.instances || [];
-    const linkedCount = instances.filter((it) => !!it.linked).length;
-    setHealth(instancesHealth, linkedCount > 0, `${linkedCount} ${t.linked}`);
     if (!instances.length) {
       list.innerHTML = `<div class="instances-empty">${escapeHtml(t.noInstances)}</div>`;
       return;
@@ -3128,6 +3290,7 @@ async function wireSettings() {
         `;
       })
       .join("");
+    await refreshHealthPills();
   }
 
   async function applyInstanceToggle(link, pathValue) {
@@ -3156,10 +3319,9 @@ async function wireSettings() {
   document
     .getElementById("refresh-instances")
     .addEventListener("click", loadInstances);
-  document
-    .getElementById("projects-root")
-    .addEventListener("input", refreshWorkspaceHealth);
-  refreshWorkspaceHealth();
+  document.getElementById("projects-root").addEventListener("input", () => {
+    refreshHealthPills();
+  });
   await loadInstances();
 
   // --- Cron section ---
@@ -3320,23 +3482,111 @@ async function wireMemoryEditor() {
   if (!quartzFrame || !quartzRefresh) return;
 
   let brainPreviewKind = "html";
+  let lastQuartzFilename = null;
+
+  async function fetchQuartzStaticReachable(url) {
+    try {
+      const head = await fetch(url, {
+        method: "HEAD",
+        cache: "no-store",
+        signal: AbortSignal.timeout(15000),
+      });
+      if (head.ok) return { ok: true, status: head.status };
+      if (head.status === 405) {
+        const get = await fetch(url, {
+          method: "GET",
+          cache: "no-store",
+          signal: AbortSignal.timeout(15000),
+        });
+        try {
+          if (get.body) await get.body.cancel();
+        } catch {
+          /* ignore */
+        }
+        return { ok: get.ok, status: get.status };
+      }
+      return { ok: false, status: head.status };
+    } catch {
+      return { ok: false, status: 0 };
+    }
+  }
+
+  function clearBrainFrameError() {
+    const errEl = document.getElementById("brain-frame-error");
+    const frame = document.getElementById("quartz-frame");
+    if (errEl) errEl.hidden = true;
+    if (frame) {
+      frame.removeAttribute("hidden");
+      frame.removeAttribute("aria-hidden");
+    }
+  }
+
+  function showBrainFrameError(httpStatus) {
+    const errEl = document.getElementById("brain-frame-error");
+    const msgEl = document.getElementById("brain-frame-error-msg");
+    const frame = document.getElementById("quartz-frame");
+    if (!errEl || !msgEl || !frame) return;
+    frame.removeAttribute("srcdoc");
+    frame.removeAttribute("src");
+    frame.setAttribute("hidden", "");
+    frame.setAttribute("aria-hidden", "true");
+    errEl.hidden = false;
+    const code =
+      httpStatus !== undefined && httpStatus !== null && httpStatus > 0
+        ? String(httpStatus)
+        : "—";
+    msgEl.textContent = fr
+      ? `Impossible de charger le Brain (HTTP ${code}). Vérifie que hub-memory-api est démarré et que nginx transmet /api/hub/memory/ vers ce service.`
+      : `Could not load Brain (HTTP ${code}). Ensure hub-memory-api is running and nginx proxies /api/hub/memory/ to it.`;
+  }
 
   await refreshBrainSourceHint();
 
   async function loadQuartzList() {
-    const res = await fetch("/api/hub/memory/quartz");
-    const payload = res.ok ? await res.json() : { files: [] };
+    const res = await fetch("/api/hub/memory/quartz").catch(() => null);
+    if (!res || !res.ok) {
+      clearBrainFrameError();
+      quartzFrame.removeAttribute("src");
+      const status = res ? res.status : 0;
+      const label = fr ? "Réessayer" : "Retry";
+      const msg = fr
+        ? `Le service Brain est indisponible (${status || "réseau"}).`
+        : `Brain service unavailable (${status || "network error"}).`;
+      quartzFrame.srcdoc = `<!doctype html><html><body style="font-family:system-ui,sans-serif;padding:32px;background:#0f1117;color:#9aa6cf;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;text-align:center;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#f87171" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p style="margin:0;color:#f87171;font-size:15px;">${msg}</p>
+        <button onclick="window.parent.document.getElementById('quartz-refresh').click()" style="padding:8px 20px;border-radius:8px;border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.12);color:#a5b4fc;cursor:pointer;font-size:14px;">${label}</button>
+      </body></html>`;
+      return;
+    }
+    const payload = await res.json();
     let files = payload.files || [];
     brainPreviewKind = "html";
     if (!files.length) {
       const mres = await fetch("/api/hub/memory/projects");
-      const mp = mres.ok ? await mres.json() : { files: [] };
+      if (!mres.ok) {
+        clearBrainFrameError();
+        quartzFrame.removeAttribute("src");
+        const st = mres.status;
+        const label = fr ? "Réessayer" : "Retry";
+        const msg = fr
+          ? `Impossible de lister les fichiers Brain (HTTP ${st}).`
+          : `Could not list Brain files (HTTP ${st}).`;
+        quartzFrame.srcdoc = `<!doctype html><html><body style="font-family:system-ui,sans-serif;padding:32px;background:#0f1117;color:#9aa6cf;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;text-align:center;">
+        <p style="margin:0;color:#f87171;font-size:15px;">${msg}</p>
+        <button type="button" onclick="window.parent.document.getElementById('quartz-refresh').click()" style="padding:8px 20px;border-radius:8px;border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.12);color:#a5b4fc;cursor:pointer;font-size:14px;">${label}</button>
+      </body></html>`;
+        return;
+      }
+      const mp = await mres.json();
       files = (mp.files || []).filter((f) =>
         String(f).toLowerCase().endsWith(".md"),
       );
       brainPreviewKind = "md";
     }
     if (!files.length) {
+      clearBrainFrameError();
+      quartzFrame.removeAttribute("src");
       quartzFrame.srcdoc = fr
         ? '<div style="font-family:Inter,system-ui,sans-serif;padding:20px;color:#9aa6cf">Aucune page à afficher : pas de .html ni de .md dans <code>memory/projects/</code>.</div>'
         : '<div style="font-family:Inter,system-ui,sans-serif;padding:20px;color:#9aa6cf">Nothing to show: no .html or .md in <code>memory/projects/</code>.</div>';
@@ -3355,25 +3605,51 @@ async function wireMemoryEditor() {
   }
 
   async function loadQuartzPage(filename) {
+    lastQuartzFilename = filename || null;
     if (!filename) {
+      clearBrainFrameError();
       quartzFrame.srcdoc = fr
         ? '<div style="font-family:system-ui,sans-serif;padding:20px;color:#9aa6cf">Aucune page à afficher.</div>'
         : '<div style="font-family:system-ui,sans-serif;padding:20px;color:#9aa6cf">No page to display.</div>';
       return;
     }
     if (brainPreviewKind === "md") {
+      clearBrainFrameError();
       const res = await fetch(
         `/api/hub/memory/projects/${encodeURIComponent(filename)}`,
       );
-      const payload = res.ok ? await res.json() : { content: "" };
+      if (!res.ok) {
+        showBrainFrameError(res.status);
+        return;
+      }
+      const payload = await res.json();
       const text = (payload.content || "").trim();
+      quartzFrame.removeAttribute("src");
+      quartzFrame.removeAttribute("hidden");
+      quartzFrame.removeAttribute("aria-hidden");
       quartzFrame.srcdoc = markdownToBrainSrcdoc(text);
       return;
     }
-    // Render real Quartz output via URL so CSS/JS/assets load correctly.
+    const staticUrl = `/api/hub/memory/quartz-static/${encodeURIComponent(filename)}`;
+    const probe = await fetchQuartzStaticReachable(staticUrl);
+    if (!probe.ok) {
+      showBrainFrameError(probe.status);
+      return;
+    }
+    clearBrainFrameError();
     quartzFrame.removeAttribute("srcdoc");
-    quartzFrame.src = `/api/hub/memory/quartz-static/${encodeURIComponent(filename)}`;
+    quartzFrame.removeAttribute("hidden");
+    quartzFrame.removeAttribute("aria-hidden");
+    quartzFrame.src = staticUrl;
   }
+
+  document
+    .getElementById("brain-frame-retry")
+    ?.addEventListener("click", async () => {
+      clearBrainFrameError();
+      if (lastQuartzFilename) await loadQuartzPage(lastQuartzFilename);
+      else await loadQuartzList();
+    });
 
   quartzRefresh.addEventListener("click", async () => {
     if (quartzRebuildLoading) quartzRebuildLoading.hidden = false;
@@ -3493,28 +3769,15 @@ function renderRuntimePage() {
           <div class="runtime-info-loading">${fr ? "Chargement…" : "Loading…"}</div>
         </section>
 
-        <section class="runtime-test-section card">
-          <h2 class="card-title">${fr ? "Test de connexion" : "Connection test"}</h2>
+        <section class="runtime-skills-section card" id="runtime-skills-section">
+          <h2 class="card-title">${fr ? "Skills Clawvis disponibles pour l'agent" : "Clawvis skills available to your agent"}</h2>
           <p class="card-desc">${
             fr
-              ? "Envoie un ping au runtime pour vérifier que la clé API et le backend répondent."
-              : "Send a ping to the runtime to verify the API key and backend are responding."
+              ? "Ces skills sont chargées par ton agent à chaque run (OpenClaw) ou utilisées depuis le hub pour des tâches ponctuelles (Claude)."
+              : "These skills are loaded by your agent on each run (OpenClaw), or used from the hub for ad-hoc tasks (Claude)."
           }</p>
-          <button id="runtime-test-btn" class="btn btn-primary" type="button">
-            ${fr ? "Lancer le test" : "Run test"}
-          </button>
-          <div id="runtime-test-result" class="runtime-test-result"></div>
-        </section>
-
-        <section class="runtime-openclaw-section card" id="runtime-openclaw-section">
-          <h2 class="card-title">OpenClaw</h2>
-          <p class="card-desc" id="runtime-openclaw-desc">${
-            fr
-              ? "Interface de chat auto-hébergée."
-              : "Self-hosted chat interface."
-          }</p>
-          <div id="runtime-openclaw-actions"></div>
-          <div id="runtime-openclaw-embed"></div>
+          <div id="runtime-skills-loading" class="muted">${fr ? "Chargement…" : "Loading…"}</div>
+          <ul id="runtime-skills-list" class="runtime-skills-list" hidden></ul>
         </section>
 
       </div>
@@ -3525,58 +3788,41 @@ function renderRuntimePage() {
 async function wireRuntime() {
   const fr = settingsLocale() === "fr";
 
-  // ── 1. Info panel ──────────────────────────────────────────────
+  const providerLabels = {
+    openclaw: "OpenClaw",
+    claude: "Claude Code",
+  };
+
   const infoPanel = document.getElementById("runtime-info-panel");
   try {
-    const [statusRes, configRes] = await Promise.all([
-      fetch("/api/hub/agent/status"),
-      fetch("/api/hub/agent/config"),
-    ]);
-    if (statusRes.ok && configRes.ok) {
-      const s = await statusRes.json();
+    const configRes = await fetch("/api/hub/agent/config");
+    if (configRes.ok) {
       const cfg = await configRes.json();
-      const configured =
-        s.anthropic_configured ||
-        s.mammouth_configured ||
-        cfg.openclaw_available;
-      const providerLabels = {
-        anthropic: "Claude (Anthropic)",
-        mammouth: "Mammouth (Mistral)",
-        openclaw: "OpenClaw",
-      };
-      const modelLabel =
-        s.provider === "anthropic"
-          ? cfg.anthropic_model || "claude-haiku-4-5"
-          : s.provider === "mammouth"
-            ? cfg.mammouth_model || "mistral-small-3.2-24b-instruct"
-            : cfg.openclaw_model || "—";
-      const providerName = providerLabels[s.provider] || s.provider || "—";
+      const pp = cfg.primary_provider;
+      const configured = !!pp;
+      const providerName = pp ? providerLabels[pp] || pp : "—";
       const statusDot = configured
         ? `<span class="runtime-dot ok"></span>`
         : `<span class="runtime-dot warn"></span>`;
       const statusLabel = configured
         ? fr
-          ? "Opérationnel"
-          : "Operational"
+          ? "PRIMARY_AI_PROVIDER défini"
+          : "PRIMARY_AI_PROVIDER set"
         : fr
           ? "Non configuré"
           : "Not configured";
-      const changeLink = `<a href="/settings" class="runtime-settings-link">${fr ? "Modifier →" : "Change →"}</a>`;
+      const changeLink = `<a href="/setup/runtime/" class="runtime-settings-link">${fr ? "Setup →" : "Setup →"}</a>`;
 
       infoPanel.innerHTML = `
-        <h2 class="card-title">${fr ? "Runtime actif" : "Active runtime"}</h2>
+        <h2 class="card-title">${fr ? "Runtime IA" : "AI runtime"}</h2>
         <div class="runtime-info-grid">
           <div class="runtime-info-row">
-            <span class="runtime-info-label">${fr ? "Statut" : "Status"}</span>
-            <span class="runtime-info-value">${statusDot} ${escapeHtml(statusLabel)}</span>
-          </div>
-          <div class="runtime-info-row">
-            <span class="runtime-info-label">${fr ? "Fournisseur" : "Provider"}</span>
+            <span class="runtime-info-label">${fr ? "Provider (.env)" : "Provider (.env)"}</span>
             <span class="runtime-info-value"><strong>${escapeHtml(providerName)}</strong> ${changeLink}</span>
           </div>
           <div class="runtime-info-row">
-            <span class="runtime-info-label">${fr ? "Modèle" : "Model"}</span>
-            <span class="runtime-info-value"><code>${escapeHtml(modelLabel)}</code></span>
+            <span class="runtime-info-label">${fr ? "Statut" : "Status"}</span>
+            <span class="runtime-info-value">${statusDot} ${escapeHtml(statusLabel)}</span>
           </div>
         </div>
       `;
@@ -3589,221 +3835,66 @@ async function wireRuntime() {
     }
   }
 
-  // ── 2. Test de connexion ────────────────────────────────────────
-  const testBtn = document.getElementById("runtime-test-btn");
-  const testResult = document.getElementById("runtime-test-result");
-
-  testBtn.addEventListener("click", async () => {
-    testResult.className = "runtime-test-result loading";
-    testResult.textContent = fr ? "Connexion en cours…" : "Testing connection…";
-    testBtn.disabled = true;
-    try {
-      const res = await fetch("/api/hub/agent/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: fr ? "Réponds juste 'ok'." : "Just reply 'ok'.",
-          history: [],
-          system: "Reply with only the word 'ok'.",
-        }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      const fmt = formatClawvisChatAssistantText(text, fr);
-      if (fmt.authError) throw new Error(fmt.text);
-      testResult.className = "runtime-test-result ok";
-      testResult.innerHTML = `${escapeHtml(fr ? "Connexion réussie — le runtime répond." : "Connection successful — runtime is responding.")}
-        <details class="runtime-test-raw"><summary>${fr ? "Réponse" : "Response"}</summary>${escapeHtml(text.slice(0, 200))}</details>`;
-    } catch (e) {
-      testResult.className = "runtime-test-result err";
-      testResult.textContent = `${fr ? "Échec." : "Failed."} ${String(e)}`;
+  const skillsList = document.getElementById("runtime-skills-list");
+  const skillsLoading = document.getElementById("runtime-skills-loading");
+  try {
+    const r = await fetch("/api/hub/kanban/skills");
+    const data = r.ok ? await r.json() : { skills: [] };
+    const items = (data.skills || []).map((x) => x.name).filter(Boolean);
+    if (skillsLoading) skillsLoading.hidden = true;
+    if (skillsList) {
+      skillsList.hidden = false;
+      skillsList.innerHTML = items.length
+        ? items.map((n) => `<li><code>${escapeHtml(n)}</code></li>`).join("")
+        : `<li class="muted">${fr ? "Aucun skill listé (dossier skills/ vide ou API indisponible)." : "No skills listed (empty skills/ or API unavailable)."}</li>`;
     }
-    testBtn.disabled = false;
-  });
-
-  // ── 3. Section OpenClaw ─────────────────────────────────────────
-  const openclawDesc = document.getElementById("runtime-openclaw-desc");
-  const openclawActions = document.getElementById("runtime-openclaw-actions");
-  const openclawEmbed = document.getElementById("runtime-openclaw-embed");
-
-  const openclawUrl = localStorage.getItem("ai-openclaw-url") || "/openclaw/";
-  const hasLocalUrl = !!localStorage.getItem("ai-openclaw-url");
-
-  if (openclawDesc) {
-    openclawDesc.textContent = fr
-      ? "Accède au chat OpenClaw auto-hébergé ou configure l'URL dans les réglages."
-      : "Access your self-hosted OpenClaw chat or set the URL in settings.";
+  } catch {
+    if (skillsLoading) skillsLoading.hidden = true;
+    if (skillsList) {
+      skillsList.hidden = false;
+      skillsList.innerHTML = `<li class="muted">${fr ? "Impossible de charger la liste des skills." : "Could not load skills list."}</li>`;
+    }
   }
-
-  if (openclawActions) {
-    openclawActions.innerHTML = `
-      <div class="runtime-openclaw-btns">
-        <a href="${escapeHtml(openclawUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
-          ${fr ? "Ouvrir OpenClaw ↗" : "Open OpenClaw ↗"}
-        </a>
-        <button id="runtime-embed-toggle" class="btn" type="button">
-          ${fr ? "Intégrer ici" : "Embed here"}
-        </button>
-        ${!hasLocalUrl ? `<a href="/settings" class="btn">${fr ? "Configurer l'URL →" : "Set URL →"}</a>` : ""}
-      </div>
-    `;
-  }
-
-  // Embed toggle
-  let embedVisible = false;
-  document
-    .getElementById("runtime-embed-toggle")
-    ?.addEventListener("click", () => {
-      embedVisible = !embedVisible;
-      if (embedVisible) {
-        openclawEmbed.innerHTML = `
-        <iframe
-          src="${escapeHtml(openclawUrl)}"
-          class="runtime-openclaw-iframe"
-          title="OpenClaw chat"
-          allow="clipboard-write"
-          loading="lazy">
-        </iframe>`;
-      } else {
-        openclawEmbed.innerHTML = "";
-      }
-      const btn = document.getElementById("runtime-embed-toggle");
-      if (btn)
-        btn.textContent = embedVisible
-          ? fr
-            ? "Masquer"
-            : "Hide"
-          : fr
-            ? "Intégrer ici"
-            : "Embed here";
-    });
 }
 
 const SETUP_RUNTIME_TEXT = {
   fr: {
     title: "Setup",
-    subtitle: "Configure ton runtime IA en 4 étapes.",
+    subtitle: "Choisis quel agent Clawvis utilise.",
     back: "Retour au hub",
-    step1Title: "Choisir ton fournisseur",
+    step1Title: "Choisir ton agent",
     step1Desc:
-      "Clawvis supporte plusieurs fournisseurs. Sélectionne celui que tu veux configurer.",
-    step2Title: "Obtenir et entrer la clé",
-    step2Desc:
-      "Suis les instructions pour ton fournisseur, puis entre ta clé API.",
-    step3Title: "Tester la connexion",
-    step3Desc: "Vérifie que la connexion fonctionne avant de continuer.",
-    step4Title: "Valide avec un message",
-    step4Desc:
-      "Envoie un message à ton runtime pour confirmer que tout fonctionne.",
-    next: "Suivant →",
-    back_btn: "← Retour",
-    testBtn: "Lancer le test",
-    testLoading: "Connexion en cours…",
-    testOk: "Connexion réussie — ton runtime répond.",
-    testErr: "Échec de connexion.",
-    testErrHint: {
-      claude: "Vérifie ta clé API.",
-      mistral: "Vérifie ta clé API.",
-      openclaw: "Vérifie l'URL et la clé.",
-    },
-    chatWelcome:
-      "Bonjour ! Je suis ton runtime IA. Pose-moi une question pour vérifier que tout fonctionne.",
-    chatPlaceholder: "Envoie un message…",
-    chatSend: "Envoyer",
-    finish: "Terminer →",
+      "Clawvis se connecte à l'agent que tu as déjà configuré. Choisis lequel utiliser.",
+    confirm: "Confirmer →",
     providers: {
-      claude: {
-        name: "Claude",
-        owner: "Anthropic",
-        badge: "Cloud",
-        desc: "Le modèle le plus capable d'Anthropic. Clé API sur console.anthropic.com.",
-        link: "https://console.anthropic.com/settings/keys",
-        linkLabel: "Obtenir une clé →",
-        placeholder: "sk-ant-...",
-      },
-      mistral: {
-        name: "Mistral",
-        owner: "Mistral AI",
-        badge: "Cloud",
-        desc: "Modèle open-weight performant. Clé API sur console.mistral.ai.",
-        link: "https://console.mistral.ai/api-keys",
-        linkLabel: "Obtenir une clé →",
-        placeholder: "...",
-      },
       openclaw: {
         name: "OpenClaw",
-        owner: "Auto-hébergé",
-        badge: "Self-hosted",
-        desc: "Instance compatible OpenAI. Renseigne l'URL de ton gateway OpenClaw (ex. http://localhost:18789). Note : le backend utilise le CLI — cette URL sert à l'identification de la session.",
-        link: null,
-        linkLabel: null,
-        placeholder: "http://localhost:18789",
+        cardDesc: "Ton instance OpenClaw tourne déjà sur ce serveur.",
+      },
+      claude: {
+        name: "Claude Code",
+        cardDesc: "Claude Code est déjà installé sur cette machine.",
       },
     },
-    securityNote:
-      "La clé est stockée dans ton navigateur (localStorage). Elle n'est jamais envoyée à nos serveurs.",
   },
   en: {
     title: "Setup",
-    subtitle: "Configure your AI runtime in 4 steps.",
+    subtitle: "Choose which agent Clawvis uses.",
     back: "Back to hub",
-    step1Title: "Choose your provider",
+    step1Title: "Choose your agent",
     step1Desc:
-      "Clawvis supports multiple providers. Select the one you want to configure.",
-    step2Title: "Get and enter your key",
-    step2Desc:
-      "Follow the instructions for your provider, then enter your API key.",
-    step3Title: "Test the connection",
-    step3Desc: "Verify the connection works before continuing.",
-    step4Title: "Validate with a message",
-    step4Desc: "Send a message to your runtime to confirm everything works.",
-    next: "Next →",
-    back_btn: "← Back",
-    testBtn: "Run test",
-    testLoading: "Connecting…",
-    testOk: "Connection successful — your runtime is responding.",
-    testErr: "Connection failed.",
-    testErrHint: {
-      claude: "Check your API key.",
-      mistral: "Check your API key.",
-      openclaw: "Check the URL and key.",
-    },
-    chatWelcome:
-      "Hello! I'm your AI runtime. Ask me a question to confirm everything is working.",
-    chatPlaceholder: "Send a message…",
-    chatSend: "Send",
-    finish: "Finish →",
+      "Clawvis connects to the agent you already set up. Pick which one to use.",
+    confirm: "Confirm →",
     providers: {
-      claude: {
-        name: "Claude",
-        owner: "Anthropic",
-        badge: "Cloud",
-        desc: "Anthropic's most capable model. API key at console.anthropic.com.",
-        link: "https://console.anthropic.com/settings/keys",
-        linkLabel: "Get a key →",
-        placeholder: "sk-ant-...",
-      },
-      mistral: {
-        name: "Mistral",
-        owner: "Mistral AI",
-        badge: "Cloud",
-        desc: "High-performance open-weight model. API key at console.mistral.ai.",
-        link: "https://console.mistral.ai/api-keys",
-        linkLabel: "Get a key →",
-        placeholder: "...",
-      },
       openclaw: {
         name: "OpenClaw",
-        owner: "Self-hosted",
-        badge: "Self-hosted",
-        desc: "OpenAI-compatible self-hosted instance. Enter your OpenClaw gateway URL (e.g. http://localhost:18789). Note: the backend uses the CLI — this URL identifies your session.",
-        link: null,
-        linkLabel: null,
-        placeholder: "http://localhost:18789",
+        cardDesc: "Your OpenClaw instance is already running on this server.",
+      },
+      claude: {
+        name: "Claude Code",
+        cardDesc: "Claude Code is already installed on this machine.",
       },
     },
-    securityNote:
-      "Your key is stored in your browser (localStorage). It is never sent to our servers.",
   },
 };
 
@@ -3826,86 +3917,24 @@ function renderSetupRuntime() {
         </div>
       </header>
 
-      <!-- Stepper -->
-      <div class="setup-stepper" id="setup-stepper" role="list" aria-label="${isFr ? "Étapes de configuration" : "Configuration steps"}">
-        <div class="setup-step-circle active" id="step-circle-1" data-step="1" role="listitem" aria-label="${isFr ? "Étape 1 : Choisir ton fournisseur" : "Step 1: Choose your provider"}">1</div>
-        <div class="setup-step-line" id="step-line-1" aria-hidden="true"></div>
-        <div class="setup-step-circle" id="step-circle-2" data-step="2" role="listitem" aria-label="${isFr ? "Étape 2 : Entrer la clé" : "Step 2: Enter your key"}">2</div>
-        <div class="setup-step-line" id="step-line-2" aria-hidden="true"></div>
-        <div class="setup-step-circle" id="step-circle-3" data-step="3" role="listitem" aria-label="${isFr ? "Étape 3 : Tester la connexion" : "Step 3: Test connection"}">3</div>
-        <div class="setup-step-line" id="step-line-3" aria-hidden="true"></div>
-        <div class="setup-step-circle" id="step-circle-4" data-step="4" role="listitem" aria-label="${isFr ? "Étape 4 : Valider" : "Step 4: Validate"}">4</div>
-      </div>
-
-      <!-- Step 1: Choose provider -->
       <div class="setup-step" id="setup-step-1">
-        <div class="setup-step-badge">1 / 4</div>
         <h2>${escapeHtml(t.step1Title)}</h2>
         <p class="setup-step-desc">${escapeHtml(t.step1Desc)}</p>
         <div class="setup-provider-cards">
-          ${["claude", "mistral", "openclaw"]
+          ${["openclaw", "claude"]
             .map((pid) => {
               const p = t.providers[pid];
               return `<button class="setup-provider-card" data-provider="${pid}" type="button">
-              <span class="setup-provider-icon">${pid === "claude" ? "🧠" : pid === "mistral" ? "✨" : "🐾"}</span>
+              <span class="setup-provider-icon">${pid === "openclaw" ? "🐾" : "🧠"}</span>
               <strong>${escapeHtml(p.name)}</strong>
-              <span>${escapeHtml(p.owner)}</span>
-              <span class="setup-provider-badge">${escapeHtml(p.badge)}</span>
+              <span class="setup-provider-card-desc">${escapeHtml(p.cardDesc)}</span>
             </button>`;
             })
             .join("")}
         </div>
+        <div id="setup-provider-feedback" class="setup-test-result" aria-live="polite"></div>
         <div class="setup-actions">
-          <button class="btn btn-primary" id="setup-next-1" type="button" disabled>${escapeHtml(t.next)}</button>
-        </div>
-      </div>
-
-      <!-- Step 2: Credentials -->
-      <div class="setup-step" id="setup-step-2" style="display:none">
-        <div class="setup-step-badge">2 / 4</div>
-        <h2>${escapeHtml(t.step2Title)}</h2>
-        <p class="setup-step-desc">${escapeHtml(t.step2Desc)}</p>
-        <div id="setup-provider-detail" class="setup-provider-detail"></div>
-        <p class="setup-security-note">${escapeHtml(t.securityNote)}</p>
-        <div class="setup-actions">
-          <button class="btn" id="setup-back-1" type="button">${escapeHtml(t.back_btn)}</button>
-          <button class="btn btn-primary" id="setup-next-2" type="button" disabled>${escapeHtml(t.next)}</button>
-        </div>
-      </div>
-
-      <!-- Step 3: Test -->
-      <div class="setup-step" id="setup-step-3" style="display:none">
-        <div class="setup-step-badge">3 / 4</div>
-        <h2>${escapeHtml(t.step3Title)}</h2>
-        <p class="setup-step-desc">${escapeHtml(t.step3Desc)}</p>
-        <div class="setup-test-area">
-          <button class="btn btn-primary" id="setup-test-btn" type="button">${escapeHtml(t.testBtn)}</button>
-          <div id="setup-test-result" class="setup-test-result"></div>
-        </div>
-        <div class="setup-actions">
-          <button class="btn" id="setup-back-2" type="button">${escapeHtml(t.back_btn)}</button>
-          <button class="btn btn-primary" id="setup-next-3" type="button" disabled>${escapeHtml(t.next)}</button>
-        </div>
-      </div>
-
-      <!-- Step 4: Mini-chat -->
-      <div class="setup-step" id="setup-step-4" style="display:none">
-        <div class="setup-step-badge">4 / 4</div>
-        <h2>${escapeHtml(t.step4Title)}</h2>
-        <p class="setup-step-desc">${escapeHtml(t.step4Desc)}</p>
-        <div class="setup-mini-chat">
-          <div class="setup-mini-chat-messages" id="setup-chat-messages">
-            <div class="setup-chat-bubble assistant">${escapeHtml(t.chatWelcome)}</div>
-          </div>
-          <div class="setup-mini-chat-input-row">
-            <textarea id="setup-chat-input" class="setup-mini-chat-input" rows="1"
-              placeholder="${escapeHtml(t.chatPlaceholder)}"></textarea>
-            <button class="btn" id="setup-chat-send" type="button">${escapeHtml(t.chatSend)}</button>
-          </div>
-        </div>
-        <div class="setup-actions">
-          <button class="btn" id="setup-back-3" type="button">${escapeHtml(t.back_btn)}</button>
-          <button class="btn btn-primary" id="setup-finish" type="button">${escapeHtml(t.finish)}</button>
+          <button class="btn btn-primary" id="setup-confirm" type="button" disabled>${escapeHtml(t.confirm)}</button>
         </div>
       </div>
     </div>
@@ -3916,283 +3945,95 @@ async function wireSetupRuntime() {
   const isFr = settingsLocale() === "fr";
   const t = SETUP_RUNTIME_TEXT[isFr ? "fr" : "en"];
 
-  // ── In-memory wizard state (not written to localStorage until "Terminer") ──
-  let selectedProvider = localStorage.getItem("ai-provider") || "";
-  let credKey = ""; // holds claude key or mistral key
-  let credUrl = ""; // holds openclaw url
+  let selectedProvider = "";
+  /** Once the user picks a card, do not let a late GET /agent/config overwrite the choice. */
+  let userPickedProvider = false;
+  const confirmBtn = document.getElementById("setup-confirm");
+  const cardsRoot = document.querySelector(".setup-provider-cards");
+  const feedbackEl = document.getElementById("setup-provider-feedback");
 
-  // ── Stepper helpers ──
-  const STEPS = [1, 2, 3, 4];
-  function goToStep(n) {
-    STEPS.forEach((s) => {
-      const el = document.getElementById(`setup-step-${s}`);
-      if (el) el.style.display = s === n ? "" : "none";
-      const circle = document.getElementById(`step-circle-${s}`);
-      if (!circle) return;
-      circle.classList.remove("active", "done");
-      if (s < n) circle.classList.add("done");
-      else if (s === n) circle.classList.add("active");
-      const line = document.getElementById(`step-line-${s}`);
-      if (line) line.classList.toggle("done", s < n);
+  const setSelectedProvider = (provider) => {
+    const ok = provider === "openclaw" || provider === "claude";
+    selectedProvider = ok ? provider : "";
+    const scope = cardsRoot || document;
+    scope.querySelectorAll("[data-provider]").forEach((c) => {
+      const active = c.dataset.provider === selectedProvider;
+      c.classList.toggle("selected", active);
+      c.setAttribute("aria-pressed", active ? "true" : "false");
     });
-    // Reset step 3 state when going back to 1 or 2
-    if (n <= 2) resetStep3();
-  }
+    if (confirmBtn) confirmBtn.disabled = !selectedProvider;
+  };
 
-  function resetStep3() {
-    const result = document.getElementById("setup-test-result");
-    if (result) {
-      result.className = "setup-test-result";
-      result.innerHTML = "";
-    }
-    const next3 = document.getElementById("setup-next-3");
-    if (next3) next3.disabled = true;
-  }
-
-  // ── Pre-fill from localStorage if returning user ──
-  // Only pre-select the provider card and enable "Next →". Do NOT touch stepper circle
-  // classes here — goToStep() manages them when the user actually navigates.
-  // The page always starts on step 1 (default from renderSetupRuntime).
-  if (selectedProvider) {
-    const card = document.querySelector(
-      `[data-provider="${selectedProvider}"]`,
-    );
-    if (card) card.classList.add("selected");
-    const next1 = document.getElementById("setup-next-1");
-    if (next1) next1.disabled = false;
-    // Pre-load cred values from localStorage into memory (shown in step 2 fields)
-    credKey = localStorage.getItem(`ai-${selectedProvider}-key`) || "";
-    credUrl = localStorage.getItem("ai-openclaw-url") || "";
-  }
-
-  // ── Stepper click-back (delegated — works for circles marked done after navigation) ──
-  document.getElementById("setup-stepper").addEventListener("click", (e) => {
-    const circle = e.target.closest(".setup-step-circle.done");
-    if (!circle) return;
-    const n = parseInt(circle.dataset.step, 10);
-    if (n && n < 4) goToStep(n);
-  });
-
-  // ── Step 1: Provider selection ──
-  document.querySelectorAll("[data-provider]").forEach((card) => {
-    card.addEventListener("click", () => {
-      document
-        .querySelectorAll("[data-provider]")
-        .forEach((c) => c.classList.remove("selected"));
-      card.classList.add("selected");
-      selectedProvider = card.dataset.provider;
-      document.getElementById("setup-next-1").disabled = false;
+  if (cardsRoot) {
+    cardsRoot.addEventListener("click", (ev) => {
+      const raw = ev.target;
+      const el =
+        raw instanceof Element
+          ? raw
+          : raw?.parentElement instanceof Element
+            ? raw.parentElement
+            : null;
+      const card = el?.closest("[data-provider]");
+      if (!card || !cardsRoot.contains(card)) return;
+      userPickedProvider = true;
+      setSelectedProvider(card.dataset.provider || "");
     });
-  });
-
-  document.getElementById("setup-next-1").addEventListener("click", () => {
-    renderStep2Detail();
-    goToStep(2);
-  });
-
-  // ── Step 2: Render provider-specific detail and credentials ──
-  function renderStep2Detail() {
-    const p = t.providers[selectedProvider];
-    const detail = document.getElementById("setup-provider-detail");
-    if (!detail) return;
-
-    if (selectedProvider === "openclaw") {
-      detail.innerHTML = `
-        <p>${escapeHtml(p.desc)}</p>
-        <div class="setup-key-field">
-          <input id="setup-cred-url" type="text" placeholder="${escapeHtml(p.placeholder)}"
-            value="${escapeHtml(credUrl)}" autocomplete="off" />
-        </div>
-      `;
-      const urlInput = document.getElementById("setup-cred-url");
-      urlInput.addEventListener("input", () => {
-        credUrl = urlInput.value.trim();
-        document.getElementById("setup-next-2").disabled = !credUrl;
-      });
-      document.getElementById("setup-next-2").disabled = !credUrl;
-    } else {
-      const existingKey =
-        localStorage.getItem(`ai-${selectedProvider}-key`) || credKey;
-      detail.innerHTML = `
-        <p>${escapeHtml(p.desc)}</p>
-        ${p.link ? `<p><a href="${p.link}" target="_blank" rel="noopener">${escapeHtml(p.linkLabel)}</a></p>` : ""}
-        <div class="setup-key-field">
-          <input id="setup-cred-key" type="password" placeholder="${escapeHtml(p.placeholder)}"
-            value="${escapeHtml(existingKey)}" autocomplete="off" />
-          <button class="setup-key-toggle" id="setup-key-toggle" type="button">👁</button>
-        </div>
-      `;
-      const keyInput = document.getElementById("setup-cred-key");
-      document
-        .getElementById("setup-key-toggle")
-        .addEventListener("click", () => {
-          keyInput.type = keyInput.type === "password" ? "text" : "password";
-        });
-      keyInput.addEventListener("input", () => {
-        credKey = keyInput.value.trim();
-        document.getElementById("setup-next-2").disabled = !credKey;
-      });
-      document.getElementById("setup-next-2").disabled =
-        !existingKey && !credKey;
-      if (existingKey) credKey = existingKey;
-    }
   }
 
-  document
-    .getElementById("setup-back-1")
-    .addEventListener("click", () => goToStep(1));
-
-  document.getElementById("setup-next-2").addEventListener("click", () => {
-    // Capture final credential values before advancing
-    if (selectedProvider === "openclaw") {
-      credUrl =
-        (document.getElementById("setup-cred-url") || {}).value?.trim() ||
-        credUrl;
-    } else {
-      credKey =
-        (document.getElementById("setup-cred-key") || {}).value?.trim() ||
-        credKey;
-    }
-    goToStep(3);
-  });
-
-  // ── Step 3: Connection test ──
-  document
-    .getElementById("setup-back-2")
-    .addEventListener("click", () => goToStep(2));
-
-  document
-    .getElementById("setup-test-btn")
-    .addEventListener("click", async () => {
-      const result = document.getElementById("setup-test-result");
-      const testBtn = document.getElementById("setup-test-btn");
-      result.className = "setup-test-result";
-      result.innerHTML = t.testLoading;
-      testBtn.disabled = true;
-
-      try {
-        // ⚠️ KNOWN LIMITATION: this test validates the backend's configured key (from .env),
-        // NOT the key the user just entered in the wizard. The agent service reads API keys
-        // from environment only. A 200 confirms the stack is reachable with a working env key.
-        // Future: pass the key in a header the agent service accepts for this request.
-        const res = await fetch("/api/hub/agent/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: isFr ? "Réponds juste 'ok'." : "Just reply 'ok'.",
-            history: [],
-            system: "Reply with only the word 'ok'.",
-          }),
-        });
-        if (res.ok) {
-          const text = await res.text();
-          const fmt = formatClawvisChatAssistantText(text, isFr);
-          const trimmed = text.trim();
-          if (fmt.authError || /^\[CLAWVIS:HTTP:\d+\]$/.test(trimmed)) {
-            throw new Error(fmt.text);
-          }
-          result.className = "setup-test-result ok";
-          result.innerHTML = `${escapeHtml(t.testOk)}
-          <details class="setup-test-raw"><summary>${isFr ? "Réponse" : "Response"}</summary>${escapeHtml(text.slice(0, 200))}</details>`;
-          document.getElementById("setup-next-3").disabled = false;
-        } else {
-          throw new Error(`HTTP ${res.status}`);
-        }
-      } catch (e) {
-        result.className = "setup-test-result err";
-        const hint = t.testErrHint[selectedProvider] || "";
-        result.innerHTML = `${escapeHtml(t.testErr)} ${escapeHtml(hint)} <span style="opacity:.6">(${escapeHtml(String(e))})</span>`;
+  try {
+    const r = await fetch("/api/hub/agent/config");
+    if (r.ok && !userPickedProvider) {
+      const cfg = await r.json();
+      const pp = cfg.primary_provider;
+      if (pp === "openclaw" || pp === "claude") {
+        setSelectedProvider(pp);
       }
-      testBtn.disabled = false;
-    });
-
-  document
-    .getElementById("setup-next-3")
-    .addEventListener("click", () => goToStep(4));
-
-  // ── Step 4: Mini-chat ──
-  document
-    .getElementById("setup-back-3")
-    .addEventListener("click", () => goToStep(3));
-
-  const chatMessages = document.getElementById("setup-chat-messages");
-  const chatInput = document.getElementById("setup-chat-input");
-  const chatSend = document.getElementById("setup-chat-send");
-  const chatHistory = [];
-
-  function addSetupBubble(role, text, streaming = false) {
-    const div = document.createElement("div");
-    div.className = `setup-chat-bubble ${role}`;
-    div.textContent = text;
-    chatMessages.appendChild(div);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    return div;
+    }
+  } catch {
+    /* ignore */
   }
 
-  async function sendSetupMessage() {
-    const msg = chatInput.value.trim();
-    if (!msg) return;
-    chatInput.value = "";
-    chatSend.disabled = true;
-    addSetupBubble("user", msg);
-    chatHistory.push({ role: "user", content: msg });
-
-    const el = addSetupBubble("assistant", "…", true);
-    let full = "";
+  if (!confirmBtn) return;
+  confirmBtn.addEventListener("click", async () => {
+    if (!selectedProvider) {
+      if (feedbackEl) {
+        feedbackEl.className = "setup-test-result err";
+        feedbackEl.textContent = isFr
+          ? "Sélectionne d'abord un agent."
+          : "Select an agent first.";
+      }
+      return;
+    }
+    const fb = feedbackEl;
+    if (fb) {
+      fb.className = "setup-test-result loading";
+      fb.textContent = isFr ? "Enregistrement…" : "Saving…";
+    }
     try {
-      const res = await fetch("/api/hub/agent/chat", {
+      const res = await fetch("/api/hub/setup/provider", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: msg,
-          history: chatHistory.slice(0, -1),
-        }),
+        body: JSON.stringify({ provider: selectedProvider }),
       });
-      if (res.ok && res.body) {
-        const reader = res.body.getReader();
-        const dec = new TextDecoder();
-        el.textContent = "";
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          full += dec.decode(value, { stream: true });
-          el.textContent = full;
-          chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        const sf = formatClawvisChatAssistantText(full, isFr);
-        el.textContent = sf.text;
-        chatHistory.push({ role: "assistant", content: sf.text });
-      } else {
-        el.textContent = isFr ? "Erreur." : "Error.";
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const d = data.detail;
+        const msg =
+          typeof d === "string"
+            ? d
+            : Array.isArray(d)
+              ? d.map((x) => x.msg || JSON.stringify(x)).join("; ")
+              : data.error || JSON.stringify(data);
+        throw new Error(msg || `HTTP ${res.status}`);
       }
-    } catch {
-      el.textContent = isFr ? "Erreur réseau." : "Network error.";
-    }
-    chatSend.disabled = false;
-    chatInput.focus();
-  }
-
-  chatSend.addEventListener("click", sendSetupMessage);
-  chatInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendSetupMessage();
+      window.location.href = "/";
+    } catch (e) {
+      if (fb) {
+        fb.className = "setup-test-result err";
+        fb.textContent = String(e);
+      }
     }
   });
-
-  // ── Finish: write to localStorage and redirect ──
-  document.getElementById("setup-finish").addEventListener("click", () => {
-    localStorage.setItem("ai-provider", selectedProvider);
-    if (selectedProvider === "openclaw") {
-      localStorage.setItem("ai-openclaw-url", credUrl);
-    } else {
-      localStorage.setItem(`ai-${selectedProvider}-key`, credKey);
-    }
-    window.location.href = "/";
-  });
-
-  // ── If returning user, land on step 1 (already pre-selected above) ──
-  // (goToStep is not called here; step 1 is already visible from renderSetupRuntime)
 }
 
 async function boot() {

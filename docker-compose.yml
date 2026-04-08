@@ -1,22 +1,28 @@
 # Clawvis — Full stack
 # See ARCHITECTURE.md for full design
 
-version: '3.9'
-
 services:
   hub:
+    container_name: clawvis-${INSTANCE_NAME:-example}-hub
     build: ./hub
     ports:
       # HUB_HOST=127.0.0.1 (default) = localhost-only; HUB_HOST=0.0.0.0 = LAN/Tailscale without host nginx
       - "${HUB_HOST:-127.0.0.1}:${HUB_PORT:-8088}:80"
     env_file: .env
+    environment:
+      - INSTANCE_NAME=${INSTANCE_NAME:-example}
+    volumes:
+      - ./instances:/clawvis/instances:ro
+      - "${PROJECTS_ROOT:?Set PROJECTS_ROOT in .env}:/clawvis/projects-root:ro"
     tmpfs:
       - /tmp
     labels:
       - "app=clawvis"
     depends_on:
-      - kanban-api
-      - hub-memory-api
+      kanban-api:
+        condition: service_healthy
+      hub-memory-api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
       interval: 15s
@@ -25,6 +31,7 @@ services:
       start_period: 15s
 
   kanban-api:
+    container_name: clawvis-${INSTANCE_NAME:-example}-kanban-api
     build:
       context: .
       dockerfile: kanban/Dockerfile
@@ -32,9 +39,16 @@ services:
       - "127.0.0.1:${KANBAN_API_PORT:-8090}:8090"
     env_file: .env
     volumes:
-      - ./instances:/clawvis/instances
+      # Full repo RW so setup API can sync skills/ and .claude/ (host checkout replaces /clawvis).
+      - .:/clawvis:rw
+      # Kanban scans PROJECTS_ROOT from .env — bind the host folder at the same path.
+      - "${PROJECTS_ROOT:?Set PROJECTS_ROOT in .env}:${PROJECTS_ROOT}:ro"
     environment:
-      - MEMORY_ROOT=instances/${INSTANCE_NAME:-example}/memory
+      - CLAWVIS_ROOT=/clawvis
+      - UV_CACHE_DIR=/tmp/uv-cache
+      - HOME=/home/${USER}
+      - MEMORY_ROOT=${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}
+      - DOMBOT_LOG_JSONL=${DOMBOT_LOG_JSONL:-/home/${USER}/.openclaw/logs/dombot.jsonl}
       # OpenClaw: set OPENCLAW_BASE_URL to reach your OpenClaw instance.
       # Same-host deployment (OpenClaw on the VPS alongside Clawvis):
       #   OPENCLAW_BASE_URL=http://host.docker.internal:3333
@@ -52,10 +66,8 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "/clawvis/.venv/bin/python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/openapi.json', timeout=5)",
+          "CMD-SHELL",
+          "uv run --directory /clawvis/kanban python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/openapi.json', timeout=5)\"",
         ]
       interval: 15s
       timeout: 8s
@@ -63,6 +75,7 @@ services:
       start_period: 25s
 
   hub-memory-api:
+    container_name: clawvis-${INSTANCE_NAME:-example}-hub-memory-api
     build:
       context: .
       dockerfile: kanban/Dockerfile
@@ -73,13 +86,16 @@ services:
       - ./instances:/clawvis/instances
       - ./quartz:/clawvis/quartz
     environment:
-      - MEMORY_ROOT=instances/${INSTANCE_NAME:-example}/memory
+      - UV_CACHE_DIR=/tmp/uv-cache
+      - MEMORY_ROOT=${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     labels:
       - "app=clawvis"
     command:
       [
-        "/clawvis/.venv/bin/uvicorn",
+        "/clawvis/.venv/bin/python",
+        "-m",
+        "uvicorn",
         "hub_core.memory_api:app",
         "--host",
         "0.0.0.0",
@@ -100,6 +116,7 @@ services:
       start_period: 25s
 
   agent-service:
+    container_name: clawvis-${INSTANCE_NAME:-example}-agent-service
     build:
       context: .
       dockerfile: agent/Dockerfile
@@ -109,7 +126,8 @@ services:
     volumes:
       - ./instances:/app/instances
     environment:
-      - OPENCLAW_AVAILABLE=false
+      - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
+      - OPENCLAW_AVAILABLE=${OPENCLAW_AVAILABLE:-false}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
@@ -117,6 +135,7 @@ services:
       - "app=clawvis"
 
   hub-vite:
+    container_name: clawvis-${INSTANCE_NAME:-example}-hub-vite
     image: node:22-alpine
     profiles: ["dev"]
     working_dir: /app/hub

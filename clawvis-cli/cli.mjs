@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import boxen from "boxen";
-import gradient from "gradient-string";
-import figlet from "figlet";
 import chalk from "chalk";
 import { execSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -28,38 +26,59 @@ function detectVersion() {
   }
 }
 
-/** Couronne (mérovingien / Clawvis) au-dessus du figlet */
-function clawvisLogoMark() {
-  return chalk.hex("#fbbf24")("                         ♔");
+function printHeader() {
+  printCompactHeader(false);
 }
 
-function printHeader() {
-  const funLines = [
-    "Le roi des agents IA",
-    "Ici pour servir la France !",
-    "Roi des francs et des streamlined workflows",
-    "Fais gaffe au vase de soissons",
-    "Un Mérovingien en vaut plus que deux tu l'auras !",
-    "Les Wisigoths et les IA blackbox n'ont qu'à bien se tenir !"
-  ];
-  const funLine = funLines[Math.floor(Math.random() * funLines.length)];
-  const banner = figlet.textSync("Clawvis", { horizontalLayout: "default" });
-  const prettyBanner = gradient.pastel.multiline(banner);
-  const content = [
-    clawvisLogoMark(),
-    "",
-    prettyBanner,
-    "",
-    `${chalk.bold("Version")} ${chalk.green(detectVersion())}`,
-    `${chalk.cyan(funLine)}`,
-  ].join("\n");
+function printCompactHeader(withTagline = true) {
+  const rawVersion = detectVersion();
+  const version = rawVersion.startsWith("v") ? rawVersion : `v${rawVersion}`;
+  const crown = chalk.magenta("♛");
+  const wordmark = chalk.bold.magenta("CLAWVIS");
   console.log(
-    boxen(content, {
-      padding: 1,
-      borderStyle: "round",
-      borderColor: "magenta",
-    }),
+    boxen(
+      [`  ${crown}  ${wordmark}`, `     ${chalk.dim(version)}`].join("\n"),
+      {
+        padding: { left: 0, right: 1, top: 0, bottom: 0 },
+        margin: 0,
+        borderStyle: "round",
+        borderColor: "magenta",
+      },
+    ),
   );
+  if (withTagline) {
+    console.log(
+      chalk.magenta.italic(
+        "Ton royaume est prêt, roi des claws ! Il ne manque plus que ton décret !",
+      ),
+    );
+  }
+  console.log("");
+}
+
+function printSection(title) {
+  console.log(chalk.magenta.bold(title));
+}
+
+function printOptionLine(idx, label, desc = "") {
+  console.log(`${chalk.cyan(`${idx})`)} ${chalk.white.bold(label)}`);
+  if (desc) console.log(`   ${chalk.dim(desc)}`);
+}
+
+function getInstallIO() {
+  if (process.stdin.isTTY) {
+    return { input: process.stdin, output: process.stdout, source: "stdin" };
+  }
+  try {
+    if (fs.existsSync("/dev/tty")) {
+      const input = fs.createReadStream("/dev/tty");
+      const output = fs.createWriteStream("/dev/tty");
+      return { input, output, source: "tty" };
+    }
+  } catch {
+    // fall through
+  }
+  return null;
 }
 
 function runLegacy(args = [], extraEnv = {}) {
@@ -78,14 +97,11 @@ function runLegacy(args = [], extraEnv = {}) {
 function frameAndRunLegacy(title, blurb, args, extraEnv = {}) {
   printHeader();
   console.log(
-    boxen(
-      [chalk.bold(title), "", chalk.dim(blurb)].join("\n"),
-      {
-        padding: { left: 1, right: 1, top: 0, bottom: 0 },
-        borderStyle: "round",
-        borderColor: "cyan",
-      },
-    ),
+    boxen([chalk.bold(title), "", chalk.dim(blurb)].join("\n"), {
+      padding: { left: 1, right: 1, top: 0, bottom: 0 },
+      borderStyle: "round",
+      borderColor: "magenta",
+    }),
   );
   runLegacy(args, extraEnv);
 }
@@ -111,7 +127,7 @@ function runShutdown() {
       {
         padding: { left: 1, right: 1, top: 0, bottom: 0 },
         borderStyle: "round",
-        borderColor: "cyan",
+        borderColor: "magenta",
       },
     ),
   );
@@ -141,12 +157,14 @@ function runStart() {
         "",
         chalk.yellow("Hub Docker sur 8088 ?") +
           " " +
-          chalk.dim("`docker compose down` puis `clawvis shutdown`, ou change `HUB_PORT`."),
+          chalk.dim(
+            "`docker compose down` puis `clawvis shutdown`, ou change `HUB_PORT`.",
+          ),
       ].join("\n"),
       {
         padding: { left: 1, right: 1, top: 0, bottom: 0 },
         borderStyle: "round",
-        borderColor: "cyan",
+        borderColor: "magenta",
       },
     ),
   );
@@ -170,13 +188,15 @@ function runRestart() {
       [
         chalk.bold("Redémarrage"),
         "",
-        chalk.dim("Arrêt propre (shutdown) puis relance du stack dev ou Docker."),
+        chalk.dim(
+          "Arrêt propre (shutdown) puis relance du stack dev ou Docker.",
+        ),
         `${chalk.dim("Hub")}  ${chalk.cyan(`http://localhost:${hubPort}/`)}`,
       ].join("\n"),
       {
         padding: { left: 1, right: 1, top: 0, bottom: 0 },
         borderStyle: "round",
-        borderColor: "cyan",
+        borderColor: "magenta",
       },
     ),
   );
@@ -255,8 +275,16 @@ async function runDoctor() {
     rows.push(`  ${mark}  ${label}${extra}`);
   };
 
-  row("Dossier instance", fs.existsSync(instanceDir), path.relative(ROOT_DIR, instanceDir));
-  row("Racine mémoire", fs.existsSync(memoryRoot), path.relative(ROOT_DIR, memoryRoot));
+  row(
+    "Dossier instance",
+    fs.existsSync(instanceDir),
+    path.relative(ROOT_DIR, instanceDir),
+  );
+  row(
+    "Racine mémoire",
+    fs.existsSync(memoryRoot),
+    path.relative(ROOT_DIR, memoryRoot),
+  );
 
   const hubBase = `http://localhost:${hubPort}`;
   const checks = [
@@ -277,6 +305,7 @@ async function runDoctor() {
         "Certaines URLs ne répondent pas : lance `clawvis start` ou vérifie les ports dans `.env`.",
       );
 
+  printHeader();
   console.log(
     boxen(
       [
@@ -299,12 +328,24 @@ async function runDoctor() {
 }
 
 async function runInstallInteractive() {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const io = getInstallIO();
+  if (!io) {
+    console.error(
+      "Non-interactive stdin detected; retry with flags or use --non-interactive defaults.",
+    );
+    runLegacy(["install", "--non-interactive"]);
+    return;
+  }
+  const useCompactHeader = process.env.CLAWVIS_COMPACT_INSTALL_HEADER === "1";
+  const rl = createInterface({ input: io.input, output: io.output });
   try {
     const I18N = {
       fr: {
-        installHeading: "Installer Clawvis — le roi des francs et des agents IA",
-        providerNote: chalk.dim("→ Connecter votre runtime IA se fait depuis le Hub (/setup/runtime/) ou via le CLI clawvis après le démarrage."),
+        installHeading:
+          "Installer Clawvis — le roi des francs et des agents IA",
+        providerNote: chalk.dim(
+          "→ Connecter votre runtime IA se fait depuis le Hub (/setup/runtime/) ou via le CLI clawvis après le démarrage.",
+        ),
         languageTitle: "Language / Langue:",
         languageFr: "1) Français (par défaut)",
         languageEn: "2) English",
@@ -312,16 +353,21 @@ async function runInstallInteractive() {
         instanceName: "Nom de l'instance",
         modeTitle: "Mode:",
         mode1Name: "Franc (Recommandé)",
-        mode1Desc: "Démarrage rapide. Tout est configuré pour toi. (Nécessite docker)",
-        mode2Name: "Mérovingien (Avancé)",
-        mode2Desc: "Pour un déploiement serveur ou VPS. Ports et chemins configurables.",
-        mode3Name: "Soissons (contribution)",
-        mode3Desc: "Pour contribuer au projet open source Clawvis !",
+        mode1Desc:
+          "Démarrage rapide. Tout est configuré pour toi. (Nécessite docker)",
+        mode2Name: "Soissons (contribution)",
+        mode2Desc: "Pour contribuer au projet open source Clawvis (local dev).",
+        mode3Name: "Mérovingien (VPS / server)",
+        mode3Desc: "Prépare l'instance sans lancer Docker localement.",
         choice: "Choix",
+        memoryTitle: "Cible pour la mémoire",
+        memory1Name: "Créer une mémoire locale pour votre instance",
+        memory2Name: "Utiliser un chemin mémoire existant",
+        memoryPath: "Chemin vers votre dossier brain/memory",
         projectsRoot: "Dossier projets",
         hubPort: "Port Hub",
         brainPort: "Port Brain",
-        kanbanApiPort: "Port Kanban API (mode dev)",
+        kanbanApiPort: "Port Kanban API",
         continue: "Continuer ?",
         cancelled: "Installation annulée.",
         summaryInstance: "instance",
@@ -331,7 +377,8 @@ async function runInstallInteractive() {
         summaryKanbanApiPort: "kanban_api_port",
         doneTitle: "Hub démarré !",
         doneTitleNoStart: "Instance prête (services non démarrés)",
-        doneNoStartHint: "→ Lancez manuellement : docker compose up -d hub kanban-api hub-memory-api",
+        doneNoStartHint:
+          "→ Lancez manuellement : docker compose up -d hub kanban-api hub-memory-api",
         doneHub: "Hub",
         doneBrain: "Brain",
         doneLogs: "Logs",
@@ -339,8 +386,11 @@ async function runInstallInteractive() {
         doneSettings: "→ Configurer votre runtime IA",
       },
       en: {
-        installHeading: "Install Clawvis — the king of the Franks and AI agents",
-        providerNote: chalk.dim("→ Connect your AI runtime from the Hub (/setup/runtime/) or via the clawvis CLI after launch."),
+        installHeading:
+          "Install Clawvis — the king of the Franks and AI agents",
+        providerNote: chalk.dim(
+          "→ Connect your AI runtime from the Hub (/setup/runtime/) or via the clawvis CLI after launch.",
+        ),
         languageTitle: "Language / Langue:",
         languageFr: "1) Français (default)",
         languageEn: "2) English",
@@ -348,16 +398,21 @@ async function runInstallInteractive() {
         instanceName: "Instance name",
         modeTitle: "Mode:",
         mode1Name: "Franc (Recommended)",
-        mode1Desc: "Fast launch. Everything is configured for you. (Requires Docker)",
-        mode2Name: "Merovingian (Advanced)",
-        mode2Desc: "For server or VPS deployments. Configure ports and paths manually.",
-        mode3Name: "Soissons (contribution)",
-        mode3Desc: "Contribute to the Clawvis open-source project!",
+        mode1Desc:
+          "Fast launch. Everything is configured for you. (Requires Docker)",
+        mode2Name: "Soissons (contribution)",
+        mode2Desc: "Contribute to Clawvis with a local dev stack.",
+        mode3Name: "Merovingian (VPS / server)",
+        mode3Desc: "Prepare instance only (no local Docker start).",
         choice: "Choice",
+        memoryTitle: "Memory target",
+        memory1Name: "Create fresh local memory for your instance",
+        memory2Name: "Use an existing brain/memory path",
+        memoryPath: "Path to your existing brain/memory directory",
         projectsRoot: "Projects root path",
         hubPort: "Hub port",
         brainPort: "Brain port",
-        kanbanApiPort: "Kanban API port (dev mode)",
+        kanbanApiPort: "Kanban API port",
         continue: "Continue?",
         cancelled: "Install cancelled.",
         summaryInstance: "instance",
@@ -367,7 +422,8 @@ async function runInstallInteractive() {
         summaryKanbanApiPort: "kanban_api_port",
         doneTitle: "Hub is running!",
         doneTitleNoStart: "Instance ready (services not started)",
-        doneNoStartHint: "→ Start manually: docker compose up -d hub kanban-api hub-memory-api",
+        doneNoStartHint:
+          "→ Start manually: docker compose up -d hub kanban-api hub-memory-api",
         doneHub: "Hub",
         doneBrain: "Brain",
         doneLogs: "Logs",
@@ -380,7 +436,11 @@ async function runInstallInteractive() {
     let t = (k) => I18N.fr[k];
 
     const ask = async (q, d) => {
-      const s = await rl.question(d !== undefined ? `${q} [${d}]: ` : `${q}: `);
+      const prompt =
+        d !== undefined
+          ? `${chalk.cyan("›")} ${chalk.white(q)} ${chalk.dim(`[${d}]`)}: `
+          : `${chalk.cyan("›")} ${chalk.white(q)}: `;
+      const s = await rl.question(prompt);
       return s.trim() || d;
     };
     const yn = async (q, d = false) => {
@@ -390,44 +450,56 @@ async function runInstallInteractive() {
       return /^(y|yes|o|oui)$/i.test(s.trim());
     };
 
-    printHeader();
+    if (useCompactHeader) {
+      printCompactHeader(true);
+    } else {
+      printHeader();
+    }
     console.log("");
-    console.log(t("languageTitle"));
-    console.log(t("languageFr"));
-    console.log(t("languageEn"));
+    printSection(t("languageTitle"));
+    printOptionLine(1, t("languageFr").replace(/^1\)\s*/, ""));
+    printOptionLine(2, t("languageEn").replace(/^2\)\s*/, ""));
     const langPick = Number(await ask(t("languageChoice"), 1));
     lang = langPick === 2 ? "en" : "fr";
     t = (k) => I18N[lang][k];
-
-    console.log("");
-    console.log(chalk.bold(t("installHeading")));
-    console.log(t("providerNote"));
 
     const user = process.env.USER || "user";
     const instance = await ask(t("instanceName"), user);
 
     console.log("");
-    console.log(t("modeTitle"));
-    console.log(`1) ${chalk.bold(t("mode1Name"))}`);
-    console.log(`   ${chalk.dim(t("mode1Desc"))}`);
-    console.log(`2) ${chalk.bold(t("mode2Name"))}`);
-    console.log(`   ${chalk.dim(t("mode2Desc"))}`);
-    console.log(`3) ${chalk.bold(t("mode3Name"))}`);
-    console.log(`   ${chalk.dim(t("mode3Desc"))}`);
+    printSection(t("modeTitle"));
+    printOptionLine(1, t("mode1Name"), t("mode1Desc"));
+    printOptionLine(2, t("mode2Name"), t("mode2Desc"));
+    printOptionLine(3, t("mode3Name"), t("mode3Desc"));
 
     const modePick = Number(await ask(t("choice"), 1));
-    const mode = modePick <= 2 ? "docker" : "dev";
-    const modeDisplay = modePick === 1 ? t("mode1Name") : modePick === 2 ? t("mode2Name") : t("mode3Name");
+    // Map pick to canonical mode name (install.sh accepts these directly)
+    const mode =
+      modePick === 1 ? "Franc" : modePick === 2 ? "Soissons" : "Merovingien";
+    const modeDisplay =
+      modePick === 1
+        ? t("mode1Name")
+        : modePick === 2
+          ? t("mode2Name")
+          : t("mode3Name");
 
-    const projectsRoot = await ask(t("projectsRoot"), `/home/${user}/lab_perso/projects`);
-    let hubPort = "8088";
-    let memoryPort = "3099";
-    let kanbanApiPort = "8090";
-    if (modePick >= 2) {
-      hubPort = await ask(t("hubPort"), hubPort);
-      memoryPort = await ask(t("brainPort"), memoryPort);
-      kanbanApiPort = await ask(t("kanbanApiPort"), kanbanApiPort);
+    console.log("");
+    printSection(t("memoryTitle"));
+    printOptionLine(1, t("memory1Name"));
+    printOptionLine(2, t("memory2Name"));
+    const memoryPick = Number(await ask(t("choice"), 1));
+    const useSymlinkMemory = memoryPick === 2;
+    let brainPath = "";
+    if (useSymlinkMemory) {
+      brainPath = await ask(t("memoryPath"));
     }
+
+    const projectsRoot = await ask(
+      t("projectsRoot"),
+      `/home/${user}/lab_perso/projects`,
+    );
+    // Ports are never prompted — hardcoded defaults; override via .env after install.
+    const hubPort = "8088";
 
     console.log("");
     console.log(
@@ -436,7 +508,6 @@ async function runInstallInteractive() {
           `${chalk.dim(t("summaryInstance"))}: ${chalk.green(instance)}`,
           `${chalk.dim(t("summaryMode"))}: ${chalk.green(modeDisplay)}`,
           `${chalk.dim(t("summaryHubPort"))}: ${chalk.green(hubPort)}`,
-          `${chalk.dim(t("summaryMemoryPort"))}: ${chalk.green(memoryPort)}`,
         ].join("\n"),
         { padding: 1, borderStyle: "round", borderColor: "magenta" },
       ),
@@ -447,15 +518,16 @@ async function runInstallInteractive() {
 
     const args = [
       "--non-interactive",
-      "--skip-primary",
-      "--instance", instance,
-      "--hub-port", hubPort,
-      "--memory-port", memoryPort,
-      "--kanban-api-port", kanbanApiPort,
-      "--projects-root", projectsRoot,
-      "--mode", mode,
-      ...(modePick === 2 ? ["--no-start"] : []),
+      "--instance",
+      instance,
+      "--projects-root",
+      projectsRoot,
+      "--mode",
+      mode,
     ];
+    if (useSymlinkMemory) {
+      args.push("--memory-type", "symlink", "--brain-path", brainPath);
+    }
 
     const child = spawn("bash", [INSTALL_BIN, ...args], {
       cwd: ROOT_DIR,
@@ -465,7 +537,7 @@ async function runInstallInteractive() {
     child.on("exit", (code) => {
       if (code === 0) {
         console.log("");
-        const noStart = modePick === 2;
+        const noStart = modePick === 2; // Mérovingien — VPS, no local start
         console.log(
           boxen(
             noStart
@@ -477,14 +549,19 @@ async function runInstallInteractive() {
               : [
                   chalk.bold(t("doneTitle")),
                   "",
-                  `${t("doneHub")}:     ${chalk.cyan(`http://localhost:${hubPort}`)}`,
-                  `${t("doneBrain")}:   ${chalk.cyan(`http://localhost:${hubPort}/memory/`)}`,
-                  `${t("doneLogs")}:    ${chalk.cyan(`http://localhost:${hubPort}/logs/`)}`,
-                  `${t("doneKanban")}: ${chalk.cyan(`http://localhost:${hubPort}/kanban/`)}`,
+                  `${chalk.green("✓")}  All services running`,
                   "",
-                  chalk.yellow(`${t("doneSettings")}: http://localhost:${hubPort}/setup/runtime/`),
+                  `${chalk.dim("→")}  ${t("doneHub")}:     ${chalk.cyan(`http://localhost:${hubPort}`)}`,
+                  "",
+                  chalk.yellow(
+                    `${t("doneSettings")}: http://localhost:${hubPort}/setup/runtime/`,
+                  ),
                 ].join("\n"),
-            { padding: 1, borderStyle: "round", borderColor: noStart ? "yellow" : "green" },
+            {
+              padding: 1,
+              borderStyle: "round",
+              borderColor: noStart ? "yellow" : "green",
+            },
           ),
         );
       }
@@ -498,6 +575,10 @@ async function runInstallInteractive() {
     throw err;
   } finally {
     rl.close();
+    if (io.source === "tty") {
+      io.input.destroy();
+      io.output.end();
+    }
   }
 }
 
@@ -543,11 +624,9 @@ program
   .command("deploy")
   .description("Deploy stack over SSH")
   .action(() =>
-    frameAndRunLegacy(
-      "Déploiement",
-      "SSH / stack selon votre instance.",
-      ["deploy"],
-    ),
+    frameAndRunLegacy("Déploiement", "SSH / stack selon votre instance.", [
+      "deploy",
+    ]),
   );
 program
   .command("doctor")
@@ -578,7 +657,9 @@ skillsCmd
   )
   .action(() => runLegacy(["skills", "sync"]));
 
-const update = program.command("update").description("Upgrade Clawvis release/channel");
+const update = program
+  .command("update")
+  .description("Upgrade Clawvis release/channel");
 update
   .option("--tag <ref>", "Update to a git ref")
   .option("--channel <channel>", "stable|beta|dev")
@@ -594,28 +675,30 @@ update
       args,
     );
   });
-update.command("status").option("--json", "JSON output").action((opts) => {
-  const args = ["update", "status"];
-  if (opts.json) args.push("--json");
-  if (opts.json) {
-    runLegacy(args);
-    return;
-  }
-  frameAndRunLegacy(
-    "Mise à jour — statut",
-    "Révision git et chemins instance.",
-    args,
-  );
-});
+update
+  .command("status")
+  .option("--json", "JSON output")
+  .action((opts) => {
+    const args = ["update", "status"];
+    if (opts.json) args.push("--json");
+    if (opts.json) {
+      runLegacy(args);
+      return;
+    }
+    frameAndRunLegacy(
+      "Mise à jour — statut",
+      "Révision git et chemins instance.",
+      args,
+    );
+  });
 update
   .command("wizard")
   .description("Guided tag picker")
   .action(() =>
-    frameAndRunLegacy(
-      "Mise à jour — assistant",
-      "Choix de tag guidé.",
-      ["update", "wizard"],
-    ),
+    frameAndRunLegacy("Mise à jour — assistant", "Choix de tag guidé.", [
+      "update",
+      "wizard",
+    ]),
   );
 
 const backup = program.command("backup").description("Backup operations");
@@ -635,23 +718,23 @@ backup
       args,
     );
   });
-backup.command("list").action(() =>
-  frameAndRunLegacy(
-    "Sauvegardes",
-    "Liste des archives disponibles.",
-    ["backup", "list"],
-  ),
-);
+backup
+  .command("list")
+  .action(() =>
+    frameAndRunLegacy("Sauvegardes", "Liste des archives disponibles.", [
+      "backup",
+      "list",
+    ]),
+  );
 
 program
   .command("restore <backupId>")
   .description("Restore a backup")
   .action((backupId) =>
-    frameAndRunLegacy(
-      "Restauration",
-      `Backup : ${backupId}`,
-      ["restore", backupId],
-    ),
+    frameAndRunLegacy("Restauration", `Backup : ${backupId}`, [
+      "restore",
+      backupId,
+    ]),
   );
 
 program
@@ -675,7 +758,6 @@ program
 // (The top-level `setup` command is a passthrough alias for install.)
 if (process.argv[2] === "setup" && process.argv[3] === "provider") {
   runSetupProvider(process.argv.slice(4));
-  // runSetupProvider calls process.exit or falls through
 }
 
 // clawvis setup quartz — delegates to scripts/setup-quartz.sh
@@ -687,36 +769,15 @@ function runSetupProvider(args) {
   const env = mergedEnv();
   const hubPort = env.HUB_PORT || "8088";
   const current = env.PRIMARY_AI_PROVIDER || "(not set)";
-  const claudeSet = !!(env.CLAUDE_API_KEY || "").trim();
-  const mistralSet = !!(env.MISTRAL_API_KEY || "").trim();
-  const openclawSet =
-    !!(env.OPENCLAW_BASE_URL || "").trim() &&
-    env.OPENCLAW_BASE_URL !== "http://localhost:3333";
 
-  // Flag parsing: --provider, --key, --url
+  // Flag parsing: --provider
   let provider = "";
-  let key = "";
-  let url = "";
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--provider" && args[i + 1]) provider = args[++i];
-    else if (args[i] === "--key" && args[i + 1]) key = args[++i];
-    else if (args[i] === "--url" && args[i + 1]) url = args[++i];
   }
 
-  if (provider || key || url) {
-    // Write to .env via bash setup-runtime passthrough
-    const extraArgs = [];
-    if (provider) extraArgs.push("--provider", provider);
-    if (key) {
-      if (provider === "claude" || (!provider && claudeSet))
-        extraArgs.push("--claude-api-key", key);
-      else if (provider === "mistral")
-        extraArgs.push("--mistral-api-key", key);
-      else if (provider === "openclaw")
-        extraArgs.push("--openclaw-api-key", key);
-    }
-    if (url) extraArgs.push("--openclaw-base-url", url);
-    runLegacy(["setup-runtime", "--non-interactive", ...extraArgs]);
+  if (provider) {
+    runLegacy(["setup-runtime", "--non-interactive", "--provider", provider]);
     return;
   }
 
@@ -727,9 +788,6 @@ function runSetupProvider(args) {
         chalk.bold("AI Runtime — configuration actuelle"),
         "",
         `${chalk.dim("Provider actif")} : ${chalk.cyan(current)}`,
-        `${chalk.dim("Claude")}         : ${claudeSet ? chalk.green("configuré") : chalk.yellow("non configuré")}`,
-        `${chalk.dim("Mistral")}        : ${mistralSet ? chalk.green("configuré") : chalk.yellow("non configuré")}`,
-        `${chalk.dim("OpenClaw")}       : ${openclawSet ? chalk.green("configuré") : chalk.yellow("non configuré")}`,
         "",
         chalk.bold("Pour configurer :"),
         "",
@@ -737,13 +795,8 @@ function runSetupProvider(args) {
         `   ${chalk.green(`http://localhost:${hubPort}/setup/runtime/`)} → section "AI Runtime"`,
         "",
         `${chalk.cyan("B)")} Ligne de commande :`,
-        `   ${chalk.dim("clawvis setup provider --provider claude --key sk-ant-...")}`,
-        `   ${chalk.dim("clawvis setup provider --provider mistral --key ...")}`,
-        `   ${chalk.dim("clawvis setup provider --provider openclaw --url http://host:3333")}`,
-        "",
-        `${chalk.cyan("C)")} Fichier .env :`,
-        `   ${chalk.dim("CLAUDE_API_KEY / MISTRAL_API_KEY / OPENCLAW_BASE_URL")}`,
-        `   ${chalk.dim("Then: docker compose restart  (or clawvis restart)")}`,
+        `   ${chalk.dim("clawvis setup provider --provider openclaw")}`,
+        `   ${chalk.dim("clawvis setup provider --provider claude")}`,
       ].join("\n"),
       {
         padding: 1,
@@ -755,7 +808,11 @@ function runSetupProvider(args) {
   process.exit(0);
 }
 
-if (process.argv.length <= 2 || process.argv.includes("--help") || process.argv.includes("-h")) {
+if (
+  process.argv.length <= 2 ||
+  process.argv.includes("--help") ||
+  process.argv.includes("-h")
+) {
   printHeader();
 }
 

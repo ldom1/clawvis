@@ -1,77 +1,77 @@
 # DATA MODEL
 
-> Modèle de données de référence Clawvis. Formalise les états, cycles de vie et paramètres configurables.
-> Toute implémentation doit s'y conformer.
-> Pour les workflows qui utilisent ces états → `GOAL.md`
+> Clawvis reference data model. Formalizes states, lifecycles, and configurable parameters.
+> All implementations must conform.
+> For workflows that use these states → `docs/GOAL.md`
 
 ---
 
-## États du kanban
+## Kanban states
 
-Liste exhaustive et ordonnée des statuts de tâche :
+Exhaustive ordered list of task statuses:
 
-| Statut | Signification | Transitions autorisées |
-|--------|--------------|----------------------|
-| `Backlog` | Tâche identifiée, non prioritaire | → `To Start` |
-| `To Start` | Tâche prête à être traitée par @Dombot | → `In Progress`, → `Backlog` |
-| `In Progress` | Tâche en cours d'implémentation | → `Done`, → `Blocked` |
-| `Blocked` | Tâche bloquée — escalade humaine requise | → `To Start`, → `Backlog` |
-| `Done` | Tâche complétée et validée | → (terminal) |
+| Status | Meaning | Allowed transitions |
+|--------|---------|---------------------|
+| `Backlog` | Task identified, not prioritized | → `To Start` |
+| `To Start` | Ready for @Dombot to work | → `In Progress`, → `Backlog` |
+| `In Progress` | Task being implemented | → `Done`, → `Blocked` |
+| `Blocked` | Blocked — human escalation required | → `To Start`, → `Backlog` |
+| `Done` | Completed and validated | → (terminal) |
 
-**Règles de transition :**
-- Seul `kanban-implementer` peut passer une tâche de `To Start` à `In Progress`
-- Seul @Ldom (ou le chat Clawvis) peut passer une tâche de `Backlog` à `To Start`
-- Une tâche `Blocked` génère toujours un message Telegram à @Ldom
-- `Done` est terminal — pas de retour arrière (créer une nouvelle tâche si besoin)
+**Transition rules:**
+- Only `kanban-implementer` may move a task from `To Start` to `In Progress`
+- Only @Ldom (or Clawvis chat) may move a task from `Backlog` to `To Start`
+- A `Blocked` task always generates a Telegram message to @Ldom
+- `Done` is terminal — no rollback (create a new task if needed)
 
 ---
 
-## Cycle de vie d'un projet
+## Project lifecycle
 
 ```
 draft ──────────────────────────────────────────► archived
   │                                                   ▲
-  │ (validation @Ldom)                                │
+  │ (@Ldom validation)                                │
   ▼                                           (morning-briefing suggest)
 active ◄──► backlog                                   │
   │                                                   │
   └──────────────────────────────────────────────────►┘
-       (décision @Ldom)
+       (@Ldom decision)
 ```
 
-| Statut | Signification | Visible dans Hub | Éligible `kanban-implementer` |
-|--------|--------------|-----------------|------------------------------|
-| `draft` | Opportunité non validée — générée par `proactive-innovation` | ❌ vue dédiée | ❌ |
-| `active` | Projet en cours | ✅ | ✅ |
-| `backlog` | Projet mis en pause | ✅ réduit, sans tâches | ❌ |
-| `archived` | Projet terminé ou abandonné | ❌ | ❌ |
+| Status | Meaning | Visible in Hub | Eligible for `kanban-implementer` |
+|--------|---------|----------------|-------------------------------------|
+| `draft` | Unvalidated opportunity — from `proactive-innovation` | ❌ dedicated view | ❌ |
+| `active` | Project in progress | ✅ | ✅ |
+| `backlog` | Project paused | ✅ reduced, no tasks | ❌ |
+| `archived` | Finished or abandoned project | ❌ | ❌ |
 
-**Règles de transition :**
-- `draft` → `active` : validation explicite de @Ldom uniquement
-- `active` → `backlog` : décision @Ldom (via chat ou morning-briefing)
-- `backlog` → `active` : décision @Ldom uniquement
-- `* → archived` : toujours proposé par `morning-briefing`, jamais appliqué automatiquement
+**Transition rules:**
+- `draft` → `active`: explicit @Ldom validation only
+- `active` → `backlog`: @Ldom decision (via chat or morning-briefing)
+- `backlog` → `active`: @Ldom decision only
+- `* → archived`: always suggested by `morning-briefing`, never applied automatically
 
 ---
 
-## Paramètres configurables
+## Configurable parameters
 
-Vivent dans `hub_settings.json` sauf mention contraire.
+Live in `hub_settings.json` unless stated otherwise.
 
-| Paramètre | Défaut | Portée | Emplacement | Description |
-|-----------|--------|--------|-------------|-------------|
-| `max_in_progress` | `2` | global | `hub_settings.json` | Max tâches `In Progress` simultanées par projet |
-| `kanban_cron_interval` | `4h` | global | `.env` (OpenClaw) | Fréquence cron `kanban-implementer` |
-| `briefing_time` | `08:00` | global | `.env` (OpenClaw) | Heure déclenchement `morning-briefing` |
-| `innovation_cron_interval` | `7d` | global | `.env` (OpenClaw) | Fréquence cron `proactive-innovation` |
-| `weekly_review_day` | `friday` | global | `.env` (OpenClaw) | Jour déclenchement `knowledge-consolidator` hebdo |
-| `inactivity_threshold_days` | `14` | global | `hub_settings.json` | Jours sans activité avant suggestion archivage |
-| `telegram_notifications` | `true` | global | `hub_settings.json` | Active/désactive Telegram (utile en mode dev) |
-| `discord_channels` | voir ci-dessous | global | `hub_settings.json` | Mapping channels Discord par type de log |
-| `github_repo_visibility` | `private` | par projet | `hub_settings.json` | Visibilité repo créé par `project-init` |
-| `poc_auto_generate` | `true` | par projet | `hub_settings.json` | Génération automatique PoC lors de `project-init` |
+| Parameter | Default | Scope | Location | Description |
+|-----------|---------|-------|----------|-------------|
+| `max_in_progress` | `2` | global | `hub_settings.json` | Max simultaneous `In Progress` tasks per project |
+| `kanban_cron_interval` | `4h` | global | `.env` (OpenClaw) | `kanban-implementer` cron frequency |
+| `briefing_time` | `08:00` | global | `.env` (OpenClaw) | `morning-briefing` trigger time |
+| `innovation_cron_interval` | `7d` | global | `.env` (OpenClaw) | `proactive-innovation` cron frequency |
+| `weekly_review_day` | `friday` | global | `.env` (OpenClaw) | Weekly `knowledge-consolidator` day |
+| `inactivity_threshold_days` | `14` | global | `hub_settings.json` | Days without activity before archive suggestion |
+| `telegram_notifications` | `true` | global | `hub_settings.json` | Enable/disable Telegram (useful in dev) |
+| `discord_channels` | see below | global | `hub_settings.json` | Discord channel mapping by log type |
+| `github_repo_visibility` | `private` | per project | `hub_settings.json` | Repo visibility created by `project-init` |
+| `poc_auto_generate` | `true` | per project | `hub_settings.json` | Auto PoC generation on `project-init` |
 
-### Mapping Discord par défaut
+### Default Discord mapping
 
 ```json
 {
@@ -84,53 +84,53 @@ Vivent dans `hub_settings.json` sauf mention contraire.
 }
 ```
 
-| Channel | Contenu |
+| Channel | Content |
 |---------|---------|
-| `#innovation` | Fiches `proactive-innovation`, opportunités détectées |
-| `#projects` | Création projet, merge PoC, revue hebdo |
-| `#logs` | Logs d'implémentation tâche par tâche, diffs GitHub |
-| `#ops` | Métriques système, réorientations `morning-briefing`, erreurs crons |
+| `#innovation` | `proactive-innovation` briefs, detected opportunities |
+| `#projects` | Project creation, PoC merge, weekly review |
+| `#logs` | Per-task implementation logs, GitHub diffs |
+| `#ops` | System metrics, `morning-briefing` reorientations, cron errors |
 
 ---
 
-## Structure de la fiche Brain (format PARA)
+## Brain page structure (PARA format)
 
-Toute fiche projet créée dans le Brain suit ce schéma. Fichier : `memory/projects/<slug>.md`.
+Every project page in the Brain follows this schema. File: `memory/projects/<slug>.md`.
 
 ```markdown
-# [nom-projet]
+# [project-name]
 
-## Contexte
-Pourquoi ce projet existe. Problème adressé. Origine (vocal, innovation proactive, réutilisation...).
+## Context
+Why this project exists. Problem addressed. Origin (voice, proactive innovation, reuse...).
 
-## Objectif
-Ce que le projet doit produire concrètement (PoC, MVP, lib OSS...).
+## Objective
+What the project must deliver (PoC, MVP, OSS lib...).
 
-## Décisions
-- [DATE] Choix technologique : React + FastAPI — raison : cohérence avec devis-ai
-- [DATE] Réutilisation : invoice-parser v0.3 — pas besoin de réimplémenter le parsing
+## Decisions
+- [DATE] Tech choice: React + FastAPI — reason: consistency with devis-ai
+- [DATE] Reuse: invoice-parser v0.3 — no need to reimplement parsing
 
-## Ressources
-- Repo GitHub : [lien]
-- PoC : [lien]
-- Projets liés : [slug-parent-1], [slug-parent-2]
+## Resources
+- GitHub repo: [link]
+- PoC: [link]
+- Related projects: [parent-slug-1], [parent-slug-2]
 
 ## Archive
-Historique des décisions abandonnées, blocages résolus, tâches archivées.
+History of dropped decisions, resolved blockages, archived tasks.
 ```
 
-**Règles :**
-- La section `Décisions` est **append-only** — jamais modifiée rétroactivement, toujours datée
-- `knowledge-consolidator` enrichit `Ressources` et `Archive`
-- `brain-maintenance` vérifie la structure du fichier sans modifier le contenu
-- `project-init` et `proactive-innovation` créent la fiche avec ce schéma complet
+**Rules:**
+- The `Decisions` section is **append-only** — never rewritten retroactively, always dated
+- `knowledge-consolidator` enriches `Resources` and `Archive`
+- `brain-maintenance` checks file structure without changing content
+- `project-init` and `proactive-innovation` create the page with this full schema
 
 ---
 
-## Identité projet — clé canonique
+## Project identity — canonical key
 
 ```
 project_slug == memory_page_slug == kanban_project_key
 ```
 
-Un projet qui viole cette contrainte (slug divergent entre kanban et mémoire) est dans un état invalide. `brain-maintenance` peut détecter et signaler ces incohérences.
+A project that violates this (divergent slug between kanban and memory) is invalid. `brain-maintenance` can detect and report these inconsistencies.

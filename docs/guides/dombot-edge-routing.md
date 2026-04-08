@@ -13,7 +13,7 @@ It is **not** the same as local dev (`clawvis start` / `scripts/start.sh`).
 | Layer | Role |
 |-------|------|
 | Public DNS + TLS | Typically a VPS (nginx) terminates HTTPS and forwards to the home host (often via **Tailscale**). |
-| Home host `:8088` | **`/usr/sbin/nginx`** with **`instances/dombot/logs/nginx-active.conf`**, generated from **`instances/dombot/nginx/nginx.conf`** via **`instances/dombot/scripts/render-nginx.sh`** (`envsubst` on **`HUB_ROOT` `LAB` `OPENCLAW_GATEWAY_TOKEN`**). **Ne pas** servir `/kanban/` ni `/logs/` avec `alias` vers `public/` — même SPA que `/` (upstream Hub). |
+| Home host `:8088` | **`/usr/sbin/nginx`** with **`instances/dombot/logs/nginx-active.conf`**, generated from **`instances/dombot/nginx/nginx.conf`** via **`instances/dombot/scripts/render-nginx.sh`** (`envsubst` on **`HUB_ROOT` `LAB` `OPENCLAW_GATEWAY_TOKEN`**). **Do not** serve `/kanban/` or `/logs/` with `alias` to `public/` — same SPA as `/` (upstream Hub). |
 | Host nginx `server_name lab.dombot.tech` | Proxies to **`upstream clawvis_hub`** (container Hub on **`127.0.0.1:8089`**) and enforces **Authelia** (`auth_request` → **`127.0.0.1:9091`**, Docker container `lab-authelia`). |
 | Docker stack | `docker compose -f docker-compose.yml -f instances/dombot/docker-compose.override.yml up -d` from **`Lab/clawvis`**. |
 

@@ -38,27 +38,30 @@ def _s(x: str | None) -> str | None:
     return (x or "").strip() or None
 
 
-def load_api_keys() -> tuple[str | None, str | None]:
-    """Load API keys from env or openclaw.json. Env (e.g. from .env) wins."""
-    claude_key = _s(os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY"))
-    mammouth_key = _s(os.getenv("MAMMOUTH_API_KEY") or os.getenv("MISTRAL_API_KEY"))
-    if claude_key and mammouth_key:
-        return claude_key, mammouth_key
+def load_openrouter_key() -> str | None:
+    k = _s(os.getenv("OPENROUTER_API_KEY"))
+    if k:
+        return k
     try:
-        config_file = HOME / ".openclaw" / "openclaw.json"
-        if config_file.exists():
-            with open(config_file, encoding="utf-8") as f:
-                config = json.load(f)
-            skills = config.get("skills", {})
-            entries = skills.get("entries", {})
-            self_imp = entries.get("self-improvement") or entries.get("proactive-innovation") or skills.get("self-improvement") or skills.get("proactive-innovation") or {}
-            env = self_imp.get("env", {})
-            if env:
-                claude_key = claude_key or _s(env.get("ANTHROPIC_API_KEY") or env.get("CLAUDE_API_KEY"))
-                mammouth_key = mammouth_key or _s(env.get("MAMMOUTH_API_KEY") or env.get("MISTRAL_API_KEY"))
-    except (json.JSONDecodeError, OSError):
-        pass
-    return claude_key, mammouth_key
+        path = HOME / ".openclaw" / "openclaw.json"
+        if not path.exists():
+            return None
+        with open(path, encoding="utf-8") as f:
+            cfg = json.load(f)
+        entries = cfg.get("skills", {}).get("entries", {})
+        for name in ("proactive-innovation", "self-improving-agent", "self-improvement"):
+            env = (entries.get(name) or {}).get("env") or {}
+            k = _s(env.get("OPENROUTER_API_KEY"))
+            if k:
+                return k
+        return _s(cfg.get("env", {}).get("OPENROUTER_API_KEY"))
+    except (json.JSONDecodeError, OSError, TypeError):
+        return None
 
 
-CLAUDE_API_KEY, MAMMOUTH_API_KEY = load_api_keys()
+def load_openrouter_model() -> str:
+    return _s(os.getenv("OPENROUTER_MODEL")) or "google/gemini-2.5-flash-lite"
+
+
+OPENROUTER_API_KEY = load_openrouter_key()
+OPENROUTER_MODEL = load_openrouter_model()

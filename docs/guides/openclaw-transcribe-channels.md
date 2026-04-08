@@ -1,122 +1,122 @@
-# OpenClaw — Telegram / Discord et transcription vocale (Clawvis)
+# OpenClaw — Telegram / Discord and voice transcription (Clawvis)
 
-Ce guide relie **les canaux messagers** (Telegram, Discord) gérés par **OpenClaw** à la transcription audio, en s’appuyant sur **Faster Whisper** déjà intégré dans `hub-core` (sans clé API).
+This guide connects **messaging channels** (Telegram, Discord) managed by **OpenClaw** to audio transcription, using **Faster Whisper** already integrated in `hub-core` (no API key).
 
-Référence upstream : [Audio and Voice Notes](https://docs.openclaw.ai/audio).
+Upstream reference: [Audio and Voice Notes](https://docs.openclaw.ai/audio).
 
 ---
 
-## Vue d’ensemble
+## Overview
 
-| Couche | Rôle |
+| Layer | Role |
 |--------|------|
-| **OpenClaw** | Reçoit les vocal sur Telegram/Discord, télécharge le média, appelle `tools.media.audio` |
-| **`tools.media.audio`** | Chaîne de modèles (API ou CLI) ; le transcript remplace le corps du message pour l’agent |
-| **Clawvis `hub_core transcribe`** | CLI locale : Faster Whisper via `uv run` dans `hub-core/` |
+| **OpenClaw** | Receives voice on Telegram/Discord, downloads media, calls `tools.media.audio` |
+| **`tools.media.audio`** | Model chain (API or CLI); transcript replaces message body for the agent |
+| **Clawvis `hub_core transcribe`** | Local CLI: Faster Whisper via `uv run` in `hub-core/` |
 
-Même configuration **`tools.media.audio`** pour **tous** les canaux : une fois activée, les notes vocales Telegram **et** Discord (selon ce qu’OpenClaw supporte pour Discord dans ta version) passent par la même pipeline.
+Same **`tools.media.audio`** configuration for **all** channels: once enabled, Telegram voice notes **and** Discord (per what your OpenClaw version supports for Discord) use the same pipeline.
 
 ---
 
-## 1. Prérequis locaux
+## 1. Local prerequisites
 
 ```bash
-cd /chemin/vers/clawvis/hub-core
+cd /path/to/clawvis/hub-core
 uv sync
 uv pip install faster-whisper
 ```
 
-Test manuel :
+Manual test:
 
 ```bash
-uv run python -m hub_core transcribe /chemin/vers/note.ogg -l fr -m base
+uv run python -m hub_core transcribe /path/to/note.ogg -l fr -m base
 ```
 
-Le texte doit s’afficher sur stdout.
+Text should print to stdout.
 
 ---
 
-## 2. Brancher Telegram ou Discord (OpenClaw)
+## 2. Wire Telegram or Discord (OpenClaw)
 
-La connexion des **bots** et **tokens** se fait dans la config OpenClaw (souvent `~/.openclaw/openclaw.json` + secrets / profils d’auth). Suit la doc OpenClaw pour :
+Bot connections and tokens live in OpenClaw config (often `~/.openclaw/openclaw.json` + secrets / auth profiles). Follow OpenClaw docs to:
 
-- créer le bot Telegram / application Discord ;
-- renseigner `channels.telegram` / `channels.discord` (noms exacts selon ta version d’OpenClaw) ;
-- redémarrer la gateway : `openclaw gateway restart`.
+- create the Telegram bot / Discord application;
+- set `channels.telegram` / `channels.discord` (exact names per your OpenClaw version);
+- restart the gateway: `openclaw gateway restart`.
 
-Sans canaux configurés, aucune transcription ne sera déclenchée côté messager.
+Without channels configured, no transcription will run on the messenger side.
 
 ---
 
-## 3. Activer la transcription (automatique ou manuelle)
+## 3. Enable transcription (automatic or manual)
 
-### Option A — Script Clawvis (recommandé)
+### Option A — Clawvis script (recommended)
 
-Depuis la racine du dépôt Clawvis :
+From the Clawvis repo root:
 
 ```bash
-# Fragment JSON + instructions (un seul script)
+# JSON fragment + instructions (single script)
 bash scripts/transcribe-audio.sh --config
 
-# Backup openclaw.json puis fusion (si absent, même entrée CLI)
+# Backup openclaw.json then merge (if absent, same CLI entry)
 bash scripts/transcribe-audio.sh --config --apply
 ```
 
-Le script ne fait qu’appeler **`uv run python -m hub_core openclaw-audio-config`** dans `hub-core/` ; toute la fusion JSON est dans le module [`hub_core/openclaw_audio_config.py`](../../hub-core/hub_core/openclaw_audio_config.py).
+The script only runs **`uv run python -m hub_core openclaw-audio-config`** in `hub-core/`; all JSON merging is in [`hub_core/openclaw_audio_config.py`](../../hub-core/hub_core/openclaw_audio_config.py).
 
-Variable optionnelle : `OPENCLAW_JSON=/chemin/vers/openclaw.json`.
+Optional variable: `OPENCLAW_JSON=/path/to/openclaw.json`.
 
-Puis :
+Then:
 
 ```bash
 openclaw gateway restart
 ```
 
-Le script unique est [`scripts/transcribe-audio.sh`](../../scripts/transcribe-audio.sh) : en usage normal il appelle `uv run python -m hub_core transcribe` avec le fichier OpenClaw (`{{MediaPath}}`) ; `--config` sert à générer / fusionner `tools.media.audio`.
+The single script is [`scripts/transcribe-audio.sh`](../../scripts/transcribe-audio.sh): normal usage calls `uv run python -m hub_core transcribe` with the OpenClaw file (`{{MediaPath}}`); `--config` generates / merges `tools.media.audio`.
 
-Variables d’environnement optionnelles pour le **process** lancé par OpenClaw (si tu les exportes avant `gateway start` ou via ton unit systemd) :
+Optional environment variables for the **process** launched by OpenClaw (if you export them before `gateway start` or via your systemd unit):
 
-| Variable | Défaut | Rôle |
-|----------|--------|------|
-| `TRANSCRIBE_LANG` | `fr` | Langue Whisper |
+| Variable | Default | Role |
+|----------|---------|------|
+| `TRANSCRIBE_LANG` | `fr` | Whisper language |
 | `TRANSCRIBE_MODEL` | `base` | `tiny`, `base`, `small`, etc. |
 
-### Option B — Fournisseur cloud (sans Whisper local)
+### Option B — Cloud provider (no local Whisper)
 
-Tu peux à la place (ou en complément, avant/après le CLI) utiliser OpenAI, Deepgram, Mistral Voxtral, etc., comme décrit dans la [doc audio OpenClaw](https://docs.openclaw.ai/audio). Configure alors `models` avec `provider` + clés API selon la doc.
+You can instead (or in addition, before/after the CLI) use OpenAI, Deepgram, Mistral Voxtral, etc., as in [OpenClaw audio docs](https://docs.openclaw.ai/audio). Configure `models` with `provider` + API keys per docs.
 
-### Option C — Manually merge
+### Option C — Manual merge
 
-Si tu préfères éditer à la main, ajoute sous `tools.media` un bloc `audio` avec un modèle `"type": "cli"` pointant vers le **chemin absolu** de `transcribe-audio.sh` et `"args": ["{{MediaPath}}"]`.
-
----
-
-## 4. Groupes Telegram et mentions
-
-Pour les **groupes** avec `requireMention: true`, OpenClaw peut faire une **transcription préalable** pour détecter la mention dans le vocal. Voir la section *Mention Detection in Groups* sur [docs.openclaw.ai/audio](https://docs.openclaw.ai/audio).
+If you prefer editing by hand, add under `tools.media` an `audio` block with a `"type": "cli"` model pointing to the **absolute** path of `transcribe-audio.sh` and `"args": ["{{MediaPath}}"]`.
 
 ---
 
-## 5. Intégration côté skills Clawvis
+## 4. Telegram groups and mentions
 
-Le skill **project-init** attend un texte ; pour un vocal Telegram, le flux typique est : **OpenClaw transcrit** → le corps du message vu par l’agent contient le transcript → le skill peut enchaîner (voir [`skills/project-init/SKILL.md`](../../skills/project-init/SKILL.md)).
-
-En mode manuel hors OpenClaw : `uv run python -m hub_core transcribe <fichier>`.
+For **groups** with `requireMention: true`, OpenClaw may run **transcription first** to detect the mention in voice. See *Mention Detection in Groups* on [docs.openclaw.ai/audio](https://docs.openclaw.ai/audio).
 
 ---
 
-## 6. Dépannage rapide
+## 5. Clawvis skills integration
 
-| Symptôme | Piste |
-|----------|--------|
-| Pas de transcript | Vérifier `tools.media.audio.enabled`, logs gateway `--verbose`, présence de `faster-whisper` |
-| Timeout | Augmenter `timeoutSeconds` (Whisper CPU sur gros fichiers) |
-| Permission / PATH | Utiliser un **chemin absolu** pour `command` du modèle CLI |
-| Discord seulement | Confirmer dans la doc OpenClaw de ta version que les pièces audio Discord passent par la même pipeline `tools.media.audio` |
+The **project-init** skill expects text; for a Telegram voice, the typical flow is: **OpenClaw transcribes** → message body seen by the agent contains the transcript → the skill can continue (see [`skills/project-init/SKILL.md`](../../skills/project-init/SKILL.md)).
+
+Manual mode outside OpenClaw: `uv run python -m hub_core transcribe <file>`.
 
 ---
 
-## Voir aussi
+## 6. Quick troubleshooting
+
+| Symptom | Lead |
+|---------|------|
+| No transcript | Check `tools.media.audio.enabled`, gateway logs `--verbose`, `faster-whisper` installed |
+| Timeout | Increase `timeoutSeconds` (Whisper CPU on large files) |
+| Permission / PATH | Use **absolute** path for CLI model `command` |
+| Discord only | Confirm in your OpenClaw version docs that Discord audio uses the same `tools.media.audio` pipeline |
+
+---
+
+## See also
 
 - [`scripts/transcribe-audio.sh`](../../scripts/transcribe-audio.sh) — transcription + `--config` / `--config --apply`  
-- [`hub-core/hub_core/transcribe/`](../../hub-core/hub_core/transcribe/) — implémentation Faster Whisper
+- [`hub-core/hub_core/transcribe/`](../../hub-core/hub_core/transcribe/) — Faster Whisper implementation

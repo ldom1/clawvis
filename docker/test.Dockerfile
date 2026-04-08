@@ -45,7 +45,6 @@ RUN bash /home/tester/.clawvis/install.sh \
     --non-interactive \
     --instance smoketest \
     --mode docker \
-    --skip-primary \
     --hub-port 8088 \
     --memory-port 3099 \
     --kanban-api-port 8090

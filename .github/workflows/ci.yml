@@ -51,10 +51,12 @@ jobs:
       - name: get.sh install smoke (workspace copy + install.sh)
         run: |
           chmod +x tests/test-get-sh.sh
-          bash tests/test-get-sh.sh --workspace
+          bash tests/test-get-sh.sh --workspace --run-mode prod
+          bash tests/test-get-sh.sh --workspace --run-mode dev
+          bash tests/test-get-sh.sh --workspace --run-mode minimal
 
       - name: get.sh clone smoke (local repo via CLAWVIS_REPO_URL)
-        run: bash tests/test-get-sh.sh --clone
+        run: bash tests/test-get-sh.sh --clone --run-mode prod
 
       - name: Run Clawvis global test suite
         run: |

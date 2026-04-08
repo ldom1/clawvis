@@ -1,0 +1,56 @@
+# Source of truth: docs/ on main. Wiki is a generated mirror — edit docs only.
+name: Sync docs to wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "scripts/sync-docs-to-wiki.sh"
+      - ".github/workflows/sync-wiki.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: sync-wiki
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone wiki repository
+        env:
+          WIKI_SYNC_TOKEN: ${{ secrets.WIKI_SYNC_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          AUTH="${WIKI_SYNC_TOKEN:-$GITHUB_TOKEN}"
+          git clone --depth 1 "https://x-access-token:${AUTH}@github.com/${{ github.repository }}.wiki.git" wiki-repo
+
+      - name: Sync docs/ → wiki (flat)
+        run: |
+          set -euo pipefail
+          bash scripts/sync-docs-to-wiki.sh "$GITHUB_WORKSPACE/docs" "$GITHUB_WORKSPACE/wiki-repo"
+
+      - name: Commit and push
+        env:
+          WIKI_SYNC_TOKEN: ${{ secrets.WIKI_SYNC_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd wiki-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No wiki changes — skip push."
+            exit 0
+          fi
+          git commit -m "sync: update from docs/ @ ${GITHUB_SHA}"
+          AUTH="${WIKI_SYNC_TOKEN:-$GITHUB_TOKEN}"
+          git push "https://x-access-token:${AUTH}@github.com/${{ github.repository }}.wiki.git" HEAD:master
