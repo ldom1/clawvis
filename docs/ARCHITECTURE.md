@@ -4,7 +4,7 @@
 > For product vision → `docs/GOAL.md`
 > For dev rules → `CLAUDE.md` (summary) · `docs/CLAUDE-REFERENCE.md` (detail)
 > For data model → `docs/DATA-MODEL.md`
-> For setup (provider = `PRIMARY_AI_PROVIDER` only; skills / memory separate) → `docs/setup.md`
+> For setup (installer wizard, modes, memory) → `docs/SETUP.md`
 
 ---
 

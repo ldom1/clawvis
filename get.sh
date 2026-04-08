@@ -10,7 +10,7 @@ set -euo pipefail
 REPO_URL="${CLAWVIS_REPO_URL:-https://github.com/ldom1/clawvis}"
 # On the main branch this should be empty (clone default). On a dev/release
 # branch, set this to the branch name so the one-liner tests the right code.
-REF="${CLAWVIS_REF:-feat/setup_process}"
+REF="${CLAWVIS_REF:-}"
 INSTALL_DIR="${CLAWVIS_DIR:-$HOME/.clawvis}"
 LAST_LOG="${CLAWVIS_LAST_LOG:-/tmp/clawvis_last.log}"
 

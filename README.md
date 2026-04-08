@@ -222,7 +222,7 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 Mode Soissons (contribution) in the installer sets up your dev environment.
 
 ```bash
-./install.sh  # choose mode 3 (Soissons)
+./install.sh  # choose mode: dev
 clawvis start
 ```
 
