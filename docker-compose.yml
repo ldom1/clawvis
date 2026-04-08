@@ -3,6 +3,7 @@
 
 services:
   hub:
+    container_name: clawvis-${INSTANCE_NAME:-example}-hub
     build: ./hub
     ports:
       # HUB_HOST=127.0.0.1 (default) = localhost-only; HUB_HOST=0.0.0.0 = LAN/Tailscale without host nginx
@@ -30,6 +31,7 @@ services:
       start_period: 15s
 
   kanban-api:
+    container_name: clawvis-${INSTANCE_NAME:-example}-kanban-api
     build:
       context: .
       dockerfile: kanban/Dockerfile
@@ -73,6 +75,7 @@ services:
       start_period: 25s
 
   hub-memory-api:
+    container_name: clawvis-${INSTANCE_NAME:-example}-hub-memory-api
     build:
       context: .
       dockerfile: kanban/Dockerfile
@@ -113,6 +116,7 @@ services:
       start_period: 25s
 
   agent-service:
+    container_name: clawvis-${INSTANCE_NAME:-example}-agent-service
     build:
       context: .
       dockerfile: agent/Dockerfile
@@ -131,6 +135,7 @@ services:
       - "app=clawvis"
 
   hub-vite:
+    container_name: clawvis-${INSTANCE_NAME:-example}-hub-vite
     image: node:22-alpine
     profiles: ["dev"]
     working_dir: /app/hub

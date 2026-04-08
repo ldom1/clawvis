@@ -328,7 +328,7 @@ async function runInstallInteractive() {
         projectsRoot: "Dossier projets",
         hubPort: "Port Hub",
         brainPort: "Port Brain",
-        kanbanApiPort: "Port Kanban API (mode dev)",
+        kanbanApiPort: "Port Kanban API",
         continue: "Continuer ?",
         cancelled: "Installation annulée.",
         summaryInstance: "instance",
@@ -364,7 +364,7 @@ async function runInstallInteractive() {
         projectsRoot: "Projects root path",
         hubPort: "Hub port",
         brainPort: "Brain port",
-        kanbanApiPort: "Kanban API port (dev mode)",
+        kanbanApiPort: "Kanban API port",
         continue: "Continue?",
         cancelled: "Install cancelled.",
         summaryInstance: "instance",
@@ -423,18 +423,13 @@ async function runInstallInteractive() {
     console.log(`   ${chalk.dim(t("mode3Desc"))}`);
 
     const modePick = Number(await ask(t("choice"), 1));
-    const mode = modePick <= 2 ? "docker" : "dev";
+    // Map pick to canonical mode name (install.sh accepts these directly)
+    const mode = modePick === 1 ? "Franc" : modePick === 2 ? "Merovingien" : "Soisson";
     const modeDisplay = modePick === 1 ? t("mode1Name") : modePick === 2 ? t("mode2Name") : t("mode3Name");
 
     const projectsRoot = await ask(t("projectsRoot"), `/home/${user}/lab_perso/projects`);
-    let hubPort = "8088";
-    let memoryPort = "3099";
-    let kanbanApiPort = "8090";
-    if (modePick >= 2) {
-      hubPort = await ask(t("hubPort"), hubPort);
-      memoryPort = await ask(t("brainPort"), memoryPort);
-      kanbanApiPort = await ask(t("kanbanApiPort"), kanbanApiPort);
-    }
+    // Ports are never prompted — hardcoded defaults; override via .env after install.
+    const hubPort = "8088";
 
     console.log("");
     console.log(
@@ -443,7 +438,6 @@ async function runInstallInteractive() {
           `${chalk.dim(t("summaryInstance"))}: ${chalk.green(instance)}`,
           `${chalk.dim(t("summaryMode"))}: ${chalk.green(modeDisplay)}`,
           `${chalk.dim(t("summaryHubPort"))}: ${chalk.green(hubPort)}`,
-          `${chalk.dim(t("summaryMemoryPort"))}: ${chalk.green(memoryPort)}`,
         ].join("\n"),
         { padding: 1, borderStyle: "round", borderColor: "magenta" },
       ),
@@ -455,12 +449,8 @@ async function runInstallInteractive() {
     const args = [
       "--non-interactive",
       "--instance", instance,
-      "--hub-port", hubPort,
-      "--memory-port", memoryPort,
-      "--kanban-api-port", kanbanApiPort,
       "--projects-root", projectsRoot,
       "--mode", mode,
-      ...(modePick === 2 ? ["--no-start"] : []),
     ];
 
     const child = spawn("bash", [INSTALL_BIN, ...args], {
@@ -471,7 +461,7 @@ async function runInstallInteractive() {
     child.on("exit", (code) => {
       if (code === 0) {
         console.log("");
-        const noStart = modePick === 2;
+        const noStart = modePick === 2; // Mérovingien — VPS, no local start
         console.log(
           boxen(
             noStart
@@ -483,10 +473,12 @@ async function runInstallInteractive() {
               : [
                   chalk.bold(t("doneTitle")),
                   "",
-                  `${t("doneHub")}:     ${chalk.cyan(`http://localhost:${hubPort}`)}`,
-                  `${t("doneBrain")}:   ${chalk.cyan(`http://localhost:${hubPort}/memory/`)}`,
-                  `${t("doneLogs")}:    ${chalk.cyan(`http://localhost:${hubPort}/logs/`)}`,
-                  `${t("doneKanban")}: ${chalk.cyan(`http://localhost:${hubPort}/kanban/`)}`,
+                  `${chalk.green("✓")}  All services running`,
+                  "",
+                  `${chalk.dim("→")}  ${t("doneHub")}:     ${chalk.cyan(`http://localhost:${hubPort}`)}`,
+                  `${chalk.dim("→")}  ${t("doneBrain")}:   ${chalk.cyan(`http://localhost:${hubPort}/memory/`)}`,
+                  `${chalk.dim("→")}  ${t("doneKanban")}: ${chalk.cyan(`http://localhost:${hubPort}/kanban/`)}`,
+                  `${chalk.dim("→")}  ${t("doneLogs")}:    ${chalk.cyan(`http://localhost:${hubPort}/logs/`)}`,
                   "",
                   chalk.yellow(`${t("doneSettings")}: http://localhost:${hubPort}/setup/runtime/`),
                 ].join("\n"),
