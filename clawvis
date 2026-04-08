@@ -19,37 +19,37 @@ log() { printf "==> %s\n" "$1"; }
 warn() { printf "[warn] %s\n" "$1"; }
 die() { printf "[error] %s\n" "$1" >&2; exit 1; }
 
-if [ -t 1 ]; then
-  C_RESET=$'\033[0m'
-  C_DIM=$'\033[2m'
-  C_ACCENT=$'\033[38;5;99m'
-  C_OK=$'\033[38;5;42m'
-else
-  C_RESET=""
-  C_DIM=""
-  C_ACCENT=""
-  C_OK=""
-fi
-
 cli_version() {
   git -C "${ROOT_DIR}" describe --tags --always 2>/dev/null || echo "dev"
 }
 
-print_banner() {
+# Same as install.sh clawvis_cli_print_header (keep in sync with clawvis-cli/cli.mjs).
+clawvis_cli_print_header() {
+  local root="${1:-.}"
   local v
-  v="$(cli_version)"
-  cat <<EOF
-${C_ACCENT}
-   _____ _                     _
-  / ____| |                   (_)
- | |    | | __ ___      ___   ___ ___
- | |    | |/ _\` \ \ /\ / / | | / __|
- | |____| | (_| |\ V  V /| |_| \__ \\
-  \_____|_|\__,_| \_/\_/  \__,_|___/
-${C_RESET}
-${C_DIM}Clawvis CLI${C_RESET} ${C_OK}${v}${C_RESET}
-${C_RESET} Ship fast, keep memory canonical.
-EOF
+  v="$(git -C "${root}" describe --tags --always 2>/dev/null || echo "dev")"
+  [ "${v#v}" = "${v}" ] && v="v${v}"
+  if [ ! -t 1 ]; then
+    printf '\n♛ CLAWVIS %s\n\n' "${v}"
+    return 0
+  fi
+  local M=$'\033[35m' B=$'\033[1;35m' D=$'\033[2m' R=$'\033[0m'
+  local inner=36
+  local row1_pad=$((inner - 12))
+  [ "${row1_pad}" -lt 0 ] && row1_pad=0
+  local row2_pad=$((inner - 5 - ${#v}))
+  [ "${row2_pad}" -lt 0 ] && row2_pad=0
+  printf '\n'
+  printf '%b╭────────────────────────────────────╮%b\n' "${M}" "${R}"
+  printf '%b│%b  %s♛%s  %sCLAWVIS%s%*s%b│%b\n' \
+    "${M}" "${R}" "${M}" "${R}" "${B}" "${R}" "${row1_pad}" "" "${M}" "${R}"
+  printf '%b│%b     %s%s%*s%b│%b\n' \
+    "${M}" "${R}" "${D}" "${v}" "${row2_pad}" "" "${M}" "${R}"
+  printf '%b╰────────────────────────────────────╯%b\n\n' "${M}" "${R}"
+}
+
+print_banner() {
+  clawvis_cli_print_header "${ROOT_DIR}"
 }
 
 load_env() {
@@ -294,7 +294,7 @@ cmd_uninstall() {
   log "Creating backup before uninstall"
   cmd_backup_create >/dev/null
   log "Stopping stack"
-  docker compose -f "${ROOT_DIR}/docker-compose.yml" down || true
+  (cd "${ROOT_DIR}" && docker compose down) || true
   log "Removing instance runtime data"
   rm -rf "$(instance_dir)" "$(memory_root_abs)"
   warn "CLI script remains. Reinstall with './install.sh'."

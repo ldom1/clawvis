@@ -33,12 +33,18 @@ function printHeader() {
 function printCompactHeader(withTagline = true) {
   const rawVersion = detectVersion();
   const version = rawVersion.startsWith("v") ? rawVersion : `v${rawVersion}`;
+  const crown = chalk.magenta("♛");
+  const wordmark = chalk.bold.magenta("CLAWVIS");
   console.log(
-    boxen(`  ♛ Clawvis  ${chalk.dim(version)}  `, {
-      padding: 0,
-      borderStyle: "round",
-      borderColor: "magenta",
-    }),
+    boxen(
+      [`  ${crown}  ${wordmark}`, `     ${chalk.dim(version)}`].join("\n"),
+      {
+        padding: { left: 0, right: 1, top: 0, bottom: 0 },
+        margin: 0,
+        borderStyle: "round",
+        borderColor: "magenta",
+      },
+    ),
   );
   if (withTagline) {
     console.log(
@@ -94,7 +100,7 @@ function frameAndRunLegacy(title, blurb, args, extraEnv = {}) {
     boxen([chalk.bold(title), "", chalk.dim(blurb)].join("\n"), {
       padding: { left: 1, right: 1, top: 0, bottom: 0 },
       borderStyle: "round",
-      borderColor: "cyan",
+      borderColor: "magenta",
     }),
   );
   runLegacy(args, extraEnv);
@@ -121,7 +127,7 @@ function runShutdown() {
       {
         padding: { left: 1, right: 1, top: 0, bottom: 0 },
         borderStyle: "round",
-        borderColor: "cyan",
+        borderColor: "magenta",
       },
     ),
   );
@@ -158,7 +164,7 @@ function runStart() {
       {
         padding: { left: 1, right: 1, top: 0, bottom: 0 },
         borderStyle: "round",
-        borderColor: "cyan",
+        borderColor: "magenta",
       },
     ),
   );
@@ -190,7 +196,7 @@ function runRestart() {
       {
         padding: { left: 1, right: 1, top: 0, bottom: 0 },
         borderStyle: "round",
-        borderColor: "cyan",
+        borderColor: "magenta",
       },
     ),
   );
@@ -299,6 +305,7 @@ async function runDoctor() {
         "Certaines URLs ne répondent pas : lance `clawvis start` ou vérifie les ports dans `.env`.",
       );
 
+  printHeader();
   console.log(
     boxen(
       [

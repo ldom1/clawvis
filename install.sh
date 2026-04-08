@@ -26,16 +26,19 @@ cd "${ROOT_DIR}"
 # ---------------------------------------------------------------------------
 # Display helpers — degrade gracefully on non-TTY
 # ---------------------------------------------------------------------------
+_K=$'\033[K' # erase to end of line (clears spinner % / trailing chars)
 if [ -t 1 ]; then
   _R=$'\033[0m' _B=$'\033[1m' _D=$'\033[2m'
-  _C=$'\033[36m' _G=$'\033[32m' _Y=$'\033[33m' _RE=$'\033[31m'
+  _M=$'\033[35m' _C=$'\033[36m' _G=$'\033[32m' _Y=$'\033[33m' _RE=$'\033[31m'
 else
-  _R='' _B='' _D='' _C='' _G='' _Y='' _RE=''
+  _R='' _B='' _D='' _M='' _C='' _G='' _Y='' _RE=''
 fi
 
-info()      { printf "\n${_B}${_C}==> %s${_R}\n" "$1"; }
+# Magenta section titles — parity with clawvis-cli printSection / box border
+info()      { printf "\n${_B}${_M}==> %s${_R}\n" "$1"; }
 warn()      { printf "  ${_Y}⚠${_R}  %s\n" "$1"; }
 error_msg() { printf "  ${_RE}✗${_R}  %s\n" "$1" >&2; }
+# Informative status only (no subprocess). Long tasks use run_quiet → green ✓ when done.
 step()      { printf "  ${_D}→${_R}  %s\n" "$1"; }
 
 _braille=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
@@ -46,9 +49,9 @@ spinner() {
   tput civis 2>/dev/null || true
   while kill -0 "${pid}" 2>/dev/null; do
     if [ -n "${pct}" ]; then
-      printf "\r  %s  %s  %d%%" "${_braille[$((i % nf))]}" "${msg}" "${pct}"
+      printf "\r  %s  %s  %d%%%s" "${_braille[$((i % nf))]}" "${msg}" "${pct}" "${_K}"
     else
-      printf "\r  %s  %s" "${_braille[$((i % nf))]}" "${msg}"
+      printf "\r  %s  %s%s" "${_braille[$((i % nf))]}" "${msg}" "${_K}"
     fi
     sleep 0.08
     i=$((i + 1))
@@ -68,24 +71,40 @@ run_quiet() {
   wait "${pid}"
   local code=$?
   if [ "${code}" -ne 0 ]; then
-    printf "\r  ${_RE}✗${_R}  %s (failed)\n" "${msg}"
+    printf "\r  ${_RE}✗${_R}  %s (failed)%s\n" "${msg}" "${_K}"
     cat "${LAST_LOG}" >&2
     exit "${code}"
   fi
-  printf "\r  ${_G}✓${_R}  %s\n" "${msg}"
+  printf "\r  ${_G}✓${_R}  %s%s\n" "${msg}" "${_K}"
+}
+
+# Same wordmark as clawvis-cli/cli.mjs (keep get.sh + clawvis copies in sync).
+clawvis_cli_print_header() {
+  local root="${1:-.}"
+  local v
+  v="$(git -C "${root}" describe --tags --always 2>/dev/null || echo "dev")"
+  [ "${v#v}" = "${v}" ] && v="v${v}"
+  if [ ! -t 1 ]; then
+    printf '\n♛ CLAWVIS %s\n\n' "${v}"
+    return 0
+  fi
+  local M=$'\033[35m' B=$'\033[1;35m' D=$'\033[2m' R=$'\033[0m'
+  local inner=36
+  local row1_pad=$((inner - 12))
+  [ "${row1_pad}" -lt 0 ] && row1_pad=0
+  local row2_pad=$((inner - 5 - ${#v}))
+  [ "${row2_pad}" -lt 0 ] && row2_pad=0
+  printf '\n'
+  printf '%b╭────────────────────────────────────╮%b\n' "${M}" "${R}"
+  printf '%b│%b  %s♛%s  %sCLAWVIS%s%*s%b│%b\n' \
+    "${M}" "${R}" "${M}" "${R}" "${B}" "${R}" "${row1_pad}" "" "${M}" "${R}"
+  printf '%b│%b     %s%s%*s%b│%b\n' \
+    "${M}" "${R}" "${D}" "${v}" "${row2_pad}" "" "${M}" "${R}"
+  printf '%b╰────────────────────────────────────╯%b\n\n' "${M}" "${R}"
 }
 
 print_banner() {
-  local version
-  version="$(git -C "${ROOT_DIR}" describe --tags --always 2>/dev/null || echo "dev")"
-  [ "${version#v}" = "${version}" ] && version="v${version}"
-  local R="" M=""
-  if [ -t 1 ]; then
-    R=$'\033[0m'; M=$'\033[35m'
-  fi
-  printf "\n"
-  printf "%s------ ♛ Clawvis  %s%s\n" "${M}" "${version}" "${R}"
-  printf "\n"
+  clawvis_cli_print_header "${ROOT_DIR}"
 }
 
 ask() {
@@ -219,6 +238,21 @@ PY
   else
     printf "%s=%s\n" "$key" "$value" >> "${ENV_FILE}"
   fi
+}
+
+delete_env_key() {
+  local key="$1"
+  [ -f "${ENV_FILE}" ] || return 0
+  python3 - "$ENV_FILE" "$key" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+key = sys.argv[2]
+lines = path.read_text(encoding="utf-8").splitlines()
+out = [ln for ln in lines if not ln.startswith(f"{key}=")]
+path.write_text("\n".join(out) + "\n", encoding="utf-8")
+PY
 }
 
 parse_args() {
@@ -458,6 +492,13 @@ upsert_env "HOST_GID" "$(id -g)"
 COMPOSE_PROJECT_NAME="clawvis-${INSTANCE_NAME}"
 upsert_env "COMPOSE_PROJECT_NAME" "${COMPOSE_PROJECT_NAME}"
 export COMPOSE_PROJECT_NAME INSTANCE_NAME
+
+# Docker: bind-mount symlink target so Kanban/Memory APIs can read memory/projects/*.md.
+if [ "${MEMORY_TYPE}" = "symlink" ]; then
+  upsert_env "COMPOSE_FILE" "docker-compose.yml:docker-compose.clawvis-brain.yml"
+else
+  delete_env_key "COMPOSE_FILE"
+fi
 
 # ---------------------------------------------------------------------------
 # Brain display (Quartz)

@@ -12,7 +12,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from hub_core.brain_memory import active_brain_memory_root as resolve_active_brain_memory_root
+from hub_core.brain_memory import (
+    active_brain_memory_root as resolve_active_brain_memory_root,
+)
 
 from .models import (
     STATUSES,
@@ -661,7 +663,9 @@ def _scan_instances(root: Path, source: str) -> list[dict]:
                 "path": str(entry.resolve()),
                 "source": source,
                 "has_memory": (entry / "memory").exists(),
-                "has_compose_override": (entry / "docker-compose.override.yml").exists(),
+                "has_compose_override": (
+                    entry / "docker-compose.override.yml"
+                ).exists(),
             }
         )
     return out
@@ -687,7 +691,9 @@ def list_instances() -> dict:
             "path": path,
             "source": "linked",
             "has_memory": (Path(path) / "memory").exists(),
-            "has_compose_override": (Path(path) / "docker-compose.override.yml").exists(),
+            "has_compose_override": (
+                Path(path) / "docker-compose.override.yml"
+            ).exists(),
             "linked": True,
             "missing": not Path(path).exists(),
         }
@@ -887,8 +893,10 @@ def _parse_memory_md_structure(content: str) -> tuple[str, str, list[tuple[str, 
     lines = content.splitlines()
     idx = 0
     title = ""
-    if idx < len(lines) and lines[idx].startswith("# ") and not lines[idx].startswith(
-        "##"
+    if (
+        idx < len(lines)
+        and lines[idx].startswith("# ")
+        and not lines[idx].startswith("##")
     ):
         title = lines[idx][2:].strip()
         idx += 1
@@ -1337,6 +1345,36 @@ def _load_project_metadata(project_dir: Path) -> dict:
     }
 
 
+def _brain_projects_scan_dirs(settings: dict) -> list[Path]:
+    """`memory/projects` dirs that may contain `*.md` hub projects.
+
+    Order: resolved active memory first, then ``BRAIN_PATH``/projects from the
+    environment. External brains symlinked under ``instances/<name>/memory`` often
+    fail inside Docker unless the target is bind-mounted; ``BRAIN_PATH`` is that
+    host target and may be the only readable location for ``projects/*.md``.
+    """
+    seen_keys: set[str] = set()
+    dirs: list[Path] = []
+
+    def add(p: Path) -> None:
+        if not p.is_dir():
+            return
+        try:
+            key = str(p.resolve(strict=False))
+        except OSError:
+            key = str(p)
+        if key in seen_keys:
+            return
+        seen_keys.add(key)
+        dirs.append(p)
+
+    add(active_brain_memory_root(settings) / "projects")
+    bp = os.environ.get("BRAIN_PATH", "").strip()
+    if bp:
+        add(Path(bp).expanduser() / "projects")
+    return dirs
+
+
 def list_projects() -> dict:
     settings = get_hub_settings()
     items = []
@@ -1357,8 +1395,7 @@ def list_projects() -> dict:
             meta = _load_project_metadata(entry)
             items.append(meta)
             seen_slugs.add(meta.get("slug") or slug)
-    projects_dir = active_brain_memory_root(settings) / "projects"
-    if projects_dir.is_dir():
+    for projects_dir in _brain_projects_scan_dirs(settings):
         for md in sorted(projects_dir.glob("*.md")):
             if md.name.startswith("_") or md.name.lower() == "index.md":
                 continue
@@ -1623,7 +1660,11 @@ def read_memory_quartz_page(filename: str) -> dict:
         path = active_brain_memory_root() / "projects" / safe
     if not path.exists():
         raise KeyError("Quartz page not found")
-    return {"filename": safe, "content": path.read_text(encoding="utf-8"), "source": "quartz" if quartz_dir else "fallback"}
+    return {
+        "filename": safe,
+        "content": path.read_text(encoding="utf-8"),
+        "source": "quartz" if quartz_dir else "fallback",
+    }
 
 
 def read_memory_project_file(filename: str) -> dict:

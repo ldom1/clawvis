@@ -41,7 +41,7 @@ free_listen_port() {
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
   say "[clawvis] Docker compose down (hub, memory, …)"
-  (cd "${ROOT_DIR}" && docker compose -f docker-compose.yml down >/dev/null 2>&1) || true
+  (cd "${ROOT_DIR}" && docker compose down >/dev/null 2>&1) || true
 else
   say "[clawvis] Docker absent — compose ignoré"
 fi
