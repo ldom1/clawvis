@@ -8,7 +8,9 @@
 set -euo pipefail
 
 REPO_URL="${CLAWVIS_REPO_URL:-https://github.com/ldom1/clawvis}"
-REF="${CLAWVIS_REF:-}"
+# On the main branch this should be empty (clone default). On a dev/release
+# branch, set this to the branch name so the one-liner tests the right code.
+REF="${CLAWVIS_REF:-feat/setup_process}"
 INSTALL_DIR="${CLAWVIS_DIR:-$HOME/.clawvis}"
 LAST_LOG="${CLAWVIS_LAST_LOG:-/tmp/clawvis_last.log}"
 
@@ -50,8 +52,17 @@ echo "==> Clawvis bootstrap"
 echo "    Destination: ${INSTALL_DIR}"
 
 if [ -d "${INSTALL_DIR}/.git" ]; then
-  echo "==> Repo already present, pulling latest"
-  run_quiet "Updating existing repository" git -C "${INSTALL_DIR}" pull --ff-only
+  echo "==> Repo already present, updating"
+  if [ -n "${REF}" ]; then
+    current="$(git -C "${INSTALL_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+    if [ "${current}" != "${REF}" ]; then
+      run_quiet "Switching to ${REF}" bash -c \
+        "git -C \"${INSTALL_DIR}\" fetch origin \"${REF}\" && git -C \"${INSTALL_DIR}\" checkout \"${REF}\""
+    fi
+    run_quiet "Updating to latest ${REF}" git -C "${INSTALL_DIR}" pull --ff-only
+  else
+    run_quiet "Updating existing repository" git -C "${INSTALL_DIR}" pull --ff-only
+  fi
 else
   if [ -n "${REF}" ]; then
     run_quiet "Cloning Clawvis repository" git clone --depth 1 --branch "${REF}" "${REPO_URL}" "${INSTALL_DIR}"
