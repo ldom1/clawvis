@@ -796,6 +796,7 @@ body {
 .card-project-wrap {
   position: relative;
   min-width: 0;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
 }
@@ -2975,9 +2976,24 @@ body {
 }
 .grid-3 {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
   align-items: stretch;
+}
+@media (min-width: 640px) {
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1280px) {
+  .grid-3 {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 .card {
   background: var(--surface);
@@ -3690,4 +3706,63 @@ body {
 }
 .chat-status-dot.ok {
   background: var(--ok);
+}
+
+/* --- compact Add-project button in section header --- */
+.new-project-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+  line-height: 1;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.new-project-btn:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.new-project-btn .projects-add-icon {
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* --- inactive project card style --- */
+.card-project-wrap.card-inactive {
+  opacity: 0.5;
+  filter: grayscale(0.4);
+  transition: opacity 0.2s, filter 0.2s;
+}
+.card-project-wrap.card-inactive:hover {
+  opacity: 0.75;
+  filter: grayscale(0.2);
+}
+
+/* --- show/hide inactive projects toggle --- */
+.projects-toggle {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+.projects-toggle-btn {
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  letter-spacing: 0.01em;
+}
+.projects-toggle-btn:hover {
+  color: var(--text);
+  background: var(--surface);
 }

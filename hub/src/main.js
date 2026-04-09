@@ -620,8 +620,11 @@ function renderHome() {
       <section>
         <div class="section-header">
           <div class="section-label">Projects</div>
+          <button id="new-project" class="new-project-btn" type="button" aria-label="${fr ? 'Nouveau projet' : 'New project'}" title="${fr ? 'Nouveau projet' : 'New project'}"><span class="projects-add-icon">+</span></button>
         </div>
-        <div id="projects-grid" class="grid-3"><button id="new-project" class="card" type="button" aria-label="+"><span class="projects-add-icon">+</span></button></div>
+        <div id="projects-grid" class="grid-3"></div>
+        <div id="projects-inactive-toggle" class="projects-toggle" style="display:none"></div>
+        <div id="projects-inactive-grid" class="grid-3" style="display:none"></div>
         <div class="project-hub" id="project-hub"></div>
       </section>
     </div>
@@ -1736,7 +1739,16 @@ async function loadProjects() {
     );
   }
   const fr = settingsLocale() === "fr";
-  (data.projects || []).forEach((project) => {
+  const allProjects = data.projects || [];
+  const activeProjects = allProjects.filter(
+    (p) => (p.brain_status || "").toLowerCase() === "active",
+  );
+  const inactiveProjects = allProjects.filter(
+    (p) => (p.brain_status || "").toLowerCase() !== "active",
+  );
+  const inactiveGrid = document.getElementById("projects-inactive-grid");
+
+  function _renderProjectCard(project, targetGrid) {
     const slug = project.slug;
     const wrap = document.createElement("div");
     wrap.className = "card-project-wrap";
@@ -1813,7 +1825,7 @@ async function loadProjects() {
       e.preventDefault();
       e.stopPropagation();
       const next = drop.hidden;
-      grid.querySelectorAll(".card-project-dropdown").forEach((d) => {
+      document.querySelectorAll(".card-project-dropdown").forEach((d) => {
         d.hidden = true;
       });
       drop.hidden = !next;
@@ -1861,8 +1873,36 @@ async function loadProjects() {
 
     actions.append(kebab, drop);
     wrap.appendChild(actions);
-    grid.appendChild(wrap);
-  });
+    targetGrid.appendChild(wrap);
+  }
+
+  activeProjects.forEach((p) => _renderProjectCard(p, grid));
+
+  if (inactiveProjects.length > 0) {
+    const toggleDiv = document.getElementById("projects-inactive-toggle");
+    toggleDiv.style.display = "";
+    const showLabel = fr
+      ? "Afficher tous les projets ▾"
+      : "Show all projects ▾";
+    const hideLabel = fr ? "Masquer les inactifs ▴" : "Hide inactive ▴";
+    let expanded = false;
+    const toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "projects-toggle-btn";
+    toggleBtn.textContent = showLabel;
+    toggleDiv.appendChild(toggleBtn);
+    inactiveProjects.forEach((p) => {
+      _renderProjectCard(p, inactiveGrid);
+      const lastWrap = inactiveGrid.lastElementChild;
+      if (lastWrap) lastWrap.classList.add("card-inactive");
+    });
+    toggleBtn.addEventListener("click", () => {
+      expanded = !expanded;
+      inactiveGrid.style.display = expanded ? "" : "none";
+      toggleBtn.textContent = expanded ? hideLabel : showLabel;
+    });
+  }
+
   if (!_projectCardMenuCloseBound) {
     _projectCardMenuCloseBound = true;
     document.addEventListener("click", () => {
