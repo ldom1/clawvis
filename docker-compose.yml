@@ -43,12 +43,14 @@ services:
       - .:/clawvis:rw
       # Kanban scans PROJECTS_ROOT from .env — bind the host folder at the same path.
       - "${PROJECTS_ROOT:?Set PROJECTS_ROOT in .env}:${PROJECTS_ROOT}:ro"
+      # Bind openclaw logs so DOMBOT_LOG_JSONL path is accessible inside the container.
+      - "${OPENCLAW_LOGS_HOST:-${HOME}/.openclaw/logs}:/openclaw-logs:ro"
     environment:
       - CLAWVIS_ROOT=/clawvis
       - UV_CACHE_DIR=/tmp/uv-cache
       - HOME=/home/${USER}
       - MEMORY_ROOT=${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}
-      - DOMBOT_LOG_JSONL=${DOMBOT_LOG_JSONL:-/home/${USER}/.openclaw/logs/dombot.jsonl}
+      - DOMBOT_LOG_JSONL=${DOMBOT_LOG_JSONL:-/openclaw-logs/dombot.jsonl}
       # OpenClaw: set OPENCLAW_BASE_URL to reach your OpenClaw instance.
       # Same-host deployment (OpenClaw on the VPS alongside Clawvis):
       #   OPENCLAW_BASE_URL=http://host.docker.internal:3333

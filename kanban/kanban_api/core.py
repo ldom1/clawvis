@@ -1625,9 +1625,16 @@ def list_memory_project_files() -> dict:
 
 
 def _quartz_public_dir() -> Path | None:
-    """Return quartz/public/ if a real Quartz build is present, else None."""
+    """Return quartz/public/ if a real Quartz build is present, else None.
+
+    A real build has at least one content HTML page (not 404.html or _*.html).
+    """
     quartz_public = _CLAWVIS_ROOT / "quartz" / "public"
-    if quartz_public.is_dir() and any(quartz_public.glob("*.html")):
+    if quartz_public.is_dir() and any(
+        p
+        for p in quartz_public.glob("*.html")
+        if p.name != "404.html" and not p.name.startswith("_")
+    ):
         return quartz_public
     return None
 
