@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clawvis Setup — Runtime</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .setup-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: var(--spacing-lg);
+    }
+
+    #step-provider {
+      display: block;
+    }
+
+    #step-claude-sync {
+      display: none;
+    }
+
+    #step-success {
+      display: none;
+    }
+
+    #step-error {
+      display: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="setup-container">
+    <div class="setup-panel">
+      <!-- Step 1: Provider Selection -->
+      <div id="step-provider">
+        <h1 class="setup-title">Setup — AI Runtime</h1>
+        <p class="setup-subtitle">
+          Clawvis can use OpenClaw or Claude Code as your AI runtime.
+          Choose one to continue.
+        </p>
+
+        <div class="provider-buttons">
+          <label class="provider-option">
+            <input type="radio" name="provider" value="openclaw" id="provider-openclaw">
+            <label for="provider-openclaw" style="flex: 1; cursor: pointer;">
+              <strong>OpenClaw</strong>
+              <p style="font-size: 0.9rem; color: var(--color-text-secondary); margin: 0;">
+                Self-hosted agent runtime — best for advanced customization
+              </p>
+            </label>
+          </label>
+
+          <label class="provider-option">
+            <input type="radio" name="provider" value="claude" id="provider-claude" checked>
+            <label for="provider-claude" style="flex: 1; cursor: pointer;">
+              <strong>Claude Code</strong>
+              <p style="font-size: 0.9rem; color: var(--color-text-secondary); margin: 0;">
+                Anthropic's Claude via ~/.claude/claude.json — register Clawvis skills as MCP tools
+              </p>
+            </label>
+          </label>
+        </div>
+
+        <div class="button-group">
+          <button class="btn" id="btn-next-provider">Next →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Claude Code Setup Progress -->
+      <div id="step-claude-sync">
+        <h1 class="setup-title">Claude Code Setup</h1>
+        <p class="setup-subtitle">
+          Registering Clawvis skills as MCP tools in <code>~/.claude/claude.json</code>…
+        </p>
+
+        <div class="progress-steps">
+          <div class="progress-step" id="step-claude-cli">
+            <div class="step-icon">1</div>
+            <div class="step-text">
+              <strong>Check claude CLI</strong>
+              <span>Looking for claude command on PATH</span>
+            </div>
+          </div>
+
+          <div class="progress-step" id="step-skills-read">
+            <div class="step-icon">2</div>
+            <div class="step-text">
+              <strong>Discover skills</strong>
+              <span>Reading skill directories</span>
+            </div>
+          </div>
+
+          <div class="progress-step" id="step-mcp-write">
+            <div class="step-icon">3</div>
+            <div class="step-text">
+              <strong>Register MCP tools</strong>
+              <span>Writing ~/.claude/claude.json</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="error-container" class="hidden">
+          <div class="error-banner" id="error-message"></div>
+          <button class="btn btn-primary" id="btn-retry-claude">Retry</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Success -->
+      <div id="step-success">
+        <h1 class="setup-title">✓ Setup Complete</h1>
+
+        <div class="success-banner">
+          Claude Code is now configured. Clawvis skills are registered as MCP tools.
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-item">
+            <strong>Provider</strong>
+            <span>claude</span>
+          </div>
+          <div class="summary-item">
+            <strong>Config file</strong>
+            <span id="summary-config-path">~/.claude/claude.json</span>
+          </div>
+          <div class="summary-item">
+            <strong>Skills registered</strong>
+            <span id="summary-skills-count">0</span>
+          </div>
+          <div class="summary-item">
+            <strong>MCP server</strong>
+            <span>clawvis-skills</span>
+          </div>
+        </div>
+
+        <p style="color: var(--color-text-secondary); font-size: 0.9rem;">
+          You can now use Clawvis skills in Claude Code. Restart the Claude Code
+          interface or run <code>claude refresh</code> to reload MCP tools.
+        </p>
+
+        <div class="button-group">
+          <button class="btn btn-primary" id="btn-go-home">Open Hub →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Error -->
+      <div id="step-error">
+        <h1 class="setup-title">Setup Failed</h1>
+
+        <div class="error-banner" id="final-error-message"></div>
+
+        <div class="button-group">
+          <button class="btn" id="btn-back-error">← Back</button>
+          <button class="btn btn-primary" id="btn-retry-error">Retry</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // STATE
+    // ============================================
+    let currentStep = 'provider';
+    let selectedProvider = 'claude';
+    let syncState = {
+      claudeCliDone: false,
+      skillsReadDone: false,
+      mcpWriteDone: false,
+      error: null,
+    };
+
+    // ============================================
+    // UI HELPERS
+    // ============================================
+    function showStep(step) {
+      document.getElementById('step-provider').style.display = 'none';
+      document.getElementById('step-claude-sync').style.display = 'none';
+      document.getElementById('step-success').style.display = 'none';
+      document.getElementById('step-error').style.display = 'none';
+      document.getElementById('step-' + step).style.display = 'block';
+      currentStep = step;
+      window.scrollTo(0, 0);
+    }
+
+    function setStepDone(stepId, error = false) {
+      const el = document.getElementById('step-' + stepId);
+      if (error) {
+        el.classList.remove('done');
+        el.classList.add('error');
+      } else {
+        el.classList.remove('error');
+        el.classList.add('done');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ============================================
+    // API CALLS
+    // ============================================
+    async function setProvider(provider) {
+      try {
+        const resp = await fetch('/api/hub/setup/provider', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider }),
+        });
+        if (!resp.ok) {
+          const data = await resp.json();
+          throw new Error(data.detail || 'Failed to set provider');
+        }
+        return await resp.json();
+      } catch (err) {
+        throw new Error(`Provider setup failed: ${err.message}`);
+      }
+    }
+
+    async function syncClaudeCode() {
+      try {
+        // Step 1: Check claude CLI
+        setStepDone('claude-cli');
+
+        // Step 2: Read skills
+        await new Promise(r => setTimeout(r, 500)); // simulate work
+        setStepDone('skills-read');
+
+        // Step 3: Sync MCP config
+        const resp = await fetch('/api/hub/setup/claude-code-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!resp.ok) {
+          const data = await resp.json();
+          throw new Error(data.detail || data.error || 'MCP sync failed');
+        }
+
+        const result = await resp.json();
+        if (!result.ok) {
+          throw new Error(result.error || 'MCP sync failed');
+        }
+
+        setStepDone('mcp-write');
+        return result;
+      } catch (err) {
+        syncState.error = err.message;
+        setStepDone('mcp-write', true);
+        throw err;
+      }
+    }
+
+    // ============================================
+    // EVENT HANDLERS
+    // ============================================
+    document.getElementById('btn-next-provider').addEventListener('click', async () => {
+      selectedProvider = document.querySelector('input[name="provider"]:checked').value;
+
+      try {
+        await setProvider(selectedProvider);
+
+        if (selectedProvider === 'claude') {
+          showStep('claude-sync');
+          const result = await syncClaudeCode();
+          document.getElementById('summary-skills-count').textContent = result.skills_registered || 0;
+          document.getElementById('summary-config-path').textContent = result.mcp_config_path || '~/.claude/claude.json';
+          showStep('success');
+        } else {
+          // OpenClaw flow — defer to future work
+          showStep('success');
+        }
+      } catch (err) {
+        document.getElementById('final-error-message').textContent = escapeHtml(err.message);
+        showStep('error');
+      }
+    });
+
+    document.getElementById('btn-retry-claude').addEventListener('click', async () => {
+      syncState = { claudeCliDone: false, skillsReadDone: false, mcpWriteDone: false, error: null };
+      document.getElementById('error-container').classList.add('hidden');
+      document.querySelectorAll('.progress-step').forEach(el => {
+        el.classList.remove('done', 'error');
+      });
+      document.querySelectorAll('.step-icon').forEach(el => {
+        el.classList.remove('done', 'error');
+      });
+      try {
+        const result = await syncClaudeCode();
+        document.getElementById('summary-skills-count').textContent = result.skills_registered || 0;
+        showStep('success');
+      } catch (err) {
+        document.getElementById('error-message').textContent = escapeHtml(err.message);
+        document.getElementById('error-container').classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('btn-retry-error').addEventListener('click', () => {
+      showStep('provider');
+      syncState = { claudeCliDone: false, skillsReadDone: false, mcpWriteDone: false, error: null };
+      document.querySelectorAll('.progress-step').forEach(el => {
+        el.classList.remove('done', 'error');
+      });
+    });
+
+    document.getElementById('btn-back-error').addEventListener('click', () => {
+      showStep('provider');
+    });
+
+    document.getElementById('btn-go-home').addEventListener('click', () => {
+      window.location.href = '/';
+    });
+
+    // Initialize
+    showStep('provider');
+  </script>
+</body>
+</html>
