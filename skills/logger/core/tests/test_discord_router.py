@@ -1,5 +1,8 @@
 """Tests for dombot_logger.discord_router — Discord bot wrapper."""
 import asyncio
+import json
+from pathlib import Path
+
 from dombot_logger.discord_router import DiscordLoggerBot
 
 
@@ -64,3 +67,16 @@ def test_find_text_channel_by_name():
     missing = bot.find_text_channel_by_name(guild, "unknown")
     assert found is ch2
     assert missing is None
+
+
+def test_remove_from_channel_store(tmp_path: Path) -> None:
+    p = tmp_path / "discord_channels.json"
+    p.write_text(
+        json.dumps({"guild_id": "1", "channels": {"reel_a_analyser": "9", "ops": "2"}}),
+        encoding="utf-8",
+    )
+    bot = DiscordLoggerBot("TOKEN", 1)
+    bot._delete_channels_store_path = p
+    bot._remove_from_channel_store(["reel-a-analyser"])
+    data = json.loads(p.read_text(encoding="utf-8"))
+    assert data["channels"] == {"ops": "2"}

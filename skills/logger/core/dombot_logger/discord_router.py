@@ -16,6 +16,9 @@ class DiscordLoggerBot(commands.Bot):
         self._setup_channels_guild_id: int | None = None
         self._setup_channels_names: list[str] = []
         self._setup_channels_store_path: Path | None = None
+        self._delete_channels_guild_id: int | None = None
+        self._delete_channels_names: list[str] = []
+        self._delete_channels_store_path: Path | None = None
 
     async def setup_hook(self) -> None:
         logger.info("Registering commands")
@@ -25,6 +28,10 @@ class DiscordLoggerBot(commands.Bot):
 
     async def on_ready(self) -> None:
         logger.info("No shard used. Connected to Gateway.")
+        if self._delete_channels_guild_id is not None:
+            await self._run_delete_channels()
+            await self.close()
+            return
         if self._setup_channels_guild_id is not None:
             await self._run_setup_channels()
             await self.close()
@@ -77,6 +84,15 @@ class DiscordLoggerBot(commands.Bot):
         self._setup_channels_store_path = store_path
         self.run(self._token)
 
+    def run_delete_channels(
+        self, guild_id: int, channel_names: list[str], store_path: Path | None = None
+    ) -> None:
+        logger.info("Starting bot (delete channels) guild_id={} channels={}", guild_id, channel_names)
+        self._delete_channels_guild_id = guild_id
+        self._delete_channels_names = channel_names
+        self._delete_channels_store_path = store_path
+        self.run(self._token)
+
     async def create_text_channel(self, guild: discord.Guild, channel_name: str) -> discord.TextChannel:
         logger.info("Creating text channel {}", channel_name)
         return await guild.create_text_channel(channel_name)
@@ -114,6 +130,45 @@ class DiscordLoggerBot(commands.Bot):
             logger.info("Channel created: {} ({})", name, channel.id)
             created_or_found[name] = str(channel.id)
         self._write_channel_store(guild.id, created_or_found)
+
+    async def _run_delete_channels(self) -> None:
+        guild = self.get_guild(self._delete_channels_guild_id or 0)
+        if guild is None:
+            logger.error("Guild not found for id {}", self._delete_channels_guild_id)
+            return
+        for raw in self._delete_channels_names:
+            name = raw.strip().lower()
+            if not name:
+                continue
+            ch = self.find_text_channel_by_name(guild, name)
+            if ch is None:
+                logger.warning("No text channel named {}", name)
+                continue
+            await ch.delete(reason="discord-cli delete-channels")
+            logger.info("Channel deleted: {} ({})", name, ch.id)
+        self._remove_from_channel_store(self._delete_channels_names)
+
+    def _remove_from_channel_store(self, names: list[str]) -> None:
+        path = self._delete_channels_store_path
+        if path is None or not path.exists():
+            return
+        keys = {n.strip().lower().replace("-", "_") for n in names if n.strip()}
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.error("Failed to read channel store {}: {}", path, exc)
+            return
+        channels = data.get("channels")
+        if not isinstance(channels, dict):
+            return
+        for k in list(channels):
+            if k in keys:
+                del channels[k]
+        try:
+            path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            logger.info("Channel store updated after delete: {}", path)
+        except OSError as exc:
+            logger.error("Failed to write channel store {}: {}", path, exc)
 
     def _write_channel_store(self, guild_id: int, channels: dict[str, str]) -> None:
         if not channels:

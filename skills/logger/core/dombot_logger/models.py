@@ -108,3 +108,19 @@ class DiscordCliCreateChannelsConfig(BaseModel):
             bad = ", ".join(invalid)
             raise ValueError(f"Unknown channels: {bad}. Allowed: {allowed}")
         return cleaned
+
+
+class DiscordCliDeleteChannelsConfig(BaseModel):
+    token: str
+    guild_id: int
+    channel_id: int
+    channels: list[str]
+    store_path: str = ".local/discord_channels.json"
+
+    @field_validator("channels")
+    @classmethod
+    def _validate_delete_names(cls, value: list[str]) -> list[str]:
+        cleaned = [v.strip() for v in value if v.strip()]
+        if not cleaned:
+            raise ValueError("No channels provided. Use --channels 'name1,name2'")
+        return cleaned

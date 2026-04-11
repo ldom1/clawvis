@@ -1,6 +1,6 @@
 # Logger Skill
 
-## ⚡ Exécution rapide
+## ⚡ Quick start
 
 ```bash
 # Log + Discord routing
@@ -9,7 +9,7 @@
 # Discord only
 ~/.openclaw/skills/logger/scripts/discord-send.sh ops "Message"
 
-# Diagnostic Discord
+# Discord diagnostics
 ~/.openclaw/skills/logger/scripts/discord-check.sh --test
 ```
 
@@ -47,6 +47,22 @@ Launch from anywhere; no need to `cd` into core.
    - **Config:** In `~/.openclaw/openclaw.json` under `channels.discord` set `token` as env SecretRef (`id: DISCORD_BOT_TOKEN`)
    (Get the channel ID by enabling Developer Mode in Discord → right-click channel → Copy Channel ID.)
 3. Run `discord-check.sh --test` to send a test message.
+
+### Discord CLI — create / delete channels (bot)
+
+From `skills/logger/core` (or `~/.openclaw/skills/logger/core` on an instance):
+
+```bash
+uv run discord-cli create-channels --channels logs,innovations,projects,ops
+uv run discord-cli delete-channels --channels channel-name
+# Multiple names: --channels foo,bar
+# Optional: --guild-id, --channel-id (reference), --store-path (default: .local/discord_channels.json)
+```
+
+**Requirements:** `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, and a reference channel (`DISCORD_CHANNEL_ID_GENERAL` or `--channel-id`). The bot needs the **Manage Channels** permission to create or delete.
+
+- **`create-channels`:** allowed names match the logger config (`general`, `logs`, `innovations`, `projects`, `ops`, `alerts`, etc.); updates the store file with channel IDs.
+- **`delete-channels`:** any **text channel** name (Discord slug: lowercase with hyphens); removes matching keys from the store when present.
 
 ---
 
