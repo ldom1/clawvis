@@ -1,0 +1,22 @@
+[project]
+name = "morning-briefing"
+version = "0.1.0"
+description = "Daily morning briefing with Wikipedia on-this-day events"
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["briefing"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.0",
+    "ruff>=0.8.0",
+]
