@@ -301,7 +301,6 @@ def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
         }
 
     skill_names = get_skill_names(root)
-    skills_dir = str((root / "skills").resolve())
 
     config_path = Path.home() / ".claude" / "claude.json"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -319,30 +318,23 @@ def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
         data = {}
 
     mcp_servers: dict[str, Any] = data.setdefault("mcpServers", {})
-    entry = {
-        "type": "stdio",
-        "command": "python",
-        "args": ["-m", "clawvis_skills_mcp"],
-        "env": {
-            "SKILLS_DIR": skills_dir,
-        },
-    }
+    mcp_server_path = root / "mcp" / "server.js"
 
-    before = json.dumps(data, sort_keys=True)
-    mcp_servers["clawvis-skills"] = entry
-    after = json.dumps(data, sort_keys=True)
-    changed = before != after
+    mcp_servers["clawvis-skills"] = {
+        "type": "stdio",
+        "command": "node",
+        "args": [str(mcp_server_path)],
+    }
 
     config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
     return {
         "ok": True,
-        "changed": changed,
-        "claude_available": True,
         "skills_registered": skill_names,
         "skills_count": len(skill_names),
         "mcp_config_path": str(config_path),
-        "skills_dir": skills_dir,
+        "mcp_server_path": str(mcp_server_path),
+        "claude_cli_path": claude_bin,
     }
 
 
