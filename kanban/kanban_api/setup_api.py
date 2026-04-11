@@ -6,7 +6,12 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from hub_core.setup_sync import setup_context_payload, sync_memory, sync_skills
+from hub_core.setup_sync import (
+    setup_context_payload,
+    sync_memory,
+    sync_skills,
+    sync_claude_code_mcp,
+)
 
 from .core import _CLAWVIS_ROOT
 
@@ -114,5 +119,22 @@ def post_sync_memory(body: SyncMemoryBody) -> dict:
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except OSError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.post("/claude-code-sync")
+def post_claude_code_sync() -> dict:
+    """Register Clawvis skills as an MCP server entry in ~/.claude/claude.json."""
+    try:
+        out = sync_claude_code_mcp(_CLAWVIS_ROOT)
+        if out.get("ok") is False:
+            raise HTTPException(
+                status_code=422,
+                detail=out.get("error", "claude-code-sync failed"),
+            )
+        return out
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
