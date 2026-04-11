@@ -266,6 +266,78 @@ def sync_memory(
     return {"ok": False, "error": f"Unknown provider: {provider}"}
 
 
+def find_claude_on_path() -> str | None:
+    """Return the absolute path to the claude CLI, or None if not found."""
+    import shutil
+    return shutil.which("claude")
+
+
+def get_skill_names(clawvis_root: Path) -> list[str]:
+    """Discover all skill names from the skills directory."""
+    skills_dir = clawvis_root / "skills"
+    if not skills_dir.is_dir():
+        return []
+    return sorted(
+        entry.name
+        for entry in skills_dir.iterdir()
+        if entry.is_dir() and not entry.name.startswith(".")
+    )
+
+
+def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
+    """Register Clawvis skills as an MCP server entry in ~/.claude/claude.json.
+
+    Returns a result dict with keys: ok, skills_registered, mcp_config_path,
+    changed, claude_available, and optionally error.
+    """
+    root = clawvis_root or clawvis_root_from_env_or_file()
+
+    claude_bin = find_claude_on_path()
+    if not claude_bin:
+        return {
+            "ok": False,
+            "error": "claude CLI not found on PATH",
+            "claude_available": False,
+        }
+
+    skill_names = get_skill_names(root)
+
+    config_path = Path.home() / ".claude" / "claude.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if config_path.exists():
+        try:
+            data: dict[str, Any] = json.loads(config_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            return {
+                "ok": False,
+                "error": f"Invalid JSON in {config_path}: {e}",
+                "claude_available": True,
+            }
+    else:
+        data = {}
+
+    mcp_servers: dict[str, Any] = data.setdefault("mcpServers", {})
+    mcp_server_path = root / "mcp" / "server.js"
+
+    mcp_servers["clawvis-skills"] = {
+        "type": "stdio",
+        "command": "node",
+        "args": [str(mcp_server_path)],
+    }
+
+    config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    return {
+        "ok": True,
+        "skills_registered": skill_names,
+        "skills_count": len(skill_names),
+        "mcp_config_path": str(config_path),
+        "mcp_server_path": str(mcp_server_path),
+        "claude_cli_path": claude_bin,
+    }
+
+
 def setup_context_payload(clawvis_root: Path | None = None) -> dict[str, Any]:
     root = clawvis_root or clawvis_root_from_env_or_file()
     mem = resolve_memory_root(root)
