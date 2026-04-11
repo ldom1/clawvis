@@ -7,13 +7,18 @@
 # CLAWVIS_REF      optional branch or tag for fresh clone (--depth 1)
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Piped `curl … | bash` leaves BASH_SOURCE[0] unset; `set -u` then aborts on "${BASH_SOURCE[0]}".
+if ((${#BASH_SOURCE[@]})); then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  SCRIPT_DIR=""
+fi
 DEFAULT_REPO_URL="https://github.com/ldom1/clawvis"
 DEFAULT_REF=""
 
 # Local dev convenience:
 # when running get.sh from a checked-out repo, reuse that repo + current branch.
-if [ -d "${SCRIPT_DIR}/.git" ]; then
+if [ -n "${SCRIPT_DIR}" ] && [ -d "${SCRIPT_DIR}/.git" ]; then
   DEFAULT_REPO_URL="${SCRIPT_DIR}"
   _ref="$(git -C "${SCRIPT_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
   # CI often checks out a detached HEAD — "HEAD" is not a valid clone --branch name (git exits 128).
@@ -188,6 +193,11 @@ if [ "${has_non_interactive}" -eq 0 ] && command -v node >/dev/null 2>&1 && [ -f
       echo "==> Compact wizard unavailable (CLI deps missing); falling back to bash installer"
     fi
   fi
+fi
+
+if [ ! -f "${INSTALL_DIR}/install.sh" ]; then
+  printf 'Error: %s/install.sh not found after clone/update.\n' "${INSTALL_DIR}" >&2
+  exit 1
 fi
 
 exec bash "${INSTALL_DIR}/install.sh" "${INSTALL_ARGS[@]}"

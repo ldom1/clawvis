@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Installer — `get.sh` piped bootstrap (2026-04-11)
+- **Piped `curl … | bash`**: avoid `set -u` failure when `BASH_SOURCE[0]` is unset; treat empty script path as non–local-dev so the GitHub clone path stays correct.
+- **Post-clone check**: exit with a clear error if `install.sh` is missing under `CLAWVIS_DIR`.
+
 ### Hub — Runtime IA page (2026-04-04)
 - **Page `/chat` remplacée par `/runtime`** : nouvelle page dédiée au runtime IA avec info panel (provider, modèle, statut live), bouton de test de connexion (ping `/api/hub/agent/chat`), et accès OpenClaw (lien externe + iframe embed toggle). Route `/chat` conservée comme alias legacy.
 - **Section runtime retirée de Settings** : la gestion du provider est centralisée sur `/runtime`. Le health banner "Runtime config" dans Settings est maintenant un lien cliquable vers `/runtime`.

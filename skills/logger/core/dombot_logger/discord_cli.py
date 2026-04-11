@@ -7,7 +7,11 @@ from pydantic import ValidationError
 
 from dombot_logger.config import get as config_get, get_discord_channel
 from dombot_logger.discord_router import DiscordLoggerBot
-from dombot_logger.models import DiscordCliCreateChannelsConfig, DiscordCliRunConfig
+from dombot_logger.models import (
+    DiscordCliCreateChannelsConfig,
+    DiscordCliDeleteChannelsConfig,
+    DiscordCliRunConfig,
+)
 
 app = typer.Typer(add_completion=False)
 
@@ -76,4 +80,36 @@ def create_channels(
     logger.info("Store file: {}", resolved_store_path)
     bot = DiscordLoggerBot(cfg.token, cfg.channel_id)
     bot.run_setup_channels(cfg.guild_id, cfg.channels, store_path=resolved_store_path)
+
+
+@app.command("delete-channels")
+def delete_channels(
+    guild_id: str = typer.Option("", "--guild-id"),
+    channels: str = typer.Option(..., "--channels"),
+    channel_id: str = typer.Option("", "--channel-id"),
+    store_path: str = typer.Option(".local/discord_channels.json", "--store-path"),
+) -> None:
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+    token = config_get("DISCORD_BOT_TOKEN")
+    final_guild_id = guild_id or config_get("DISCORD_GUILD_ID")
+    resolved_channel_id = channel_id or get_discord_channel("general")
+    if channel_id and not channel_id.isdigit():
+        resolved_channel_id = get_discord_channel(channel_id, channel_id)
+    try:
+        cfg = DiscordCliDeleteChannelsConfig(
+            token=token,
+            guild_id=int(final_guild_id),
+            channel_id=int(resolved_channel_id),
+            channels=channels.split(","),
+            store_path=store_path,
+        )
+    except (TypeError, ValueError, ValidationError) as exc:
+        raise SystemExit(
+            f"Missing/invalid DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, channel id, or --channels: {exc}"
+        ) from None
+    resolved_store_path = Path(__file__).resolve().parents[1] / cfg.store_path
+    logger.info("Deleting channels in guild {}: {}", cfg.guild_id, cfg.channels)
+    logger.info("Store file: {}", resolved_store_path)
+    bot = DiscordLoggerBot(cfg.token, cfg.channel_id)
+    bot.run_delete_channels(cfg.guild_id, cfg.channels, store_path=resolved_store_path)
 

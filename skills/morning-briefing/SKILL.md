@@ -11,7 +11,7 @@ metadata:
 **AVANT toute autre action**, exécuter ce script Python :
 
 ```bash
-python3 ~/.openclaw/skills/morning-briefing/morning-briefing.py
+python3 ~/Lab/clawvis/skills/morning-briefing/morning-briefing.py
 ```
 
 - Ce script construit le briefing à partir de sources réelles (curiosity files, Wikipedia API, system.json).
@@ -41,7 +41,7 @@ Generate and deliver the daily morning briefing to Ldom via Telegram (ID: `56896
 - System metrics unavailable? Omit the entire System Audit section
 - No Wikipedia event for today? Skip Moment Before
 
-**Implementation:** See `~/.openclaw/skills/morning-briefing/morning-briefing.py` for reference implementation with strict source validation.
+**Implementation:** See `~/Lab/clawvis/skills/morning-briefing/morning-briefing.py` for reference implementation with strict source validation.
 
 ## Quick Reference
 
