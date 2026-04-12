@@ -57,6 +57,7 @@ You run AI agents — Claude, Mistral, or your own OpenClaw instance. But you ha
 | Service | URL | What it does |
 |---------|-----|--------------|
 | **Hub** | `localhost:8088` | Dashboard — system status, agent activity, projects |
+| **Agent service** | proxied as `/api/hub/agent/*` | Streaming chat and runtime config for the Hub banner |
 | **Kanban** | `localhost:8088/kanban/` | Task board with confidence scoring and memory sync |
 | **Brain** | `localhost:8088/memory/` | Project knowledge base (markdown → searchable pages) |
 | **Logs** | `localhost:8088/logs/` | Real-time log stream from all your agents |
@@ -179,6 +180,10 @@ See [`docs/guides/deploy-hostinger.md`](docs/guides/deploy-hostinger.md) for the
 ## Brain (Knowledge base)
 
 The Brain shows your project markdown files from `instances/<name>/memory/projects/`.
+
+On the Hub home, each project that is not the home “active” row has an **Activate project** button (and a ⋮ menu for archive/delete). It sets YAML frontmatter `status: active` on that project’s memory note so the card moves to the main grid (others stay under “Show all projects” until activated).
+
+**Claude Code in Docker:** the Kanban API mounts your host `~/.claude` and sets `CLAWVIS_HOST_CLAUDE_DIR` / `CLAWVIS_REPO_HOST_PATH` (see `docker-compose.yml`) so runtime setup updates the same files Claude Code reads on the machine, not paths inside the container. **`claude.json` points `node` at `<repo>/mcp/server.js` on the host** (not `/clawvis/...`). One-time: `cd mcp && npm install` so the MCP SDK is available, then `claude refresh`. Optionally mount the host `claude` binary and set `CLAWVIS_HOST_CLAUDE_CLI` for wizard detection.
 
 It works out of the box — no Quartz installation needed. A lightweight Python renderer converts your `.md` files to HTML automatically. If you want the full Quartz static site experience, clone Quartz to `quartz/` in the repo root and run `clawvis start`.
 

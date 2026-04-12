@@ -4,9 +4,59 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Docs — pitfall #37 (2026-04-12)
+- **`docs/PITFALLS.md`**: **`~/.clawvis`** vs **`lab/clawvis`** — agent Docker image bakes **`~/.clawvis/agent/`**; sync + rebuild **`agent-service`** after editing the lab tree.
+
+### Agent — `GET /config` matches example JSON (2026-04-12)
+- **`GET /config`**: body is only **`preferred_provider`**, **`primary_provider`**, **`providers`** (same shape as `docs/examples/agent-config-get-response.json`). Dropped flat duplicates; use **`GET /status`** for `effective_provider` / `runtime_ready` / `*_configured`.
+
+### Agent service — Hub banner + dev/Docker wiring (2026-04-12)
+- **`docker-compose.yml`**: **`hub`** now **`depends_on`** **`agent-service`** with **`service_healthy`** so nginx can reach `GET /api/hub/agent/config` after a normal `compose up`.
+- **`scripts/start.sh`**: starts **agent** uvicorn on **`AGENT_PORT`** (default 8092); skip with **`CLAWVIS_SKIP_AGENT=1`** (**`scripts/start-for-e2e.sh`** sets it for Playwright).
+- **`docs/PITFALLS.md`**: pitfall **#36** — wizard vs agent-service split.
+- **`clawvis` restart / `install.sh` / `tests/ci-docker.sh` / CLI hints**: **`docker compose up`** now includes **`agent-service`** explicitly so **`PRIMARY_AI_PROVIDER`** in `.env` (written by the setup wizard via kanban-api) is visible to the Hub after restart — the wizard never started the Python agent by itself.
+- **`docker-compose.yml` (agent-service)**: healthcheck uses **`curl`** instead of **`wget`** (agent image installs curl only) so the container can report **healthy** correctly.
+
+### Playwright — writable project root for auto-started stack (2026-04-11)
+- **`scripts/start-for-e2e.sh`** sets **`CLAWVIS_E2E_ISOLATE=1`**; **`scripts/start.sh`** then forces **`MEMORY_ROOT`** / **`PROJECTS_ROOT`** to **`.e2e-memory/`** and **`.e2e-projects/`** under the repo (after loading `.env`) and **`LINKED_INSTANCES=""`** so the Brain does not follow **linked instances** to an unreadable path. Both dirs are **gitignored**.
+- **`get_hub_settings`**: if **`LINKED_INSTANCES`** is set in the environment (including empty), it **replaces** file-based `linked_instances` — empty env clears links (fixes `[] or file` keeping stale links).
+- **`scripts/init-memory.sh`**: **`MEMORY_ROOT`** absolute paths are no longer prefixed with **`ROOT_DIR`** (e2e isolate dirs initialize correctly).
+
+### Hub — Activate project visible on cards (2026-04-11)
+- Home project cards: **Activate project** / **Activer le projet** full-width button under the card (not only in the ⋮ menu) for projects whose Brain `status` is not `active`.
+
+### Agent — runtime UI after setup wizard (2026-04-11)
+- **`PRIMARY_AI_PROVIDER`** for `GET /agent/config` (Hub home banner, `/runtime`, Settings pill) is read from the **repo `.env` on disk** when mounted (`./.env` → `/clawvis/.env`, `CLAWVIS_DOTENV_PATH`), so the wizard no longer requires restarting **agent-service** to show “Connected” / configured.
+- **`agent_service.provider`**: `primary_ai_provider_raw()`, `_read_dotenv_key`, `_dotenv_paths`.
+
+### MCP — host `server.js` path + working Node server (2026-04-11)
+- **`claude.json` MCP `args`**: use **`CLAWVIS_REPO_HOST_PATH` / `mcp/server.js` on the host** (not `/clawvis/mcp/...` inside Docker) so Claude Code can spawn `node` successfully. Optional override **`CLAWVIS_MCP_SERVER_JS`**.
+- **`mcp/package.json`**: `@modelcontextprotocol/sdk` + `zod`; **`mcp/server.js`** rewritten for **`McpServer` + `StdioServerTransport`** (old `StdioServer` export removed in current SDK).
+- **Setup success page** (`hub/public/setup/runtime/`): shows **MCP script (host)** path + one-time `npm install` under `mcp/`.
+
+### Docker + Claude Code — host `~/.claude` (2026-04-11)
+- **`docker-compose.yml` (kanban-api)**: bind-mount `${HOME}/.claude` → `/clawvis-host-claude`, set `CLAWVIS_HOST_CLAUDE_DIR` and `CLAWVIS_REPO_HOST_PATH=${PWD}` so setup writes `claude.json`, `LocalBrain.md`, and the `skills` symlink for **Claude Code on the host**, not the container filesystem.
+- **`hub_core.setup_sync`**: `claude_mcp_config_path`, `claude_local_sync_dir`, `claude_skills_symlink_target_abs`; `find_claude_on_path` honors **`CLAWVIS_HOST_CLAUDE_CLI`** (file may be host-mounted and non-executable in-container). `/api/hub/setup/context` exposes `claude_host_claude_dir` and `claude_repo_host_path`.
+
+### Hub — Set active project (2026-04-11)
+- **Home project cards** (⋮ menu): **Set active** / **Définir actif** calls `POST /api/hub/kanban/hub/projects/{slug}/brain-status` with `{ "status": "active" }`, which writes YAML frontmatter `status: active` on the project memory `.md` (same field the grid uses for `brain_status`).
+- **Kanban API**: `_upsert_brain_frontmatter_status`, `set_project_brain_status`; resolves `memory_path` when the note lives outside instance `memory/projects/` (brain-only listings).
+
+### Setup — Claude Code MCP sync (2026-04-11)
+- **`/setup/runtime` + `POST /api/hub/setup/claude-code-sync`**: registering MCP in `~/.claude/claude.json` only needs `node`; the wizard no longer fails when `claude` is missing from the **API process** PATH (common with Docker/systemd vs an interactive shell).
+- **`find_claude_on_path`**: searches `CLAUDE_CLI_PATH`, then `~/.local/bin`, `~/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, then `PATH`.
+- Response may include `warning` when the CLI is not visible server-side; setup page shows it on success.
+
+### Hub — Prettier (2026-04-11)
+- `yarn prettier --write` sur `src/main.js` et `src/style.css` pour faire passer `prettier --check` en CI.
+
 ### Installer — `get.sh` piped bootstrap (2026-04-11)
 - **Piped `curl … | bash`**: avoid `set -u` failure when `BASH_SOURCE[0]` is unset; treat empty script path as non–local-dev so the GitHub clone path stays correct.
 - **Post-clone check**: exit with a clear error if `install.sh` is missing under `CLAWVIS_DIR`.
+
+### Installer — brain path normalization (2026-04-11)
+- **`install.sh` symlink memory**: normalize `--brain-path` / interactive input (BOM, CR, outer quotes, `~`, `wslpath` for `C:\…`, `/mnt/c/…` ↔ `/c/…`) before the existence check; clearer hint when the path still cannot be opened from the current environment (WSL vs Git Bash, OneDrive online-only).
+- **`.env` / `source`**: `upsert_env` shell-quotes values that are not “simple” tokens so paths with spaces (e.g. `…/Local Brain`) do not break `load_env_file` / Quartz (`Brain: command not found`).
 
 ### Hub — Runtime IA page (2026-04-04)
 - **Page `/chat` remplacée par `/runtime`** : nouvelle page dédiée au runtime IA avec info panel (provider, modèle, statut live), bouton de test de connexion (ping `/api/hub/agent/chat`), et accès OpenClaw (lien externe + iframe embed toggle). Route `/chat` conservée comme alias legacy.
