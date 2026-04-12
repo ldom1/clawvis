@@ -8,8 +8,62 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+def _dotenv_paths() -> list[Path]:
+    """Paths to try for live PRIMARY_AI_PROVIDER (wizard updates repo .env on disk)."""
+    seen: set[str] = set()
+    out: list[Path] = []
+    raw = os.environ.get("CLAWVIS_DOTENV_PATH", "").strip()
+    if raw:
+        p = Path(raw).expanduser()
+        out.append(p)
+        try:
+            seen.add(str(p.resolve()))
+        except OSError:
+            seen.add(str(p))
+    for p in (Path("/clawvis/.env"), Path(__file__).resolve().parents[2] / ".env"):
+        try:
+            key = str(p.resolve())
+        except OSError:
+            key = str(p)
+        if key not in seen:
+            seen.add(key)
+            out.append(p)
+    return out
+
+
+def _read_dotenv_key(path: Path, key: str) -> str | None:
+    prefix = f"{key}="
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        if s.startswith("export "):
+            s = s[7:].lstrip()
+        if not s.startswith(prefix):
+            continue
+        v = s[len(prefix) :].strip()
+        if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+            v = v[1:-1]
+        return v
+    return None
+
+
+def primary_ai_provider_raw() -> str:
+    """PRIMARY_AI_PROVIDER from mounted .env (if present), else process environment."""
+    for path in _dotenv_paths():
+        if path.is_file():
+            v = _read_dotenv_key(path, "PRIMARY_AI_PROVIDER")
+            if v is not None:
+                return v
+    return os.environ.get("PRIMARY_AI_PROVIDER", "")
+
+
 def _normalize_primary_env() -> str | None:
-    raw = (os.environ.get("PRIMARY_AI_PROVIDER") or "").strip().lower()
+    raw = primary_ai_provider_raw().strip().lower()
     if not raw:
         return None
     if raw in ("openclaw",):

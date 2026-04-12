@@ -68,6 +68,17 @@ def test_primary_ai_provider_openclaw_overrides_mammouth_token(monkeypatch):
     assert cfg.primary_from_env is True
 
 
+def test_primary_ai_provider_raw_reads_dotenv_file(tmp_path, monkeypatch):
+    envf = tmp_path / ".env"
+    envf.write_text("PRIMARY_AI_PROVIDER=openclaw\n", encoding="utf-8")
+    monkeypatch.setenv("CLAWVIS_DOTENV_PATH", str(envf))
+    monkeypatch.setenv("PRIMARY_AI_PROVIDER", "")
+
+    from agent_service.provider import primary_ai_provider_raw
+
+    assert primary_ai_provider_raw().strip().lower() == "openclaw"
+
+
 def test_no_provider_gives_empty_tokens(monkeypatch):
     monkeypatch.delenv("OPENCLAW_STATE_DIR", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)

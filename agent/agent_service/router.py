@@ -18,7 +18,7 @@ from .openclaw_runner import (
     run_agent_session,
 )
 from .persona import load_persona
-from .provider import ProviderConfig, load_provider_config
+from .provider import ProviderConfig, load_provider_config, primary_ai_provider_raw
 from .streaming import stream_anthropic, stream_openai_compat
 
 router = APIRouter()
@@ -26,7 +26,7 @@ router = APIRouter()
 
 def primary_provider_from_env() -> str | None:
     """Hub UI: openclaw | claude if PRIMARY_AI_PROVIDER is set accordingly; else None."""
-    raw = (os.environ.get("PRIMARY_AI_PROVIDER") or "").strip().lower()
+    raw = primary_ai_provider_raw().strip().lower()
     if raw == "openclaw":
         return "openclaw"
     if raw in ("claude", "anthropic"):
@@ -66,6 +66,81 @@ def runtime_ready(cfg: ProviderConfig, eff: str) -> bool:
     return False
 
 
+def _openai_compat_kind(base_url: str) -> str:
+    """Classify the single OpenAI-compatible base URL (one token + URL in code)."""
+    u = (base_url or "").lower()
+    if "openrouter.ai" in u or "/openrouter" in u:
+        return "openrouter"
+    if "mammouth" in u:
+        return "mammouth"
+    if "mistral" in u:
+        return "mistral"
+    if "generativelanguage" in u or "googleapis" in u:
+        return "google"
+    return "custom"
+
+
+# Defaults for docs/examples/agent-config-get-response.json (inactive rows).
+_OPENROUTER_DEFAULT_BASE = "https://openrouter.ai/api/v1"
+_MAMMOUTH_DEFAULT_BASE = "https://api.mammouth.ai/v1"
+_OPENROUTER_DEFAULT_MODEL = "qwen/qwen3-plus:free"
+_MAMMOUTH_DEFAULT_MODEL = "mistral:mistral-small-3.2-24b-instruct"
+
+
+def _providers_nested(cfg: ProviderConfig, conf: dict) -> dict[str, Any]:
+    """Sibling rows for UI; at most one of openrouter/mammouth is active for the compat token."""
+    anthropic_model = conf.get("anthropic_model") or "claude-haiku-4-5"
+    configured_model = conf.get("mammouth_model") or _OPENROUTER_DEFAULT_MODEL
+    base = (cfg.mammouth_base_url or "").strip()
+    kind = _openai_compat_kind(base)
+    token_ok = bool(cfg.mammouth_token)
+
+    openrouter_active = token_ok and kind in ("openrouter", "google", "custom")
+    mammouth_active = token_ok and kind in ("mammouth", "mistral")
+
+    return {
+        "anthropic": {
+            "label": "Anthropic (Claude API)",
+            "available": bool(cfg.anthropic_token),
+            "models": {"default": anthropic_model},
+        },
+        "openrouter": {
+            "label": "OpenAI-compatible API",
+            "kind": kind if openrouter_active else "openrouter",
+            "available": openrouter_active,
+            "base_url": base if openrouter_active else _OPENROUTER_DEFAULT_BASE,
+            "models": {
+                "default": configured_model
+                if openrouter_active
+                else _OPENROUTER_DEFAULT_MODEL
+            },
+            "note": (
+                "Single token + base URL; qwen/qwen3-plus:free is the default model id "
+                "for this endpoint."
+            ),
+        },
+        "mammouth": {
+            "label": "Mammouth (Mistral, etc.)",
+            "base_url": base if mammouth_active else _MAMMOUTH_DEFAULT_BASE,
+            "available": mammouth_active,
+            "models": {
+                "default": configured_model
+                if mammouth_active
+                else _MAMMOUTH_DEFAULT_MODEL
+            },
+            "note": (
+                "Single token + base URL; mistral:mistral-small-3.2-24b-instruct is the "
+                "default model id for this endpoint."
+            ),
+        },
+        "openclaw": {
+            "label": "OpenClaw gateway",
+            "available": cfg.openclaw_available,
+            "models": {},
+        },
+    }
+
+
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
@@ -88,18 +163,13 @@ def status():
 
 @router.get("/config")
 def get_config():
+    """Shape matches `docs/examples/agent-config-get-response.json` (Hub + docs)."""
     cfg = load_provider_config()
     conf = load_config()
-    eff = effective_provider(conf, cfg)
     return {
-        **conf,
-        "anthropic_available": bool(cfg.anthropic_token),
-        "mammouth_available": bool(cfg.mammouth_token),
-        "openclaw_available": cfg.openclaw_available,
-        "effective_provider": eff,
-        "runtime_ready": runtime_ready(cfg, eff),
-        "primary_from_env": cfg.primary_from_env,
+        "preferred_provider": conf.get("preferred_provider"),
         "primary_provider": primary_provider_from_env(),
+        "providers": _providers_nested(cfg, conf),
     }
 
 

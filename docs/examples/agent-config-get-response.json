@@ -1,0 +1,37 @@
+{
+  "preferred_provider": null,
+  "primary_provider": "claude",
+  "providers": {
+    "anthropic": {
+      "label": "Anthropic (Claude API)",
+      "available": false,
+      "models": {
+        "default": "claude-haiku-4-5"
+      }
+    },
+    "openrouter": {
+      "label": "OpenAI-compatible API",
+      "kind": "openrouter",
+      "available": false,
+      "base_url": "https://openrouter.ai/api/v1",
+      "models": {
+        "default": "qwen/qwen3-plus:free"
+      },
+      "note": "Single token + base URL; qwen/qwen3-plus:free is the default model id for this endpoint."
+    },
+    "mammouth": {
+      "label": "Mammouth (Mistral, etc.)",
+      "base_url": "https://api.mammouth.ai/v1",
+      "available": false,
+      "models": {
+        "default": "mistral:mistral-small-3.2-24b-instruct"
+      },
+      "note": "Single token + base URL; mistral:mistral-small-3.2-24b-instruct is the default model id for this endpoint."
+    },
+    "openclaw": {
+      "label": "OpenClaw gateway",
+      "available": true,
+      "models": {}
+    }
+  }
+}

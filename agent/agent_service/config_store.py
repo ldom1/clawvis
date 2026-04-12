@@ -7,6 +7,7 @@ from pathlib import Path
 _DEFAULTS: dict = {
     "preferred_provider": None,  # None = auto (anthropic first if available)
     "anthropic_model": "claude-haiku-4-5",
+    # Default model id for the single OpenAI-compatible HTTP backend (OpenRouter, Mammouth, etc.).
     "mammouth_model": "qwen/qwen3-plus:free",
 }
 

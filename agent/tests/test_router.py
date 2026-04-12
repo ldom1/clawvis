@@ -16,6 +16,28 @@ import os
 from unittest.mock import patch
 
 
+def test_get_config_primary_provider_from_dotenv_file(tmp_path, monkeypatch):
+    envf = tmp_path / ".env"
+    envf.write_text("PRIMARY_AI_PROVIDER=claude\n", encoding="utf-8")
+    monkeypatch.setenv("CLAWVIS_DOTENV_PATH", str(envf))
+    monkeypatch.delenv("PRIMARY_AI_PROVIDER", raising=False)
+
+    from agent_service.router import get_config
+
+    body = get_config()
+    assert set(body.keys()) == {"preferred_provider", "primary_provider", "providers"}
+    assert body["primary_provider"] == "claude"
+    assert body["preferred_provider"] is None
+    prov = body["providers"]
+    assert "anthropic" in prov
+    assert "openrouter" in prov
+    assert "mammouth" in prov
+    assert "openclaw" in prov
+    assert prov["openrouter"]["models"]["default"]
+    assert prov["mammouth"]["models"]["default"]
+    assert prov["openrouter"]["label"] == "OpenAI-compatible API"
+
+
 @pytest.mark.asyncio
 async def test_chat_returns_streaming_response(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
