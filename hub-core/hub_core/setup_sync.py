@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -413,6 +415,44 @@ def get_skill_names(clawvis_root: Path) -> list[str]:
     )
 
 
+def install_mcp_deps(clawvis_root: Path) -> dict[str, Any]:
+    """Run ``npm install`` in ``mcp/`` if node_modules is absent or package.json changed.
+
+    Safe to call from a container — the mcp/ dir is bind-mounted RW so the resulting
+    node_modules lands on the host filesystem where Claude Code resolves imports.
+    """
+    mcp_dir = clawvis_root / "mcp"
+    pkg = mcp_dir / "package.json"
+    if not pkg.exists():
+        return {"ok": False, "skipped": True, "reason": f"mcp/package.json not found: {mcp_dir}"}
+
+    npm = shutil.which("npm")
+    if not npm:
+        return {"ok": False, "skipped": True, "reason": "npm not found on PATH"}
+
+    node_modules = mcp_dir / "node_modules"
+    if node_modules.is_dir():
+        return {"ok": True, "skipped": True, "reason": "node_modules already present"}
+
+    try:
+        result = subprocess.run(
+            [npm, "install", "--silent"],
+            cwd=str(mcp_dir),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            return {
+                "ok": False,
+                "skipped": False,
+                "reason": (result.stderr or result.stdout or "npm install failed").strip(),
+            }
+        return {"ok": True, "skipped": False, "mcp_dir": str(mcp_dir)}
+    except Exception as exc:
+        return {"ok": False, "skipped": False, "reason": str(exc)}
+
+
 def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
     """Register Clawvis skills as an MCP server entry in claude.json.
 
@@ -456,6 +496,8 @@ def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
 
     config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
+    deps = install_mcp_deps(root)
+
     out: dict[str, Any] = {
         "ok": True,
         "skills_registered": skill_names,
@@ -465,6 +507,7 @@ def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
         "mcp_server_js": str(mcp_js),
         "claude_available": bool(claude_bin),
         "claude_cli_path": claude_bin or "",
+        "mcp_deps": deps,
     }
     if not claude_bin:
         out["warning"] = (

@@ -575,6 +575,17 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# MCP server dependencies
+# ---------------------------------------------------------------------------
+if command -v npm >/dev/null 2>&1 && [ -f "${ROOT_DIR}/mcp/package.json" ]; then
+  if [ ! -d "${ROOT_DIR}/mcp/node_modules" ]; then
+    run_quiet "Installing MCP server dependencies" npm --prefix "${ROOT_DIR}/mcp" install --silent
+  fi
+else
+  warn "MCP server deps skipped (npm not found or mcp/package.json missing)."
+fi
+
+# ---------------------------------------------------------------------------
 # Launch
 # ---------------------------------------------------------------------------
 if [ "${NO_START}" -eq 1 ]; then

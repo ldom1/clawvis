@@ -119,6 +119,14 @@
               <span>Writing ~/.claude/claude.json</span>
             </div>
           </div>
+
+          <div class="progress-step" id="step-mcp-deps">
+            <div class="step-icon">4</div>
+            <div class="step-text">
+              <strong>Install MCP dependencies</strong>
+              <span>Running npm install in mcp/</span>
+            </div>
+          </div>
         </div>
 
         <div id="error-container" class="hidden">
@@ -158,11 +166,9 @@
           </div>
         </div>
 
-        <p style="color: var(--color-text-secondary); font-size: 0.9rem;">
-          Claude Code runs <code>node</code> on <strong>your computer</strong> with this script path
-          (not <code>/clawvis/...</code> inside Docker). One-time on the host:
-          <code>cd …/mcp &amp;&amp; npm install</code> so <code>@modelcontextprotocol/sdk</code> resolves.
-          Then restart Claude Code or run <code>claude refresh</code>.
+        <p id="summary-deps-note" style="color: var(--color-text-secondary); font-size: 0.9rem; display: none;">
+          MCP dependencies could not be installed automatically (<span id="summary-deps-reason"></span>).
+          Run manually: <code>cd &lt;mcp-dir&gt; &amp;&amp; npm install</code>
         </p>
 
         <p style="color: var(--color-text-secondary); font-size: 0.9rem;">
@@ -282,6 +288,11 @@
         }
 
         setStepDone('mcp-write');
+
+        // Step 4: MCP deps (result already included, mark based on mcp_deps)
+        const deps = result.mcp_deps || {};
+        setStepDone('mcp-deps', deps.ok === false && !deps.skipped);
+
         return result;
       } catch (err) {
         syncState.error = err.message;
@@ -316,6 +327,14 @@
             warnEl.textContent = '';
             warnEl.classList.add('hidden');
           }
+          const deps = result.mcp_deps || {};
+          const depsNoteEl = document.getElementById('summary-deps-note');
+          if (deps.ok === false && !deps.skipped) {
+            document.getElementById('summary-deps-reason').textContent = deps.reason || 'unknown error';
+            depsNoteEl.style.display = '';
+          } else {
+            depsNoteEl.style.display = 'none';
+          }
           showStep('success');
         } else {
           // OpenClaw flow — defer to future work
@@ -328,7 +347,7 @@
     });
 
     document.getElementById('btn-retry-claude').addEventListener('click', async () => {
-      syncState = { claudeCliDone: false, skillsReadDone: false, mcpWriteDone: false, error: null };
+      syncState = { claudeCliDone: false, skillsReadDone: false, mcpWriteDone: false, mcpDepsDone: false, error: null };
       document.getElementById('error-container').classList.add('hidden');
       document.querySelectorAll('.progress-step').forEach(el => {
         el.classList.remove('done', 'error');
@@ -350,6 +369,14 @@
         } else {
           warnEl2.textContent = '';
           warnEl2.classList.add('hidden');
+        }
+        const deps2 = result.mcp_deps || {};
+        const depsNoteEl2 = document.getElementById('summary-deps-note');
+        if (deps2.ok === false && !deps2.skipped) {
+          document.getElementById('summary-deps-reason').textContent = deps2.reason || 'unknown error';
+          depsNoteEl2.style.display = '';
+        } else {
+          depsNoteEl2.style.display = 'none';
         }
         showStep('success');
       } catch (err) {

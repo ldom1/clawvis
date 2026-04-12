@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### MCP server — auto-install deps from setup wizard (2026-04-12)
+- **Root cause**: `~/.clawvis/mcp/node_modules/` was missing after install/update (rsync excludes `node_modules/`), causing `ERR_MODULE_NOT_FOUND` on startup and no skills visible in Claude.
+- **Setup wizard**: selecting Claude integration now automatically runs `npm install` in `mcp/` via `sync_claude_code_mcp()` → new `install_mcp_deps()`. Progress shown as step 4 in the wizard; fallback note shown if npm unavailable.
+- **`install.sh`**: also installs MCP deps when `node_modules` is absent (covers non-wizard installs).
+- **Immediate**: ran `npm install` in `~/.clawvis/mcp/` — server starts cleanly.
+
 ### Hub + Playwright — bulk project delete and suite teardown (2026-04-12)
 - **Hub projects grid**: added per-card selection checkboxes and a **Delete selected** CTA that appears only when at least one project is selected.
 - **Bulk delete flow** uses native `window.confirm("Delete X project(s)? This cannot be undone.")`, deletes each selected project via `DELETE /api/hub/kanban/hub/projects/{slug}`, then re-fetches and re-renders the grid.

@@ -160,6 +160,55 @@ def test_find_claude_on_path_host_cli_readable_only(
     assert found == str(fake.resolve())
 
 
+def test_install_mcp_deps_skips_when_node_modules_present(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mcp = tmp_path / "mcp"
+    (mcp / "node_modules").mkdir(parents=True)
+    (mcp / "package.json").write_text("{}", encoding="utf-8")
+    r = setup_sync.install_mcp_deps(tmp_path)
+    assert r["ok"] is True
+    assert r["skipped"] is True
+
+
+def test_install_mcp_deps_skips_when_no_package_json(tmp_path: Path) -> None:
+    r = setup_sync.install_mcp_deps(tmp_path)
+    assert r["ok"] is False
+    assert r["skipped"] is True
+
+
+def test_install_mcp_deps_skips_when_npm_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mcp = tmp_path / "mcp"
+    mcp.mkdir()
+    (mcp / "package.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("PATH", "")
+    r = setup_sync.install_mcp_deps(tmp_path)
+    assert r["ok"] is False
+    assert r["skipped"] is True
+
+
+def test_sync_claude_code_mcp_includes_mcp_deps(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    monkeypatch.delenv("CLAUDE_CLI_PATH", raising=False)
+    monkeypatch.delenv("CLAWVIS_HOST_CLAUDE_DIR", raising=False)
+    monkeypatch.delenv("CLAWVIS_HOST_CLAUDE_CLI", raising=False)
+    monkeypatch.delenv("CLAWVIS_REPO_HOST_PATH", raising=False)
+    monkeypatch.delenv("CLAWVIS_MCP_SERVER_JS", raising=False)
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "mcp" / "server.js").parent.mkdir(parents=True)
+    (tmp_path / "mcp" / "server.js").write_text("// stub\n", encoding="utf-8")
+    r = setup_sync.sync_claude_code_mcp(tmp_path)
+    assert r["ok"] is True
+    assert "mcp_deps" in r
+    deps = r["mcp_deps"]
+    assert "ok" in deps
+
+
 def test_sync_skills_claude_host_mount_symlink_target(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
