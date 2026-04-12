@@ -1999,7 +1999,11 @@ async function loadProjects() {
     bulkDeleteBtn.onclick = async () => {
       const slugs = [...selectedSlugs];
       if (!slugs.length) return;
-      if (!window.confirm(`Delete ${slugs.length} project(s)? This cannot be undone.`)) {
+      if (
+        !window.confirm(
+          `Delete ${slugs.length} project(s)? This cannot be undone.`,
+        )
+      ) {
         return;
       }
       bulkDeleteBtn.disabled = true;
