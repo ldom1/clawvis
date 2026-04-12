@@ -68,6 +68,8 @@ User
 | **Agent Service** | 8092 (`AGENT_PORT`) | Python | Streaming LLM, OpenClaw sessions, provider routing |
 | **OpenClaw** | 18789 | Node.js | Agent runtime, skill crons, Telegram/Discord channels |
 
+**`GET /api/hub/agent/config`** (and `GET …/config` on the agent) matches **`docs/examples/agent-config-get-response.json`**: **`preferred_provider`**, **`primary_provider`** (wizard / `PRIMARY_AI_PROVIDER`: OpenClaw vs Claude Code), **`providers`** (`anthropic`, `openrouter`, `mammouth`, `openclaw` with **`models.default`**). **`PATCH /config`** still reads/writes **`agent-config.json`** (`anthropic_model`, `mammouth_model`, …). Use **`GET /status`** for LLM routing / readiness flags.
+
 ---
 
 ## Startup modes
