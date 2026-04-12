@@ -23,6 +23,8 @@ services:
         condition: service_healthy
       hub-memory-api:
         condition: service_healthy
+      agent-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
       interval: 15s
@@ -43,10 +45,17 @@ services:
       - .:/clawvis:rw
       # Kanban scans PROJECTS_ROOT from .env — bind the host folder at the same path.
       - "${PROJECTS_ROOT:?Set PROJECTS_ROOT in .env}:${PROJECTS_ROOT}:ro"
+      # Claude Code on the host reads ~/.claude — mount it so MCP sync + skills symlink hit the host.
+      - "${HOME}/.claude:/clawvis-host-claude:rw"
+      # Optional: mount host claude binary so the API can detect it (path rarely matches container libc).
+      # - "${HOME}/.local/bin/claude:/clawvis-host-claude-bin/claude:ro"
       # Bind openclaw logs so DOMBOT_LOG_JSONL path is accessible inside the container.
       - "${OPENCLAW_LOGS_HOST:-${HOME}/.openclaw/logs}:/openclaw-logs:ro"
     environment:
       - CLAWVIS_ROOT=/clawvis
+      - CLAWVIS_HOST_CLAUDE_DIR=/clawvis-host-claude
+      # Host path to this repo so ~/.claude/skills → <host>/clawvis/skills (compose expands ${PWD} on the host).
+      - CLAWVIS_REPO_HOST_PATH=${PWD}
       - UV_CACHE_DIR=/tmp/uv-cache
       - HOME=/home/${USER}
       - MEMORY_ROOT=${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}
@@ -127,7 +136,10 @@ services:
     env_file: .env
     volumes:
       - ./instances:/app/instances
+      # Live PRIMARY_AI_PROVIDER for /agent/config (setup wizard updates repo .env without container recreate)
+      - ./.env:/clawvis/.env:ro
     environment:
+      - CLAWVIS_DOTENV_PATH=/clawvis/.env
       - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
       - OPENCLAW_AVAILABLE=${OPENCLAW_AVAILABLE:-false}
     extra_hosts:
@@ -136,7 +148,8 @@ services:
     labels:
       - "app=clawvis"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8092/health || exit 1"]
+      # Image has curl (not wget) from agent/Dockerfile apt install
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8092/health >/dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3

@@ -9,15 +9,24 @@ cd "${ROOT_DIR}" || {
 # shellcheck disable=SC1091
 . "${ROOT_DIR}/scripts/lifecycle.sh"
 load_env_file
+if [ -n "${CLAWVIS_E2E_ISOLATE:-}" ]; then
+  export MEMORY_ROOT="${ROOT_DIR}/.e2e-memory"
+  export PROJECTS_ROOT="${ROOT_DIR}/.e2e-projects"
+  export LINKED_INSTANCES=""
+fi
 
 PORT="${HUB_PORT:-8088}"
 API_PORT="${KANBAN_API_PORT:-8090}"
 MEM_API_PORT="${HUB_MEMORY_API_PORT:-8091}"
+AGENT_PORT_VALUE="${AGENT_PORT:-8092}"
 
 if [ -z "${CLAWVIS_SKIP_START_ECHO:-}" ]; then
   echo "Starting Clawvis dev server on http://localhost:${PORT}"
   echo "Starting Kanban API on http://localhost:${API_PORT}"
   echo "Starting Hub Memory API on http://localhost:${MEM_API_PORT}"
+  if [ -z "${CLAWVIS_SKIP_AGENT:-}" ]; then
+    echo "Starting Agent service on http://localhost:${AGENT_PORT_VALUE}"
+  fi
   echo "Starting Vite Hub app (port ${PORT}, or next free if busy; URL in Vite output)"
   echo "Ensuring Brain runtime on http://localhost:${MEMORY_PORT:-3099}"
   echo "If port is busy, run: clawvis shutdown   (or: docker compose down)"
@@ -77,10 +86,25 @@ uv run --directory "${ROOT_DIR}/kanban" python -m uvicorn \
   --reload-dir "${ROOT_DIR}/kanban/kanban_api" \
   "${uvicorn_extra[@]}" &
 MEM_API_PID=$!
+
+if [ -z "${CLAWVIS_SKIP_AGENT:-}" ]; then
+  uv run --directory "${ROOT_DIR}/agent" python -m uvicorn \
+    agent_service.main:app \
+    --host 0.0.0.0 \
+    --port "${AGENT_PORT_VALUE}" \
+    --reload \
+    --reload-dir "${ROOT_DIR}/agent/agent_service" \
+    "${uvicorn_extra[@]}" &
+  AGENT_PID=$!
+else
+  AGENT_PID=""
+fi
+
 VITE_PID=""
 
 cleanup() {
   [ -n "${VITE_PID}" ] && kill "${VITE_PID}" >/dev/null 2>&1 || true
+  [ -n "${AGENT_PID}" ] && kill "${AGENT_PID}" >/dev/null 2>&1 || true
   kill "${API_PID}" >/dev/null 2>&1 || true
   kill "${MEM_API_PID}" >/dev/null 2>&1 || true
 }
@@ -90,6 +114,10 @@ if ! wait_uvicorn_openapi "${API_PID}" "${API_PORT}" "Kanban API"; then
   exit 1
 fi
 if ! wait_uvicorn_openapi "${MEM_API_PID}" "${MEM_API_PORT}" "Memory API"; then
+  exit 1
+fi
+if [ -n "${AGENT_PID}" ] \
+  && ! wait_uvicorn_openapi "${AGENT_PID}" "${AGENT_PORT_VALUE}" "Agent service"; then
   exit 1
 fi
 

@@ -219,25 +219,45 @@ EOF
 
 upsert_env() {
   local key="$1" value="$2"
-  if grep -q "^${key}=" "${ENV_FILE}" 2>/dev/null; then
-    python3 - "$ENV_FILE" "$key" "$value" <<'PY'
-from pathlib import Path
+  python3 - "$ENV_FILE" "$key" "$value" <<'PY'
+import re
+import shlex
 import sys
+from pathlib import Path
+
+# Values with spaces (e.g. BRAIN_PATH=.../Local Brain) must be quoted or `source .env`
+# treats the next token as a command (Quartz: lifecycle.sh load_env_file).
+_SAFE_UNQUOTED = re.compile(r"^[A-Za-z0-9_./:@+-]+$")
+
+
+def format_env_value(v: str) -> str:
+    if v == "":
+        return "''"
+    if _SAFE_UNQUOTED.fullmatch(v):
+        return v
+    return shlex.quote(v)
+
+
 path = Path(sys.argv[1])
 key = sys.argv[2]
 value = sys.argv[3]
+line = f"{key}={format_env_value(value)}"
+if not path.exists():
+    path.write_text(line + "\n", encoding="utf-8")
+    raise SystemExit(0)
 lines = path.read_text(encoding="utf-8").splitlines()
 out = []
-for line in lines:
-    if line.startswith(f"{key}="):
-        out.append(f"{key}={value}")
-    else:
+replaced = False
+for ln in lines:
+    if ln.startswith(f"{key}="):
         out.append(line)
+        replaced = True
+    else:
+        out.append(ln)
+if not replaced:
+    out.append(line)
 path.write_text("\n".join(out) + "\n", encoding="utf-8")
 PY
-  else
-    printf "%s=%s\n" "$key" "$value" >> "${ENV_FILE}"
-  fi
 }
 
 delete_env_key() {
@@ -273,6 +293,42 @@ parse_args() {
     esac
     shift
   done
+}
+
+# Normalize pasted brain paths: BOM/CR, outer quotes, ~, Windows drive letters (wslpath),
+# and MSYS /c/... vs WSL /mnt/c/... (same folder, different mount prefixes).
+normalize_brain_path_input() {
+  CLAWVIS_BRAIN_PATH_RAW="$1" python3 <<'PY'
+import os, shutil, subprocess
+from pathlib import Path
+
+raw = os.environ.get("CLAWVIS_BRAIN_PATH_RAW", "")
+
+s = raw.strip().strip("\ufeff").replace("\r", "").strip()
+while len(s) >= 2 and s[0] == s[-1] and s[0] in "\"'":
+    s = s[1:-1].strip()
+
+candidates = []
+p0 = Path(s).expanduser()
+candidates.append(p0)
+wslpath_bin = shutil.which("wslpath")
+if wslpath_bin and len(s) >= 2 and s[1] == ":":
+    try:
+        out = subprocess.check_output([wslpath_bin, "-u", s], text=True).strip()
+        candidates.append(Path(out))
+    except (subprocess.CalledProcessError, OSError):
+        pass
+if s.startswith("/mnt/c/"):
+    candidates.append(Path("/c") / s[len("/mnt/c/") :])
+if s.startswith("/c/"):
+    candidates.append(Path("/mnt/c") / s[len("/c/") :])
+
+for p in candidates:
+    if p.exists():
+        print(str(p.resolve()), end="")
+        raise SystemExit(0)
+print(str(p0), end="")
+PY
 }
 
 migrate_memory_if_needed() {
@@ -417,8 +473,10 @@ if [ "${MEMORY_TYPE}" = "symlink" ]; then
     error_msg "--brain-path is required when using symlink memory type."
     exit 1
   fi
+  BRAIN_PATH_INPUT="$(normalize_brain_path_input "${BRAIN_PATH_INPUT}")"
   if [ ! -e "${BRAIN_PATH_INPUT}" ]; then
     error_msg "Memory path does not exist: ${BRAIN_PATH_INPUT}"
+    warn "From this shell, run: ls -la \"${BRAIN_PATH_INPUT}\" — if that fails under WSL, the folder may be OneDrive online-only (sync locally) or use the path form this environment understands (e.g. /c/Users/... in Git Bash vs /mnt/c/... in WSL)."
     exit 1
   fi
   BRAIN_PATH="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${BRAIN_PATH_INPUT}")"
@@ -526,7 +584,7 @@ if [ "${NO_START}" -eq 1 ]; then
   step "Instance : ${INSTANCE_PATH}"
   step ".env     : ${ENV_FILE}"
   printf "\n"
-  step "To start : docker compose up -d hub kanban-api hub-memory-api"
+  step "To start : docker compose up -d hub kanban-api hub-memory-api agent-service"
   step "       or : clawvis start"
   printf "\n"
   exit 0
@@ -542,8 +600,8 @@ elif [ "${RUN_MODE}" = "docker" ]; then
     step "Start Docker Desktop or run: sudo systemctl start docker"
     exit 1
   fi
-  # hub depends_on kanban-api + hub-memory-api; list them explicitly so all modes match.
-  run_quiet "Starting Docker services" docker compose up -d hub kanban-api hub-memory-api
+  # hub depends_on kanban-api + hub-memory-api + agent-service; list all explicitly.
+  run_quiet "Starting Docker services" docker compose up -d hub kanban-api hub-memory-api agent-service
 
   # Wait for hub container to become healthy (up to 60s)
   info "Waiting for services"

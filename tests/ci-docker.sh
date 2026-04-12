@@ -106,7 +106,7 @@ fi
 
 info "Starting services (docker compose up -d${BUILD_FLAG:+ --build})"
 # shellcheck disable=SC2086
-docker compose up -d ${BUILD_FLAG} hub kanban-api hub-memory-api
+docker compose up -d ${BUILD_FLAG} hub kanban-api hub-memory-api agent-service
 
 trap teardown EXIT
 
@@ -144,6 +144,7 @@ curl_check "Kanban tasks list"              "/api/hub/kanban/tasks"        200
 curl_check "Kanban projects list"           "/api/hub/kanban/hub/projects" 200
 curl_check "Kanban stats"                   "/api/hub/kanban/stats"        200
 curl_check "Chat status endpoint"           "/api/hub/chat/status"         200
+curl_check "Agent config (runtime banner)"  "/api/hub/agent/config"        200
 
 # Memory API (via nginx proxy)
 curl_check "Memory projects list"           "/api/hub/memory/projects"     200
@@ -152,6 +153,7 @@ curl_check "Memory settings"                "/api/hub/memory/settings"     200
 # JSON shape checks
 json_check "Kanban tasks is array"          "/api/hub/kanban/tasks"        "tasks"
 json_check "Chat status has provider field" "/api/hub/chat/status"         "provider"
+json_check "Agent config has primary_provider" "/api/hub/agent/config"     "primary_provider"
 json_check "Memory settings shape"          "/api/hub/memory/settings"     "projects_root"
 
 # Home/Kanban project cards need at least one project (memory/projects/*.md or PROJECTS_ROOT).

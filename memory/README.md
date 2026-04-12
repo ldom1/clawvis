@@ -12,7 +12,7 @@ Brain : les données vivent dans `instances/<instance_name>/memory`.
 Pour la stack Docker Clawvis (Hub + APIs) :
 
 ```bash
-docker compose up -d hub kanban-api hub-memory-api
+docker compose up -d hub kanban-api hub-memory-api agent-service
 ```
 
 Pour ouvrir l’UI « Brain » (port configuré dans `.env`, souvent 3099), sers Quartz selon ton setup instance — il n’y a pas de service compose nommé `memory`.

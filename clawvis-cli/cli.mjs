@@ -378,7 +378,7 @@ async function runInstallInteractive() {
         doneTitle: "Hub démarré !",
         doneTitleNoStart: "Instance prête (services non démarrés)",
         doneNoStartHint:
-          "→ Lancez manuellement : docker compose up -d hub kanban-api hub-memory-api",
+          "→ Lancez manuellement : docker compose up -d hub kanban-api hub-memory-api agent-service",
         doneHub: "Hub",
         doneBrain: "Brain",
         doneLogs: "Logs",
@@ -423,7 +423,7 @@ async function runInstallInteractive() {
         doneTitle: "Hub is running!",
         doneTitleNoStart: "Instance ready (services not started)",
         doneNoStartHint:
-          "→ Start manually: docker compose up -d hub kanban-api hub-memory-api",
+          "→ Start manually: docker compose up -d hub kanban-api hub-memory-api agent-service",
         doneHub: "Hub",
         doneBrain: "Brain",
         doneLogs: "Logs",

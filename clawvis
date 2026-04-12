@@ -367,13 +367,15 @@ cmd_restart() {
     exec "${ROOT_DIR}/scripts/start.sh" "$@"
   fi
   cd "${ROOT_DIR}"
+  # agent-service serves GET /api/hub/agent/config (runtime banner + /runtime/).
+  # List it explicitly: older compose files / tooling may not pull it in via hub depends_on.
   if [ -n "${CLAWVIS_QUIET_START:-}" ]; then
-    docker compose up -d --build hub kanban-api hub-memory-api >/dev/null 2>&1 || {
+    docker compose up -d --build hub kanban-api hub-memory-api agent-service >/dev/null 2>&1 || {
       echo "[clawvis] docker compose up a échoué" >&2
       exit 1
     }
   else
-    docker compose up -d --build hub kanban-api hub-memory-api
+    docker compose up -d --build hub kanban-api hub-memory-api agent-service
   fi
 }
 
