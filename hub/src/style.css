@@ -803,6 +803,21 @@ body {
 .card-project-wrap > a.card.card-project {
   flex: 1 1 auto;
 }
+.card-project-activate-row {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: stretch;
+  padding: 0 10px 10px;
+  margin-top: -6px;
+  position: relative;
+  z-index: 2;
+}
+.card-project-activate-btn {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 10px;
+}
 .card-project-actions {
   position: absolute;
   top: 6px;
@@ -3739,7 +3754,9 @@ body {
 .card-project-wrap.card-inactive {
   opacity: 0.5;
   filter: grayscale(0.4);
-  transition: opacity 0.2s, filter 0.2s;
+  transition:
+    opacity 0.2s,
+    filter 0.2s;
 }
 .card-project-wrap.card-inactive:hover {
   opacity: 0.75;

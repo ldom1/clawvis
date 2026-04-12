@@ -620,7 +620,7 @@ function renderHome() {
       <section>
         <div class="section-header">
           <div class="section-label">Projects</div>
-          <button id="new-project" class="new-project-btn" type="button" aria-label="${fr ? 'Nouveau projet' : 'New project'}" title="${fr ? 'Nouveau projet' : 'New project'}"><span class="projects-add-icon">+</span></button>
+          <button id="new-project" class="new-project-btn" type="button" aria-label="${fr ? "Nouveau projet" : "New project"}" title="${fr ? "Nouveau projet" : "New project"}"><span class="projects-add-icon">+</span></button>
         </div>
         <div id="projects-grid" class="grid-3"></div>
         <div id="projects-inactive-toggle" class="projects-toggle" style="display:none"></div>
@@ -1750,6 +1750,7 @@ async function loadProjects() {
 
   function _renderProjectCard(project, targetGrid) {
     const slug = project.slug;
+    const brainActive = (project.brain_status || "").toLowerCase() === "active";
     const wrap = document.createElement("div");
     wrap.className = "card-project-wrap";
 
@@ -1793,6 +1794,45 @@ async function loadProjects() {
     card.innerHTML = `<div class="card-project-row">${logoBlock}${main}</div>`;
     wrap.appendChild(card);
 
+    async function setThisProjectActive(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const res = await fetch(
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/brain-status`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "active" }),
+        },
+      );
+      if (!res.ok) {
+        let msg = fr
+          ? "Impossible d’activer le projet"
+          : "Could not activate project";
+        try {
+          const data = await res.json();
+          const d = data.detail;
+          msg = typeof d === "string" ? d : msg;
+        } catch {
+          /* ignore */
+        }
+        return alert(msg);
+      }
+      window.location.reload();
+    }
+
+    if (!brainActive) {
+      const actRow = document.createElement("div");
+      actRow.className = "card-project-activate-row";
+      const btnActivate = document.createElement("button");
+      btnActivate.type = "button";
+      btnActivate.className = "btn btn-secondary card-project-activate-btn";
+      btnActivate.textContent = fr ? "Activer le projet" : "Activate project";
+      btnActivate.addEventListener("click", setThisProjectActive);
+      actRow.appendChild(btnActivate);
+      wrap.appendChild(actRow);
+    }
+
     const actions = document.createElement("div");
     actions.className = "card-project-actions";
     const kebab = document.createElement("button");
@@ -1807,6 +1847,7 @@ async function loadProjects() {
     const drop = document.createElement("div");
     drop.className = "card-project-dropdown";
     drop.hidden = true;
+
     const btnArch = document.createElement("button");
     btnArch.type = "button";
     btnArch.className = "btn";

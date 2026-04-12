@@ -152,12 +152,27 @@
             <strong>MCP server</strong>
             <span>clawvis-skills</span>
           </div>
+          <div class="summary-item">
+            <strong>MCP script (host)</strong>
+            <span id="summary-mcp-js" style="word-break: break-all;">—</span>
+          </div>
         </div>
 
         <p style="color: var(--color-text-secondary); font-size: 0.9rem;">
-          You can now use Clawvis skills in Claude Code. Restart the Claude Code
-          interface or run <code>claude refresh</code> to reload MCP tools.
+          Claude Code runs <code>node</code> on <strong>your computer</strong> with this script path
+          (not <code>/clawvis/...</code> inside Docker). One-time on the host:
+          <code>cd …/mcp &amp;&amp; npm install</code> so <code>@modelcontextprotocol/sdk</code> resolves.
+          Then restart Claude Code or run <code>claude refresh</code>.
         </p>
+
+        <p style="color: var(--color-text-secondary); font-size: 0.9rem;">
+          The Hub <strong>AI Runtime</strong> banner calls the separate <strong>agent service</strong>
+          (<code>GET /api/hub/agent/config</code>). If you still see <em>Agent service unavailable</em>,
+          ensure the <code>agent-service</code> container is up (<code>docker compose ps</code>) or,
+          in local dev, that something listens on <code>AGENT_PORT</code> (default 8092).
+        </p>
+
+        <p id="summary-path-warning" class="hidden" style="color: var(--color-warning, #b45309); font-size: 0.9rem; margin-top: 0.75rem;"></p>
 
         <div class="button-group">
           <button class="btn btn-primary" id="btn-go-home">Open Hub →</button>
@@ -287,8 +302,20 @@
         if (selectedProvider === 'claude') {
           showStep('claude-sync');
           const result = await syncClaudeCode();
-          document.getElementById('summary-skills-count').textContent = result.skills_registered || 0;
+          const nSkills = Array.isArray(result.skills_registered)
+            ? result.skills_registered.length
+            : (result.skills_count ?? result.skills_registered ?? 0);
+          document.getElementById('summary-skills-count').textContent = String(nSkills);
           document.getElementById('summary-config-path').textContent = result.mcp_config_path || '~/.claude/claude.json';
+          document.getElementById('summary-mcp-js').textContent = result.mcp_server_js || result.mcp_server_path || '—';
+          const warnEl = document.getElementById('summary-path-warning');
+          if (result.warning) {
+            warnEl.textContent = result.warning;
+            warnEl.classList.remove('hidden');
+          } else {
+            warnEl.textContent = '';
+            warnEl.classList.add('hidden');
+          }
           showStep('success');
         } else {
           // OpenClaw flow — defer to future work
@@ -311,7 +338,19 @@
       });
       try {
         const result = await syncClaudeCode();
-        document.getElementById('summary-skills-count').textContent = result.skills_registered || 0;
+        const nSkills2 = Array.isArray(result.skills_registered)
+          ? result.skills_registered.length
+          : (result.skills_count ?? result.skills_registered ?? 0);
+        document.getElementById('summary-skills-count').textContent = String(nSkills2);
+        document.getElementById('summary-mcp-js').textContent = result.mcp_server_js || result.mcp_server_path || '—';
+        const warnEl2 = document.getElementById('summary-path-warning');
+        if (result.warning) {
+          warnEl2.textContent = result.warning;
+          warnEl2.classList.remove('hidden');
+        } else {
+          warnEl2.textContent = '';
+          warnEl2.classList.add('hidden');
+        }
         showStep('success');
       } catch (err) {
         document.getElementById('error-message').textContent = escapeHtml(err.message);
