@@ -41,6 +41,59 @@ def instance_name() -> str:
     return os.environ.get("INSTANCE_NAME", "example").strip() or "example"
 
 
+def _claude_host_config_dir_raw() -> str | None:
+    """If set, all Claude Code files (claude.json, skills symlink, LocalBrain) use this dir.
+
+    In Docker, bind-mount the host ``~/.claude`` here (e.g. ``/clawvis-host-claude``) so the
+    API writes where Claude Code on the host reads — not the container home.
+    """
+    v = os.environ.get("CLAWVIS_HOST_CLAUDE_DIR", "").strip()
+    return v or None
+
+
+def claude_mcp_config_path() -> Path:
+    h = _claude_host_config_dir_raw()
+    if h:
+        return Path(h).expanduser().resolve() / "claude.json"
+    return Path.home() / ".claude" / "claude.json"
+
+
+def claude_local_sync_dir(clawvis_root: Path) -> Path:
+    """Directory for ``LocalBrain.md`` and the ``skills`` symlink."""
+    h = _claude_host_config_dir_raw()
+    if h:
+        return Path(h).expanduser().resolve()
+    return (clawvis_root / ".claude").resolve()
+
+
+def claude_skills_symlink_target_abs(
+    clawvis_root: Path,
+    skills_resolved: Path,
+) -> Path:
+    """Absolute path stored in the symlink; must exist where Claude Code runs (usually host)."""
+    host_repo = os.environ.get("CLAWVIS_REPO_HOST_PATH", "").strip()
+    if not host_repo:
+        return skills_resolved
+    hr = Path(host_repo).expanduser().resolve()
+    cr = clawvis_root.resolve()
+    try:
+        rel = skills_resolved.relative_to(cr)
+    except ValueError:
+        return skills_resolved
+    return (hr / rel).resolve()
+
+
+def mcp_server_js_for_claude_config(clawvis_root: Path) -> Path:
+    """``claude.json`` MCP ``args`` path — must exist on the OS where Claude Code spawns ``node``."""
+    o = os.environ.get("CLAWVIS_MCP_SERVER_JS", "").strip()
+    if o:
+        return Path(o).expanduser().resolve()
+    hr = os.environ.get("CLAWVIS_REPO_HOST_PATH", "").strip()
+    if hr:
+        return (Path(hr).expanduser().resolve() / "mcp" / "server.js")
+    return (clawvis_root / "mcp" / "server.js").resolve()
+
+
 def expected_skill_dirs(clawvis_root: Path, inst: str) -> list[str]:
     dirs: list[str] = []
     core = clawvis_root / "skills"
@@ -103,23 +156,46 @@ def sync_skills_claude(
     *,
     skills_target: Path | None = None,
 ) -> dict[str, Any]:
-    target = skills_target or (clawvis_root / "skills")
-    if not target.is_dir():
-        return {"ok": False, "error": f"Skills directory missing: {target}"}
-    target = target.resolve()
-    link = clawvis_root / ".claude" / "skills"
-    link.parent.mkdir(parents=True, exist_ok=True)
+    raw_target = skills_target or (clawvis_root / "skills")
+    if not raw_target.is_dir():
+        return {"ok": False, "error": f"Skills directory missing: {raw_target}"}
+    target = raw_target.resolve()
+    link_root = claude_local_sync_dir(clawvis_root)
+    link_root.mkdir(parents=True, exist_ok=True)
+    link = link_root / "skills"
+    src = claude_skills_symlink_target_abs(clawvis_root, target)
+    src_s = os.path.normpath(str(src))
+
+    def _same_symlink() -> bool:
+        if not link.is_symlink():
+            return False
+        try:
+            cur = os.readlink(link)
+        except OSError:
+            return False
+        if os.path.normpath(cur) == src_s:
+            return True
+        try:
+            return Path(cur).expanduser().resolve() == src.resolve()
+        except OSError:
+            return False
+
     if link.is_symlink():
-        if link.resolve() == target:
-            return {"ok": True, "changed": False, "symlink": str(link), "target": str(target)}
+        if _same_symlink():
+            return {
+                "ok": True,
+                "changed": False,
+                "symlink": str(link),
+                "target": src_s,
+            }
         link.unlink()
     elif link.exists():
         return {
             "ok": False,
             "error": f"Path exists and is not a symlink: {link}",
         }
-    os.symlink(target, link)
-    return {"ok": True, "changed": True, "symlink": str(link), "target": str(target)}
+    os.symlink(src_s, link)
+    return {"ok": True, "changed": True, "symlink": str(link), "target": src_s}
 
 
 def sync_skills(
@@ -228,7 +304,7 @@ def sync_memory_claude(
 ) -> dict[str, Any]:
     mem = memory_root.resolve()
     mem.mkdir(parents=True, exist_ok=True)
-    out = clawvis_root / ".claude" / "LocalBrain.md"
+    out = claude_local_sync_dir(clawvis_root) / "LocalBrain.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     raw = fetch_localbrain_text()
     content = apply_localbrain_substitutions(raw, mem)
@@ -266,10 +342,63 @@ def sync_memory(
     return {"ok": False, "error": f"Unknown provider: {provider}"}
 
 
+def _which_executable(name: str, path_env: str) -> str | None:
+    """First match for `name` in path_env (os.pathsep-separated), executable only."""
+    for directory in path_env.split(os.pathsep):
+        directory = directory.strip()
+        if not directory:
+            continue
+        candidate = Path(directory) / name
+        try:
+            if candidate.is_file() and os.access(candidate, os.X_OK):
+                return str(candidate.resolve())
+        except OSError:
+            continue
+    return None
+
+
 def find_claude_on_path() -> str | None:
-    """Return the absolute path to the claude CLI, or None if not found."""
-    import shutil
-    return shutil.which("claude")
+    """Return the absolute path to the claude CLI, or None if not found.
+
+    Uses CLAUDE_CLI_PATH when set, then CLAWVIS_HOST_CLAUDE_CLI (host-mounted binary in
+    Docker), then PATH / common dirs. The host CLI may exist but not be executable
+    inside the container — a readable file at CLAWVIS_HOST_CLAUDE_CLI still counts.
+    """
+    explicit = os.environ.get("CLAUDE_CLI_PATH", "").strip()
+    if explicit:
+        p = Path(explicit).expanduser()
+        try:
+            if p.is_file() and os.access(p, os.X_OK):
+                return str(p.resolve())
+        except OSError:
+            pass
+
+    host_cli = os.environ.get("CLAWVIS_HOST_CLAUDE_CLI", "").strip()
+    if host_cli:
+        p = Path(host_cli).expanduser()
+        try:
+            if p.is_file():
+                return str(p.resolve())
+        except OSError:
+            pass
+
+    home = Path.home()
+    extras = [
+        str(home / ".local" / "bin"),
+        str(home / "bin"),
+        "/usr/local/bin",
+        "/opt/homebrew/bin",
+    ]
+    base = os.environ.get("PATH", "")
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for d in (*extras, *base.split(os.pathsep)):
+        d = d.strip()
+        if not d or d in seen:
+            continue
+        seen.add(d)
+        ordered.append(d)
+    return _which_executable("claude", os.pathsep.join(ordered))
 
 
 def get_skill_names(clawvis_root: Path) -> list[str]:
@@ -285,7 +414,10 @@ def get_skill_names(clawvis_root: Path) -> list[str]:
 
 
 def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
-    """Register Clawvis skills as an MCP server entry in ~/.claude/claude.json.
+    """Register Clawvis skills as an MCP server entry in claude.json.
+
+    Writes under ``Path.home()/.claude`` locally, or ``CLAWVIS_HOST_CLAUDE_DIR`` when set
+    (Docker: bind-mount host ``~/.claude`` there).
 
     Returns a result dict with keys: ok, skills_registered, mcp_config_path,
     changed, claude_available, and optionally error.
@@ -293,16 +425,12 @@ def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
     root = clawvis_root or clawvis_root_from_env_or_file()
 
     claude_bin = find_claude_on_path()
-    if not claude_bin:
-        return {
-            "ok": False,
-            "error": "claude CLI not found on PATH",
-            "claude_available": False,
-        }
+    # MCP registration runs `node` only; Claude Code resolves `claude` on the user's machine.
+    # Do not fail the wizard when the API process has a stripped PATH (e.g. containers).
 
     skill_names = get_skill_names(root)
 
-    config_path = Path.home() / ".claude" / "claude.json"
+    config_path = claude_mcp_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
     if config_path.exists():
@@ -318,24 +446,33 @@ def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
         data = {}
 
     mcp_servers: dict[str, Any] = data.setdefault("mcpServers", {})
-    mcp_server_path = root / "mcp" / "server.js"
+    mcp_js = mcp_server_js_for_claude_config(root)
 
     mcp_servers["clawvis-skills"] = {
         "type": "stdio",
         "command": "node",
-        "args": [str(mcp_server_path)],
+        "args": [str(mcp_js)],
     }
 
     config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
-    return {
+    out: dict[str, Any] = {
         "ok": True,
         "skills_registered": skill_names,
         "skills_count": len(skill_names),
         "mcp_config_path": str(config_path),
-        "mcp_server_path": str(mcp_server_path),
-        "claude_cli_path": claude_bin,
+        "mcp_server_path": str(mcp_js),
+        "mcp_server_js": str(mcp_js),
+        "claude_available": bool(claude_bin),
+        "claude_cli_path": claude_bin or "",
     }
+    if not claude_bin:
+        out["warning"] = (
+            "Claude CLI not detected from this process. In Docker, mount the host binary and "
+            "set CLAWVIS_HOST_CLAUDE_CLI (or CLAUDE_CLI_PATH). Mount host ~/.claude at "
+            "CLAWVIS_HOST_CLAUDE_DIR so claude.json is written for Claude Code on the host."
+        )
+    return out
 
 
 def setup_context_payload(clawvis_root: Path | None = None) -> dict[str, Any]:
@@ -358,6 +495,8 @@ def setup_context_payload(clawvis_root: Path | None = None) -> dict[str, Any]:
         "openclaw_workspace_default": str(openclaw_workspace_path(None)),
         "openclaw_base_url": os.environ.get("OPENCLAW_BASE_URL", ""),
         "primary_ai_provider": os.environ.get("PRIMARY_AI_PROVIDER", ""),
+        "claude_host_claude_dir": _claude_host_config_dir_raw() or "",
+        "claude_repo_host_path": os.environ.get("CLAWVIS_REPO_HOST_PATH", "").strip(),
     }
 
 
