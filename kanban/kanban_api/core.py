@@ -583,11 +583,6 @@ def get_hub_settings() -> dict:
     defaults = _default_hub_settings()
     # Env vars always win — prevent hub_settings.json from resetting on restart
     env_projects_root = os.environ.get("PROJECTS_ROOT", "").strip()
-    env_linked = [
-        p.strip()
-        for p in os.environ.get("LINKED_INSTANCES", "").split(":")
-        if p.strip()
-    ]
     if HUB_SETTINGS_FILE.exists():
         try:
             current = json.loads(HUB_SETTINGS_FILE.read_text(encoding="utf-8"))
@@ -595,9 +590,16 @@ def get_hub_settings() -> dict:
             current = {}
     else:
         current = {}
-    linked = env_linked or current.get("linked_instances") or []
-    if not isinstance(linked, list):
-        linked = []
+    # Empty LINKED_INSTANCES must clear links (``[] or file`` would wrongly keep file).
+    if "LINKED_INSTANCES" in os.environ:
+        linked = [
+            p.strip()
+            for p in (os.environ.get("LINKED_INSTANCES") or "").split(":")
+            if p.strip()
+        ]
+    else:
+        linked_raw = current.get("linked_instances") or []
+        linked = linked_raw if isinstance(linked_raw, list) else []
     linked = [str(p) for p in linked if str(p).strip()]
     out = {
         "projects_root": env_projects_root
@@ -810,6 +812,73 @@ def _parse_brain_md_frontmatter(content: str) -> dict:
                 out[k] = v.strip().strip("\"'")
         i += 1
     return out
+
+
+def _upsert_brain_frontmatter_status(content: str, status: str) -> str:
+    """Insert or replace ``status:`` in the first YAML frontmatter block."""
+    st = status.strip()
+    if not st or "\n" in st or "\r" in st:
+        raise ValueError("Invalid status")
+    lines = content.splitlines()
+    if not lines or lines[0].strip() != "---":
+        rest = content.lstrip("\n") if content else ""
+        return (
+            f"---\nstatus: {st}\n---\n\n{rest}"
+            if rest
+            else f"---\nstatus: {st}\n---\n\n"
+        )
+
+    fm_lines: list[str] = []
+    i = 1
+    found = False
+    while i < len(lines):
+        if lines[i].strip() == "---":
+            break
+        line = lines[i]
+        if re.match(r"^\s*status\s*:", line):
+            fm_lines.append(f"status: {st}")
+            found = True
+        else:
+            fm_lines.append(line)
+        i += 1
+
+    if i >= len(lines) or lines[i].strip() != "---":
+        return f"---\nstatus: {st}\n---\n\n{content}"
+
+    if not found:
+        fm_lines.append(f"status: {st}")
+
+    body_lines = lines[i + 1 :]
+    body = "\n".join(body_lines)
+    prefix = "---\n" + "\n".join(fm_lines) + "\n---"
+    if not body:
+        return prefix + "\n"
+    return prefix + "\n" + body
+
+
+def _memory_md_path_for_project(project: dict) -> Path:
+    mp = str(project.get("memory_path") or "").strip()
+    if mp:
+        return Path(mp).expanduser().resolve()
+    slug = str(project.get("slug") or "").strip()
+    return _memory_file_for(slug)
+
+
+def set_project_brain_status(project_slug: str, status: str) -> dict:
+    """Set ``status`` in project memory YAML frontmatter (drives Hub ``brain_status``)."""
+    project = _find_project_or_raise(project_slug)
+    path = _memory_md_path_for_project(project)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = path.read_text(encoding="utf-8") if path.exists() else ""
+    new_content = _upsert_brain_frontmatter_status(content, status)
+    path.write_text(new_content, encoding="utf-8")
+    _log(
+        "INFO",
+        "project:brain-status",
+        f"Set brain status for '{project_slug}'",
+        {"slug": project_slug, "status": status.strip()},
+    )
+    return {"ok": True, "slug": project_slug, "brain_status": status.strip()}
 
 
 def _metadata_from_brain_only(slug: str, md_path: Path) -> dict:

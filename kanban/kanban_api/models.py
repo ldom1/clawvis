@@ -122,6 +122,10 @@ class MemoryFileSave(BaseModel):
     content: str
 
 
+class ProjectBrainStatusUpdate(BaseModel):
+    status: str = Field(min_length=1, max_length=64)
+
+
 class ProjectMemoryMajorUpdate(BaseModel):
     title: str | None = None
     description: str | None = None

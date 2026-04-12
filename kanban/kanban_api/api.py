@@ -31,6 +31,7 @@ from .core import (
     rebuild_brain_static,
     restore_task,
     save_project_logo,
+    set_project_brain_status,
     update_project_memory_major,
     split_task,
     update_meta,
@@ -41,6 +42,7 @@ from .models import (
     DependenciesUpdate,
     MetaUpdate,
     ProjectCreate,
+    ProjectBrainStatusUpdate,
     ProjectMemoryMajorUpdate,
     SplitTaskRequest,
     TaskCreate,
@@ -151,6 +153,18 @@ def delete_project_logo_endpoint(project_slug: str):
 @router.post("/hub/brain/rebuild-static")
 def rebuild_brain_static_endpoint():
     return rebuild_brain_static()
+
+
+@router.post("/hub/projects/{project_slug}/brain-status")
+def set_project_brain_status_endpoint(
+    project_slug: str, body: ProjectBrainStatusUpdate
+):
+    try:
+        return set_project_brain_status(project_slug, body.status)
+    except KeyError:
+        raise HTTPException(404, "Project not found") from None
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @router.post("/hub/projects/{project_slug}/archive")

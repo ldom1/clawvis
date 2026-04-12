@@ -49,6 +49,36 @@ def test_delete_project_endpoint_ok(monkeypatch):
     assert data["tasks_deleted"] == 2
 
 
+def test_set_brain_status_endpoint_ok(monkeypatch):
+    monkeypatch.setattr(
+        "kanban_api.api.set_project_brain_status",
+        lambda slug, st: {"ok": True, "slug": slug, "brain_status": st},
+    )
+    client = TestClient(app)
+    res = client.post(
+        "/hub/projects/demo/brain-status",
+        json={"status": "active"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["ok"] is True
+    assert data["slug"] == "demo"
+    assert data["brain_status"] == "active"
+
+
+def test_set_brain_status_endpoint_not_found(monkeypatch):
+    def _raise(_slug: str, _st: str):
+        raise KeyError("Project not found")
+
+    monkeypatch.setattr("kanban_api.api.set_project_brain_status", _raise)
+    client = TestClient(app)
+    res = client.post(
+        "/hub/projects/missing/brain-status",
+        json={"status": "active"},
+    )
+    assert res.status_code == 404
+
+
 def test_delete_project_endpoint_not_found(monkeypatch):
     def _raise(_slug: str):
         raise KeyError("Project not found")
