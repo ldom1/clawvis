@@ -4,7 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INSTANCE_NAME="${INSTANCE_NAME:-example}"
 MEMORY_ROOT="${MEMORY_ROOT:-instances/${INSTANCE_NAME}/memory}"
-MEM_DIR="${ROOT_DIR}/${MEMORY_ROOT}"
+if [[ "${MEMORY_ROOT}" = /* ]]; then
+  MEM_DIR="${MEMORY_ROOT}"
+else
+  MEM_DIR="${ROOT_DIR}/${MEMORY_ROOT}"
+fi
 
 mkdir -p \
   "${MEM_DIR}/projects" \

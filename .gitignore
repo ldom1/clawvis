@@ -76,6 +76,10 @@ instances/*
 .gitnexus
 test-results/
 
+# Playwright / e2e stack (start-for-e2e.sh)
+.e2e-memory/
+.e2e-projects/
+
 # Playwright
 /test-results/
 /playwright-report/

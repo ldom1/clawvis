@@ -20,6 +20,8 @@ bash tests/ci-playwright.sh
 
 Tests automatically **skip** when the Hub is not reachable — they never fail spuriously in offline environments.
 
+When Playwright starts the stack via **`scripts/start-for-e2e.sh`**, **`CLAWVIS_E2E_ISOLATE`** uses repo-local **`.e2e-memory/`** and **`.e2e-projects/`** so project creation is writable even if your `.env` sets `PROJECTS_ROOT` to another machine’s path.
+
 ## Pre-conditions
 
 | Requirement | Details |
