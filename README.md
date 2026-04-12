@@ -65,6 +65,8 @@ You run AI agents — Claude, Mistral, or your own OpenClaw instance. But you ha
 
 Your data stays in `instances/<your-name>/` — never touched by core updates.
 
+Projects on the Hub home support single delete from the card menu and bulk delete by selecting multiple cards then clicking **Delete selected**.
+
 ---
 
 ## Prerequisites
@@ -116,6 +118,8 @@ clawvis doctor      # health check — shows what's up and what's not
 clawvis shutdown    # graceful stop
 clawvis restart     # stop + start
 ```
+
+When `clawvis` is installed globally (`~/.local/bin/clawvis`) and you run commands inside another Clawvis checkout, `start`/`restart` now use the current checkout so local updates are applied.
 
 ---
 

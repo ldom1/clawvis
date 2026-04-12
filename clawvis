@@ -6,7 +6,21 @@ SCRIPT_PATH="${BASH_SOURCE[0]}"
 if command -v readlink >/dev/null 2>&1; then
   SCRIPT_PATH="$(readlink -f "${SCRIPT_PATH}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
 fi
-ROOT_DIR="$(cd "$(dirname "${SCRIPT_PATH}")" && pwd)"
+SCRIPT_ROOT_DIR="$(cd "$(dirname "${SCRIPT_PATH}")" && pwd)"
+ROOT_DIR="${SCRIPT_ROOT_DIR}"
+# When invoked from inside another Clawvis checkout, prefer that checkout.
+# This keeps `clawvis restart` aligned with local code edits even if the binary
+# itself comes from ~/.local/bin -> ~/.clawvis/clawvis.
+if [ "${CLAWVIS_FORCE_SCRIPT_ROOT:-0}" != "1" ] && command -v git >/dev/null 2>&1; then
+  CWD_GIT_ROOT="$(git -C "${PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
+  if [ -n "${CWD_GIT_ROOT}" ] \
+    && [ "${CWD_GIT_ROOT}" != "${SCRIPT_ROOT_DIR}" ] \
+    && [ -f "${CWD_GIT_ROOT}/clawvis" ] \
+    && [ -f "${CWD_GIT_ROOT}/docker-compose.yml" ] \
+    && [ -d "${CWD_GIT_ROOT}/hub" ]; then
+    ROOT_DIR="${CWD_GIT_ROOT}"
+  fi
+fi
 ENV_FILE="${ROOT_DIR}/.env"
 
 # Prefer the Node-powered fancy CLI when available.

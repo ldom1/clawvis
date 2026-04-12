@@ -620,7 +620,10 @@ function renderHome() {
       <section>
         <div class="section-header">
           <div class="section-label">Projects</div>
-          <button id="new-project" class="new-project-btn" type="button" aria-label="${fr ? "Nouveau projet" : "New project"}" title="${fr ? "Nouveau projet" : "New project"}"><span class="projects-add-icon">+</span></button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="projects-bulk-delete" class="btn btn-danger" type="button" hidden disabled>${fr ? "Supprimer la sélection" : "Delete selected"}</button>
+            <button id="new-project" class="new-project-btn" type="button" aria-label="${fr ? "Nouveau projet" : "New project"}" title="${fr ? "Nouveau projet" : "New project"}"><span class="projects-add-icon">+</span></button>
+          </div>
         </div>
         <div id="projects-grid" class="grid-3"></div>
         <div id="projects-inactive-toggle" class="projects-toggle" style="display:none"></div>
@@ -1719,9 +1722,32 @@ let _projectCardMenuCloseBound = false;
 
 async function loadProjects() {
   const grid = document.getElementById("projects-grid");
+  const inactiveGrid = document.getElementById("projects-inactive-grid");
+  const inactiveToggle = document.getElementById("projects-inactive-toggle");
+  const bulkDeleteBtn = document.getElementById("projects-bulk-delete");
+  const selectedSlugs = new Set();
+  const fr = settingsLocale() === "fr";
+  if (grid) grid.innerHTML = "";
+  if (inactiveGrid) {
+    inactiveGrid.innerHTML = "";
+    inactiveGrid.style.display = "none";
+  }
+  if (inactiveToggle) {
+    inactiveToggle.innerHTML = "";
+    inactiveToggle.style.display = "none";
+  }
+  function updateBulkDeleteState() {
+    if (!bulkDeleteBtn) return;
+    const count = selectedSlugs.size;
+    bulkDeleteBtn.hidden = count === 0;
+    bulkDeleteBtn.disabled = count === 0;
+    bulkDeleteBtn.textContent = fr
+      ? `Supprimer la sélection (${count})`
+      : `Delete selected (${count})`;
+  }
+  updateBulkDeleteState();
   const res = await fetch("/api/hub/kanban/hub/projects");
   if (!res.ok) {
-    const fr = settingsLocale() === "fr";
     grid.insertAdjacentHTML(
       "beforeend",
       `<div class="onboarding-hint">${fr ? "Kanban API non disponible — lance <code>clawvis start</code>" : "Kanban API unavailable — run <code>clawvis start</code>"}</div>`,
@@ -1738,7 +1764,6 @@ async function loadProjects() {
       `<div class="onboarding-hint">${fr ? "Aucun projet — clique sur <strong>+</strong> pour créer le premier." : "No projects yet — click <strong>+</strong> to create your first one."}</div>`,
     );
   }
-  const fr = settingsLocale() === "fr";
   const allProjects = data.projects || [];
   const activeProjects = allProjects.filter(
     (p) => (p.brain_status || "").toLowerCase() === "active",
@@ -1746,7 +1771,6 @@ async function loadProjects() {
   const inactiveProjects = allProjects.filter(
     (p) => (p.brain_status || "").toLowerCase() !== "active",
   );
-  const inactiveGrid = document.getElementById("projects-inactive-grid");
 
   function _renderProjectCard(project, targetGrid) {
     const slug = project.slug;
@@ -1835,6 +1859,22 @@ async function loadProjects() {
 
     const actions = document.createElement("div");
     actions.className = "card-project-actions";
+    const selector = document.createElement("label");
+    selector.style.display = "inline-flex";
+    selector.style.alignItems = "center";
+    selector.style.cursor = "pointer";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "card-project-select";
+    checkbox.title = fr ? "Sélectionner ce projet" : "Select this project";
+    checkbox.addEventListener("click", (e) => e.stopPropagation());
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) selectedSlugs.add(slug);
+      else selectedSlugs.delete(slug);
+      updateBulkDeleteState();
+    });
+    selector.appendChild(checkbox);
+
     const kebab = document.createElement("button");
     kebab.type = "button";
     kebab.className = "btn card-project-kebab";
@@ -1912,7 +1952,7 @@ async function loadProjects() {
       window.location.href = "/";
     });
 
-    actions.append(kebab, drop);
+    actions.append(selector, kebab, drop);
     wrap.appendChild(actions);
     targetGrid.appendChild(wrap);
   }
@@ -1954,6 +1994,34 @@ async function loadProjects() {
         k.setAttribute("aria-expanded", "false");
       });
     });
+  }
+  if (bulkDeleteBtn) {
+    bulkDeleteBtn.onclick = async () => {
+      const slugs = [...selectedSlugs];
+      if (!slugs.length) return;
+      if (!window.confirm(`Delete ${slugs.length} project(s)? This cannot be undone.`)) {
+        return;
+      }
+      bulkDeleteBtn.disabled = true;
+      const failures = [];
+      await Promise.all(
+        slugs.map(async (slug) => {
+          const deleteRes = await fetch(
+            `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}`,
+            { method: "DELETE" },
+          );
+          if (!deleteRes.ok) failures.push(slug);
+        }),
+      );
+      if (failures.length) {
+        alert(
+          fr
+            ? `Suppression impossible pour : ${failures.join(", ")}`
+            : `Delete failed for: ${failures.join(", ")}`,
+        );
+      }
+      await loadProjects();
+    };
   }
 }
 
@@ -2015,7 +2083,8 @@ async function wireProjectPage() {
   // Check if project has a served app at /apps/<slug>/ and show launch button
   const launchBtn = document.getElementById("project-launch-btn");
   if (launchBtn) {
-    launchBtn.href = `/apps/${encodeURIComponent(slug)}/`;
+    const fallbackLaunchUrl = `/apps/${encodeURIComponent(slug)}/`;
+    launchBtn.href = fallbackLaunchUrl;
     const devMode = Boolean(import.meta?.env?.DEV);
     const devAppsOrigin = (
       import.meta?.env?.VITE_HUB_APPS_ORIGIN ||
@@ -2030,11 +2099,57 @@ async function wireProjectPage() {
       return;
     }
     try {
-      const serveCheck = await fetch(`/apps/${encodeURIComponent(slug)}/`, {
-        method: "HEAD",
-        signal: AbortSignal.timeout(2000),
-      });
-      launchBtn.hidden = !serveCheck.ok;
+      const launchRes = await fetch(
+        `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/launch-status`,
+        { signal: AbortSignal.timeout(4000) },
+      );
+      if (!launchRes.ok) throw new Error("launch-status");
+      const launch = await launchRes.json();
+      const launchUrl = launch.launch_url || fallbackLaunchUrl;
+      const setBusy = (busy, label) => {
+        launchBtn.textContent = label;
+        launchBtn.setAttribute("aria-disabled", busy ? "true" : "false");
+        launchBtn.style.pointerEvents = busy ? "none" : "";
+        launchBtn.style.opacity = busy ? "0.75" : "";
+      };
+      if (launch.state === "launchable") {
+        launchBtn.hidden = false;
+        launchBtn.href = launchUrl;
+        launchBtn.title = launch.deployed_entry || "";
+        setBusy(false, fr ? "▶ Lancer le projet" : "▶ Launch project");
+      } else if (launch.state === "buildable") {
+        launchBtn.hidden = false;
+        launchBtn.href = launchUrl;
+        launchBtn.title = launch.build_command || "";
+        setBusy(false, fr ? "⚙ Construire et lancer" : "⚙ Build & Launch");
+        launchBtn.addEventListener("click", async (event) => {
+          event.preventDefault();
+          setBusy(true, fr ? "Construction…" : "Building…");
+          try {
+            const buildRes = await fetch(
+              `/api/hub/kanban/hub/projects/${encodeURIComponent(slug)}/build-launch`,
+              { method: "POST" },
+            );
+            const data = await buildRes.json().catch(() => ({}));
+            if (!buildRes.ok) {
+              throw new Error(
+                data.detail || (fr ? "Échec de build" : "Build failed"),
+              );
+            }
+            const nextLaunchUrl =
+              data?.launch_status?.launch_url || launchUrl || fallbackLaunchUrl;
+            launchBtn.href = nextLaunchUrl;
+            launchBtn.title = data?.launch_status?.deployed_entry || "";
+            setBusy(false, fr ? "▶ Lancer le projet" : "▶ Launch project");
+            window.open(nextLaunchUrl, "_blank", "noopener");
+          } catch (error) {
+            setBusy(false, fr ? "⚙ Construire et lancer" : "⚙ Build & Launch");
+            alert(error?.message || (fr ? "Échec de build" : "Build failed"));
+          }
+        });
+      } else {
+        launchBtn.hidden = true;
+      }
     } catch (_) {
       launchBtn.hidden = true;
     }

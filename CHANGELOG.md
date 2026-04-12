@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Hub + Playwright — bulk project delete and suite teardown (2026-04-12)
+- **Hub projects grid**: added per-card selection checkboxes and a **Delete selected** CTA that appears only when at least one project is selected.
+- **Bulk delete flow** uses native `window.confirm("Delete X project(s)? This cannot be undone.")`, deletes each selected project via `DELETE /api/hub/kanban/hub/projects/{slug}`, then re-fetches and re-renders the grid.
+- **Playwright project lifecycle suite** now tracks created slugs and includes `afterAll` teardown deleting remaining test-created projects only, with per-slug deletion logs for traceability.
+- **Playwright UI coverage**: added a dedicated home-grid bulk-delete scenario selecting two cards, accepting the native confirm dialog, and asserting both cards disappear.
+- **Kanban API route** `DELETE /hub/projects/{project_slug}` already exists and remains backward-compatible (no route change needed).
+- **CLI root resolution**: running `clawvis restart` from inside a Clawvis git checkout now targets that checkout (instead of always using the install path behind `~/.local/bin/clawvis`), so local code changes are picked up.
+
+### Hub — launch detection + workspace root + GitNexus cleanup (2026-04-12)
+- **Project launch CTA** now uses a backend launch-status resolver instead of a blind `HEAD /apps/<slug>/` probe. The Hub distinguishes `launchable`, `buildable`, and genuinely missing projects, preserving the existing not-deployed fallback only for real misses.
+- **Build & Launch** is available for buildable frontend Vite projects: the Kanban API derives the build command from the repo on disk, runs `npm install` if needed, then builds with `--base=/apps/<slug>/` before opening the app.
+- **Workspace settings precedence fixed**: saved `projects_root` from Settings now overrides stale `PROJECTS_ROOT` env defaults, so launch detection and repo discovery honor the path actively chosen in the Hub.
+- **GitNexus removed from repo-owned guidance**: cleaned `AGENTS.md`, `CLAUDE.md`, docs references, `.gitignore`, and deleted generated `graphify-out` artifacts that still embedded GitNexus-derived context.
+
+### Docker — project creation on kanban-api (2026-04-12)
+- **`docker-compose.yml` (kanban-api)**: **`PROJECTS_ROOT`** bind mount **`ro` → `rw`** so **`POST /hub/projects`** can create directories and files on the host path (read-only produced **500** and the Hub alert **Creation impossible**).
+- **`tests/playwright/tests/personas/projects.spec.ts`**: assert the create-project **POST** response is **OK** (fail fast with response body).
+
 ### Docs — pitfall #37 (2026-04-12)
 - **`docs/PITFALLS.md`**: **`~/.clawvis`** vs **`lab/clawvis`** — agent Docker image bakes **`~/.clawvis/agent/`**; sync + rebuild **`agent-service`** after editing the lab tree.
 
