@@ -44,7 +44,8 @@ services:
       # Full repo RW so setup API can sync skills/ and .claude/ (host checkout replaces /clawvis).
       - .:/clawvis:rw
       # Kanban scans PROJECTS_ROOT from .env — bind the host folder at the same path.
-      - "${PROJECTS_ROOT:?Set PROJECTS_ROOT in .env}:${PROJECTS_ROOT}:ro"
+      # RW: POST /hub/projects mkdir + git init + template files (RO mount → 500, Hub alert "Creation impossible").
+      - "${PROJECTS_ROOT:?Set PROJECTS_ROOT in .env}:${PROJECTS_ROOT}:rw"
       # Claude Code on the host reads ~/.claude — mount it so MCP sync + skills symlink hit the host.
       - "${HOME}/.claude:/clawvis-host-claude:rw"
       # Optional: mount host claude binary so the API can detect it (path rarely matches container libc).

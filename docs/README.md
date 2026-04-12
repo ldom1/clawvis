@@ -42,7 +42,7 @@ Wiki links (GitHub syntax): `[[guides-deploy-hostinger]]`, etc.
 
 | Document | Description |
 |----------|-------------|
-| [CLAUDE-REFERENCE.md](./CLAUDE-REFERENCE.md) | Complement to `CLAUDE.md`: modes, detailed install, extended contracts, CLI, GitNexus summary |
+| [CLAUDE-REFERENCE.md](./CLAUDE-REFERENCE.md) | Complement to `CLAUDE.md`: modes, detailed install, extended contracts, and CLI |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Full stack, API domains, SPA routing, Brain/Quartz, Dombot edge pattern, HUB_HOST |
 | [DATA-MODEL.md](./DATA-MODEL.md) | Kanban states, project lifecycle, configurable parameters, Brain PARA schema |
 | [PITFALLS.md](./PITFALLS.md) | Known bugs, technical debt, unresolved friction |

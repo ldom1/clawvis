@@ -3,7 +3,7 @@
 > Détail et politiques **hors hot path** : ouvrir quand la tâche le exige (install, UI review, CI, Authelia/Dombot, résolution mémoire active, etc.).
 > Le **résumé** toujours chargé → [`CLAUDE.md`](../CLAUDE.md).
 
-**Sources canoniques :** `GOAL.md` · `docs/ARCHITECTURE.md` · `docs/PITFALLS.md` · `docs/DATA-MODEL.md` · `AGENTS.md` (GitNexus)
+**Sources canoniques :** `GOAL.md` · `docs/ARCHITECTURE.md` · `docs/PITFALLS.md` · `docs/DATA-MODEL.md`
 
 ---
 

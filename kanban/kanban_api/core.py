@@ -581,7 +581,8 @@ def _default_hub_settings() -> dict:
 
 def get_hub_settings() -> dict:
     defaults = _default_hub_settings()
-    # Env vars always win — prevent hub_settings.json from resetting on restart
+    # Saved workspace settings should win so the Hub UI can effectively change
+    # the active projects root. Environment values are a bootstrap fallback.
     env_projects_root = os.environ.get("PROJECTS_ROOT", "").strip()
     if HUB_SETTINGS_FILE.exists():
         try:
@@ -602,8 +603,9 @@ def get_hub_settings() -> dict:
         linked = linked_raw if isinstance(linked_raw, list) else []
     linked = [str(p) for p in linked if str(p).strip()]
     out = {
-        "projects_root": env_projects_root
-        or str(current.get("projects_root") or defaults["projects_root"]),
+        "projects_root": str(
+            current.get("projects_root") or env_projects_root or defaults["projects_root"]
+        ),
         "instances_external_root": str(
             current.get("instances_external_root")
             or defaults["instances_external_root"]
@@ -1501,6 +1503,163 @@ def _find_project_or_raise(project_slug: str) -> dict:
     if not project:
         raise KeyError("Project not found")
     return project
+
+
+def _project_repo_dir(project: dict) -> Path | None:
+    repo_path = str(project.get("repo_path") or "").strip()
+    if not repo_path:
+        return None
+    return Path(repo_path).expanduser()
+
+
+def _path_is_within_root(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _load_package_json(repo_dir: Path) -> dict:
+    package_json = repo_dir / "package.json"
+    if not package_json.is_file():
+        return {}
+    try:
+        data = json.loads(package_json.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _node_build_plan(project: dict, repo_dir: Path, app_slug: str) -> dict | None:
+    package_data = _load_package_json(repo_dir)
+    scripts = package_data.get("scripts")
+    if not isinstance(scripts, dict):
+        return None
+    build_script = scripts.get("build")
+    if not isinstance(build_script, str) or not build_script.strip():
+        return None
+    template = str(project.get("template") or "").strip().lower()
+    script_lower = build_script.lower()
+    is_vite = template in {"frontend-vite", "vite"} or "vite" in script_lower
+    if not is_vite:
+        return None
+    build_cmd = ["npm", "run", "build", "--", f"--base=/apps/{app_slug}/"]
+    return {
+        "install_cmd": ["npm", "install"],
+        "build_cmd": build_cmd,
+        "display": "npm install && " + " ".join(build_cmd),
+    }
+
+
+def get_project_launch_status(project_slug: str) -> dict:
+    project = _find_project_or_raise(project_slug)
+    settings = get_hub_settings()
+    projects_root = Path(settings["projects_root"]).expanduser()
+    repo_dir = _project_repo_dir(project)
+    app_slug = repo_dir.name if repo_dir else str(project.get("slug") or "").strip()
+    launch_url = f"/apps/{app_slug}/" if app_slug else ""
+    repo_exists = bool(repo_dir and repo_dir.is_dir())
+    repo_in_projects_root = bool(
+        repo_exists and repo_dir and projects_root and _path_is_within_root(repo_dir, projects_root)
+    )
+    build_plan = (
+        _node_build_plan(project, repo_dir, app_slug)
+        if repo_exists and repo_dir
+        else None
+    )
+    dist_index = repo_dir / "dist" / "index.html" if repo_exists and repo_dir else None
+    root_index = repo_dir / "index.html" if repo_exists and repo_dir else None
+    has_dist = bool(dist_index and dist_index.is_file())
+    has_root_index = bool(root_index and root_index.is_file())
+    deployed_entry = ""
+    state = "missing"
+    reason = "not_deployed"
+    if not repo_dir:
+        reason = "brain_only"
+    elif not repo_exists:
+        reason = "repo_missing"
+    elif not repo_in_projects_root:
+        reason = "outside_projects_root"
+    elif has_dist:
+        state = "launchable"
+        reason = "dist_ready"
+        deployed_entry = "dist/index.html"
+    elif has_root_index and not build_plan:
+        state = "launchable"
+        reason = "index_ready"
+        deployed_entry = "index.html"
+    elif build_plan:
+        state = "buildable"
+        reason = "build_required"
+    elif has_root_index:
+        state = "launchable"
+        reason = "index_ready"
+        deployed_entry = "index.html"
+    return {
+        "ok": True,
+        "project_slug": str(project.get("slug") or project_slug),
+        "app_slug": app_slug,
+        "launch_url": launch_url,
+        "state": state,
+        "reason": reason,
+        "repo_path": str(repo_dir) if repo_dir else "",
+        "repo_exists": repo_exists,
+        "repo_in_projects_root": repo_in_projects_root,
+        "projects_root": str(projects_root),
+        "deployed_entry": deployed_entry,
+        "build_command": build_plan["display"] if build_plan else "",
+        "buildable": bool(build_plan),
+    }
+
+
+def build_project_and_launch(project_slug: str) -> dict:
+    status = get_project_launch_status(project_slug)
+    if status["state"] == "launchable":
+        return {"ok": True, "built": False, "launch_status": status}
+    if status["state"] != "buildable":
+        raise ValueError("Project is not buildable from the current workspace.")
+    repo_dir = Path(status["repo_path"]).expanduser()
+    app_slug = str(status["app_slug"] or "").strip()
+    project = _find_project_or_raise(project_slug)
+    build_plan = _node_build_plan(project, repo_dir, app_slug)
+    if not build_plan:
+        raise ValueError("Missing supported build command for this project.")
+    if not (repo_dir / "node_modules").exists():
+        try:
+            subprocess.run(
+                build_plan["install_cmd"],
+                cwd=repo_dir,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=300,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("Dependency install timed out.") from exc
+        except subprocess.CalledProcessError as exc:
+            tail = (exc.stderr or exc.stdout or "").strip()[-4000:]
+            raise RuntimeError(f"Dependency install failed.\n{tail}".strip()) from exc
+    try:
+        subprocess.run(
+            build_plan["build_cmd"],
+            cwd=repo_dir,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=600,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("Build timed out.") from exc
+    except subprocess.CalledProcessError as exc:
+        tail = (exc.stderr or exc.stdout or "").strip()[-4000:]
+        raise RuntimeError(f"Build failed.\n{tail}".strip()) from exc
+    refreshed = get_project_launch_status(project_slug)
+    if refreshed["state"] != "launchable":
+        raise RuntimeError("Build completed but the app is still not launchable.")
+    return {"ok": True, "built": True, "launch_status": refreshed}
 
 
 def get_project_logo_path(project_slug: str) -> Path:

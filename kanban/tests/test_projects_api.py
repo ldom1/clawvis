@@ -79,6 +79,39 @@ def test_set_brain_status_endpoint_not_found(monkeypatch):
     assert res.status_code == 404
 
 
+def test_get_project_launch_status_endpoint_ok(monkeypatch):
+    monkeypatch.setattr(
+        "kanban_api.api.get_project_launch_status",
+        lambda slug: {"ok": True, "project_slug": slug, "state": "launchable"},
+    )
+    client = TestClient(app)
+    res = client.get("/hub/projects/demo/launch-status")
+    assert res.status_code == 200
+    assert res.json()["state"] == "launchable"
+
+
+def test_build_project_and_launch_endpoint_ok(monkeypatch):
+    monkeypatch.setattr(
+        "kanban_api.api.build_project_and_launch",
+        lambda slug: {"ok": True, "built": True, "launch_status": {"project_slug": slug}},
+    )
+    client = TestClient(app)
+    res = client.post("/hub/projects/demo/build-launch")
+    assert res.status_code == 200
+    assert res.json()["built"] is True
+
+
+def test_build_project_and_launch_endpoint_bad_request(monkeypatch):
+    def _raise(_slug: str):
+        raise ValueError("Project is not buildable")
+
+    monkeypatch.setattr("kanban_api.api.build_project_and_launch", _raise)
+    client = TestClient(app)
+    res = client.post("/hub/projects/demo/build-launch")
+    assert res.status_code == 400
+    assert res.json()["detail"] == "Project is not buildable"
+
+
 def test_delete_project_endpoint_not_found(monkeypatch):
     def _raise(_slug: str):
         raise KeyError("Project not found")

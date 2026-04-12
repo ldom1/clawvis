@@ -13,6 +13,7 @@ from .core import (
     add_dependencies,
     archive_project,
     archive_task,
+    build_project_and_launch,
     create_project,
     create_task,
     delete_task,
@@ -24,6 +25,7 @@ from .core import (
     get_project_logo_path,
     get_meta,
     get_project,
+    get_project_launch_status,
     get_stats,
     list_active_tasks,
     list_archive_tasks,
@@ -106,6 +108,26 @@ def get_project_endpoint(project_slug: str):
         return get_project(project_slug)
     except KeyError:
         raise HTTPException(404, "Project not found")
+
+
+@router.get("/hub/projects/{project_slug}/launch-status")
+def get_project_launch_status_endpoint(project_slug: str):
+    try:
+        return get_project_launch_status(project_slug)
+    except KeyError:
+        raise HTTPException(404, "Project not found")
+
+
+@router.post("/hub/projects/{project_slug}/build-launch")
+def build_project_and_launch_endpoint(project_slug: str):
+    try:
+        return build_project_and_launch(project_slug)
+    except KeyError:
+        raise HTTPException(404, "Project not found")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except RuntimeError as e:
+        raise HTTPException(500, str(e))
 
 
 @router.put("/hub/projects/{project_slug}/memory-major")

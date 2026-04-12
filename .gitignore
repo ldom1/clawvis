@@ -73,7 +73,6 @@ instances/*
 # Private projects
 ########################
 .tmp/
-.gitnexus
 test-results/
 
 # Playwright / e2e stack (start-for-e2e.sh)
@@ -90,3 +89,6 @@ tests/playwright/test-results/
 tests/playwright/playwright-report/
 tests/playwright/blob-report/
 tests/playwright/.cache/
+
+# Graphify
+graphify-out/
