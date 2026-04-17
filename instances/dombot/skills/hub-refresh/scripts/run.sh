@@ -4,6 +4,10 @@
 
 set -e
 export PATH="${HOME}/.local/bin:${PATH}"
+# Pin Python to a stable system path so uv never rebuilds the venv due to a
+# missing interpreter. /usr/bin/python3.11 is a real file (not a symlink chain)
+# that survives uv cache cleans and pyenv updates.
+export UV_PYTHON="/usr/bin/python3.11"
 
 HUB_CORE_DIR="$HOME/Lab/clawvis/hub-core"
 LOG_DIR="$HOME/.openclaw/logs"

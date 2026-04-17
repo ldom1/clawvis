@@ -26,7 +26,7 @@ CURRENT_REF="$(git describe --tags --always 2>/dev/null || git rev-parse --short
 echo "==> Current: ${CURRENT_REF}"
 echo "==> Target:  ${TARGET_REF}"
 
-if [ -n "$(git status --porcelain)" ]; then
+if [ -n "$(git status --porcelain --ignore-submodules=dirty)" ]; then
   echo "Working tree is dirty. Commit/stash first."
   exit 1
 fi

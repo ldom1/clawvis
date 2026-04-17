@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v1.0.0] - 2026-04-17
 
 ### MCP server — auto-install deps from setup wizard (2026-04-12)
 - **Root cause**: `~/.clawvis/mcp/node_modules/` was missing after install/update (rsync excludes `node_modules/`), causing `ERR_MODULE_NOT_FOUND` on startup and no skills visible in Claude.
