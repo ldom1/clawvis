@@ -51,7 +51,7 @@ User
 | Hub SPA | Vite + vanilla JS | `hub/src/main.js` |
 | Kanban API | FastAPI (uvicorn) | `kanban/kanban_api/server.py` |
 | Memory API | FastAPI (uvicorn) | `hub-core/hub_core/memory_api.py` |
-| Agent Service | Python | `agent/agent_service/main.py` |
+| Agent Service | Python | `services/agent/agent_service/main.py` |
 | Brain display | Quartz static (iframe) | `scripts/build-quartz.sh` |
 | Docker proxy | nginx | `hub/nginx.conf` |
 | OpenClaw | Node.js | port 18789 |
@@ -237,14 +237,16 @@ clawvis/
     public/               # Static assets, built SPA prod
     dist/                 # Build output (gitignored)
   hub-core/               # Shared Python lib — Memory API, transcribe, brain_memory helpers
-  kanban/                 # FastAPI Kanban — tasks, projects, deps, stats, memory sync
+  services/
+    agent/                # AI agent service (port 8092)
+    kanban/               # Kanban + hub API (port 8090)
+    scheduler/            # Cron job runner (port 8095)
+    telegram/             # Telegram bot (port 8094)
   skills/                 # Preconfigured Clawvis skills
-  openclaw/               # OpenClaw wrapper + config
+    project-init/
+      templates/          # New project templates (python, vite, empty)
   clawvis-cli/            # Unified CLI (npm) — clawvis start/deploy/update/backup
-  core-tools/
-    logger/               # Standalone logs UI served on /logs/
   scripts/                # Scripts (start, deploy, upgrade, build-quartz, hub-healthcheck…)
-  project-templates/      # New project templates (python, vite, empty)
   instances/
     example/              # Instance template (copied on install)
     <instance_name>/      # Real instance data (gitignored except structure)

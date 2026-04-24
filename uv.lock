@@ -414,7 +414,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.109" },
     { name = "faster-whisper", marker = "extra == 'transcribe'", specifier = ">=1.2.1" },
-    { name = "kanban-api", editable = "kanban" },
+    { name = "kanban-api", editable = "services/kanban" },
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
@@ -783,7 +783,7 @@ wheels = [
 [[package]]
 name = "kanban-api"
 version = "0.1.0"
-source = { editable = "kanban" }
+source = { editable = "services/kanban" }
 dependencies = [
     { name = "dombot-hub-core" },
     { name = "fastapi" },

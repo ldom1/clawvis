@@ -199,10 +199,13 @@ It works out of the box — no Quartz installation needed. A lightweight Python 
 |-----------|---------|
 | `hub/` | Vite SPA frontend + nginx Docker image |
 | `hub-core/` | Python lib — identity, RBAC, AI adapters |
-| `kanban/` | Task board FastAPI — tasks, projects, memory sync |
+| `services/kanban/` | Task board FastAPI — tasks, projects, memory sync |
+| `services/agent/` | AI agent service — streaming chat, runtime config |
+| `services/scheduler/` | Cron job runner |
+| `services/telegram/` | Telegram bot |
 | `skills/` | Pre-configured agent skills (kanban, logger, brain…) |
+| `skills/project-init/templates/` | Starter templates for new projects |
 | `instances/` | Your instance data — never overwritten by updates |
-| `project-templates/` | Starter templates for new projects |
 
 ---
 

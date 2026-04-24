@@ -31,7 +31,7 @@ from .models import (
 _CLAWVIS_ROOT = (
     Path(os.environ["CLAWVIS_ROOT"]).expanduser().resolve()
     if os.environ.get("CLAWVIS_ROOT")
-    else Path(__file__).resolve().parents[2]
+    else Path(__file__).resolve().parents[3]
 )
 _memory_root_env = os.environ.get("MEMORY_ROOT")
 if _memory_root_env:
@@ -55,7 +55,7 @@ except ImportError:
 _LOGGER_DIR = str(Path.home() / ".openclaw/skills/logger/core")
 HUB_SETTINGS_FILE = _memory_root_path / "kanban" / "hub_settings.json"
 HUB_METADATA_FILE = ".clawvis-project.json"
-PROJECT_TEMPLATES_DIR = _CLAWVIS_ROOT / "project-templates"
+PROJECT_TEMPLATES_DIR = _CLAWVIS_ROOT / "skills" / "project-init" / "templates"
 
 
 def _log(level: str, action: str, message: str, metadata: dict | None = None):

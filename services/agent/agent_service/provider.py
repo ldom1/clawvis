@@ -20,7 +20,7 @@ def _dotenv_paths() -> list[Path]:
             seen.add(str(p.resolve()))
         except OSError:
             seen.add(str(p))
-    for p in (Path("/clawvis/.env"), Path(__file__).resolve().parents[2] / ".env"):
+    for p in (Path("/clawvis/.env"), Path(__file__).resolve().parents[3] / ".env"):
         try:
             key = str(p.resolve())
         except OSError:

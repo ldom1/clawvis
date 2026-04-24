@@ -36,7 +36,7 @@ services:
     container_name: clawvis-${INSTANCE_NAME:-example}-kanban-api
     build:
       context: .
-      dockerfile: kanban/Dockerfile
+      dockerfile: services/kanban/Dockerfile
     ports:
       - "127.0.0.1:${KANBAN_API_PORT:-8090}:8090"
     env_file: .env
@@ -90,7 +90,7 @@ services:
     container_name: clawvis-${INSTANCE_NAME:-example}-hub-memory-api
     build:
       context: .
-      dockerfile: kanban/Dockerfile
+      dockerfile: services/kanban/Dockerfile
     ports:
       - "127.0.0.1:${HUB_MEMORY_API_PORT:-8091}:8091"
     env_file: .env
@@ -131,7 +131,7 @@ services:
     container_name: clawvis-${INSTANCE_NAME:-example}-agent-service
     build:
       context: .
-      dockerfile: agent/Dockerfile
+      dockerfile: services/agent/Dockerfile
     ports:
       - "127.0.0.1:${AGENT_PORT:-8092}:8092"
     env_file: .env
