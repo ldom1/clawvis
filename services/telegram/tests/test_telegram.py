@@ -126,6 +126,23 @@ class TestHttpSend(unittest.IsolatedAsyncioTestCase):
         res = await bot._http_send(req)  # type: ignore[misc]
         self.assertEqual(res.status, 400)
 
+    @mock.patch.dict(
+        os.environ,
+        _std_env(),
+        clear=True,
+    )
+    async def test_send_bot_not_ready_returns_503(self) -> None:
+        from core import bot
+
+        # _tg_app is None (tearDown guarantees this)
+        req = mock.AsyncMock()
+        req.json = AsyncMock(return_value={"text": "hello"})
+        res = await bot._http_send(req)
+        self.assertEqual(res.status, 503)
+        body = json.loads(res.body)
+        self.assertFalse(body.get("ok"))
+        self.assertEqual(body["error"], "bot not ready")
+
 
 class TestBridge(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
@@ -345,7 +362,7 @@ class TestBotHandlers(unittest.IsolatedAsyncioTestCase):
             mock_agent.return_value = "Task #7 created: Fix login bug"
             await _cmd_routed(update, context)
 
-        prompt_sent = mock_agent.call_args[0][1]
+        prompt_sent = mock_agent.call_args.args[1]
         self.assertIn("Fix login bug", prompt_sent)
         self.assertIn("Kanban", prompt_sent)
         update.message.reply_text.assert_called_once_with("Task #7 created: Fix login bug")
