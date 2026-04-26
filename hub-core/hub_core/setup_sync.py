@@ -509,7 +509,10 @@ def sync_claude_code_mcp(clawvis_root: Path | None = None) -> dict[str, Any]:
         "claude_cli_path": claude_bin or "",
         "mcp_deps": deps,
     }
-    if not claude_bin:
+    docker_host_mounted = bool(
+        _claude_host_config_dir_raw() and os.environ.get("CLAWVIS_REPO_HOST_PATH", "").strip()
+    )
+    if not claude_bin and not docker_host_mounted:
         out["warning"] = (
             "Claude CLI not detected from this process. In Docker, mount the host binary and "
             "set CLAWVIS_HOST_CLAUDE_CLI (or CLAUDE_CLI_PATH). Mount host ~/.claude at "

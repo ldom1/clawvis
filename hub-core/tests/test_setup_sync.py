@@ -128,6 +128,31 @@ def test_sync_claude_code_mcp_respects_host_claude_dir(
     assert (host / "claude.json").is_file()
 
 
+def test_sync_claude_code_mcp_docker_host_mount_does_not_warn_about_cli(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    host_claude = tmp_path / "host_claude"
+    host_repo = tmp_path / "host_repo"
+    host_claude.mkdir()
+    (host_repo / "mcp" / "server.js").parent.mkdir(parents=True)
+    (host_repo / "mcp" / "server.js").write_text("//\n", encoding="utf-8")
+    (tmp_path / "skills" / "x").mkdir(parents=True)
+    (tmp_path / "mcp" / "server.js").parent.mkdir(parents=True)
+    (tmp_path / "mcp" / "server.js").write_text("//\n", encoding="utf-8")
+    monkeypatch.setenv("CLAWVIS_HOST_CLAUDE_DIR", str(host_claude))
+    monkeypatch.setenv("CLAWVIS_REPO_HOST_PATH", str(host_repo))
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    monkeypatch.delenv("CLAUDE_CLI_PATH", raising=False)
+    monkeypatch.delenv("CLAWVIS_HOST_CLAUDE_CLI", raising=False)
+    monkeypatch.delenv("CLAWVIS_MCP_SERVER_JS", raising=False)
+    monkeypatch.setattr(setup_sync, "find_claude_on_path", lambda: None)
+
+    r = setup_sync.sync_claude_code_mcp(tmp_path)
+
+    assert r["ok"] is True
+    assert "warning" not in r
+
+
 def test_sync_claude_code_mcp_uses_host_repo_for_mcp_js(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
