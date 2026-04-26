@@ -96,7 +96,11 @@ async def _http_send(request: web.Request) -> web.Response:
         return web.json_response({"ok": True, "stub": True})
     if _tg_app is None:
         return web.json_response({"ok": False, "error": "bot not ready"}, status=503)
-    await _tg_app.bot.send_message(chat_id=settings.chat_id, text=text)
+    try:
+        await _tg_app.bot.send_message(chat_id=settings.chat_id, text=text)
+    except Exception:
+        log.exception("send.telegram_error chat_id=%s", settings.chat_id)
+        return web.json_response({"ok": False, "error": "internal error"}, status=500)
     log.info("send.ok chars=%d", len(text))
     return web.json_response({"ok": True})
 
