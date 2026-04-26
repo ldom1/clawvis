@@ -23,8 +23,9 @@ def _enrich_projects(args: str) -> str:
 
 def _enrich_status(_args: str) -> str:
     return (
-        "Call GET /status on the agent service and summarize the result clearly: "
-        "active provider, model in use, and readiness flags."
+        "The user wants to know the current status of the Clawvis agent. "
+        "Describe your current operational state: which AI provider is active, "
+        "which model is in use, and whether you are ready to process requests."
     )
 
 

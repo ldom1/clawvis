@@ -263,10 +263,10 @@ class TestRouter(unittest.TestCase):
     def test_projects_command_returns_enriched_prompt(self) -> None:
         from core.router import enrich
 
-        result = enrich("projects", "list")
+        result = enrich("projects", "archive Alpha")
         self.assertIsNotNone(result)
         assert result is not None
-        self.assertIn("list", result)
+        self.assertIn("archive Alpha", result)
         self.assertIn("Kanban", result)
 
     def test_status_command_ignores_args(self) -> None:
@@ -275,7 +275,7 @@ class TestRouter(unittest.TestCase):
         result = enrich("status", "")
         self.assertIsNotNone(result)
         assert result is not None
-        self.assertIn("/status", result)
+        self.assertIn("provider", result)
 
     def test_unknown_command_returns_none(self) -> None:
         from core.router import enrich
@@ -288,6 +288,7 @@ class TestRouter(unittest.TestCase):
         result = enrich("tasks", "")
         self.assertIsNotNone(result)
         assert result is not None
+        self.assertIn("list all tasks", result)
         self.assertIn("Kanban", result)
 
     def test_tasks_with_no_args_still_returns_prompt(self) -> None:
@@ -295,6 +296,8 @@ class TestRouter(unittest.TestCase):
 
         result = enrich("tasks", "   ")
         self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIn("list all tasks", result)
 
 
 if __name__ == "__main__":
