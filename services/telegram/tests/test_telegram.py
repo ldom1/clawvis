@@ -300,5 +300,110 @@ class TestRouter(unittest.TestCase):
         self.assertIn("list all tasks", result)
 
 
+class TestBotHandlers(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        get_settings.cache_clear()
+
+    def tearDown(self) -> None:
+        get_settings.cache_clear()
+        import core.bot as bot_mod
+        bot_mod._tg_app = None  # type: ignore[misc]
+
+    @mock.patch.dict(os.environ, _std_env(), clear=True)
+    async def test_cmd_ping_replies_immediately(self) -> None:
+        from core.bot import _cmd_ping
+
+        update = MagicMock()
+        update.message = AsyncMock()
+        await _cmd_ping(update, MagicMock())
+        update.message.reply_text.assert_called_once_with("I'm here.")
+
+    @mock.patch.dict(os.environ, _std_env(), clear=True)
+    async def test_cmd_help_replies_with_command_list(self) -> None:
+        from core.bot import _cmd_help
+
+        update = MagicMock()
+        update.message = AsyncMock()
+        await _cmd_help(update, MagicMock())
+        call_args = update.message.reply_text.call_args[0][0]
+        self.assertIn("/tasks", call_args)
+        self.assertIn("/projects", call_args)
+        self.assertIn("/status", call_args)
+        self.assertIn("/ping", call_args)
+
+    @mock.patch.dict(os.environ, _std_env(), clear=True)
+    async def test_cmd_routed_tasks_calls_agent_with_enriched_prompt(self) -> None:
+        from core.bot import _cmd_routed
+
+        update = MagicMock()
+        update.message = AsyncMock()
+        update.message.text = "/tasks create Fix login bug"
+        context = MagicMock()
+        context.args = ["create", "Fix", "login", "bug"]
+
+        with patch("core.bot.call_agent", new_callable=AsyncMock) as mock_agent:
+            mock_agent.return_value = "Task #7 created: Fix login bug"
+            await _cmd_routed(update, context)
+
+        prompt_sent = mock_agent.call_args[0][1]
+        self.assertIn("Fix login bug", prompt_sent)
+        self.assertIn("Kanban", prompt_sent)
+        update.message.reply_text.assert_called_once_with("Task #7 created: Fix login bug")
+
+    @mock.patch.dict(os.environ, _std_env(), clear=True)
+    async def test_cmd_routed_agent_error_returns_friendly_message(self) -> None:
+        from core.bot import _cmd_routed
+        from core.bridge import AgentError
+
+        update = MagicMock()
+        update.message = AsyncMock()
+        update.message.text = "/tasks list"
+        context = MagicMock()
+        context.args = ["list"]
+
+        with patch("core.bot.call_agent", new_callable=AsyncMock) as mock_agent:
+            mock_agent.side_effect = AgentError("connection refused")
+            await _cmd_routed(update, context)
+
+        reply = update.message.reply_text.call_args[0][0]
+        self.assertNotIn("AgentError", reply)
+        self.assertNotIn("connection refused", reply)
+        self.assertIn("couldn't reach", reply)
+
+    @mock.patch.dict(os.environ, _std_env(), clear=True)
+    async def test_on_message_formats_response(self) -> None:
+        from core.bot import on_message
+
+        update = MagicMock()
+        update.message = AsyncMock()
+        update.message.text = "What projects are active?"
+        update.effective_user = MagicMock()
+        update.effective_user.id = 42
+
+        with patch("core.bot.call_agent", new_callable=AsyncMock) as mock_agent:
+            mock_agent.return_value = "  Three projects are active.  "
+            await on_message(update, MagicMock())
+
+        update.message.reply_text.assert_called_once_with("Three projects are active.")
+
+    @mock.patch.dict(os.environ, _std_env(), clear=True)
+    async def test_on_message_agent_sentinel_returns_snag(self) -> None:
+        from core.bot import on_message
+
+        update = MagicMock()
+        update.message = AsyncMock()
+        update.message.text = "hello"
+        update.effective_user = MagicMock()
+        update.effective_user.id = 1
+
+        with patch("core.bot.call_agent", new_callable=AsyncMock) as mock_agent:
+            mock_agent.return_value = "[Error: TimeoutError: upstream]"
+            await on_message(update, MagicMock())
+
+        reply = update.message.reply_text.call_args[0][0]
+        self.assertNotIn("[Error:", reply)
+        self.assertIn("snag", reply)
+
+
 if __name__ == "__main__":
     unittest.main()
