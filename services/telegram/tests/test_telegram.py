@@ -197,5 +197,57 @@ class TestBridge(unittest.IsolatedAsyncioTestCase):
                 await call_agent(settings, "hello")
 
 
+class TestFormatter(unittest.TestCase):
+    def test_clean_text_passes_through(self) -> None:
+        from core.formatter import format_reply
+
+        self.assertEqual(format_reply("Task #42 created."), "Task #42 created.")
+
+    def test_strips_whitespace(self) -> None:
+        from core.formatter import format_reply
+
+        self.assertEqual(format_reply("  hello  "), "hello")
+
+    def test_empty_returns_fallback(self) -> None:
+        from core.formatter import format_reply
+
+        result = format_reply("")
+        self.assertIn("empty response", result)
+
+    def test_whitespace_only_returns_fallback(self) -> None:
+        from core.formatter import format_reply
+
+        result = format_reply("   ")
+        self.assertIn("empty response", result)
+
+    def test_error_sentinel_returns_snag(self) -> None:
+        from core.formatter import format_reply
+
+        for sentinel in (
+            "[Error: ValueError: something]",
+            "[CLI error: timeout]",
+            "[CLI timeout: 120s]",
+            "[CLI: empty response]",
+            "[No LLM provider configured. Set ANTHROPIC_API_KEY]",
+        ):
+            with self.subTest(sentinel=sentinel):
+                result = format_reply(sentinel)
+                self.assertNotIn("[", result[:5], f"sentinel leaked: {result!r}")
+                self.assertIn("snag", result)
+
+    def test_truncates_at_4096(self) -> None:
+        from core.formatter import format_reply
+
+        long_text = "x" * 5000
+        result = format_reply(long_text)
+        self.assertEqual(len(result), 4096)
+
+    def test_text_at_exactly_4096_not_truncated(self) -> None:
+        from core.formatter import format_reply
+
+        text = "y" * 4096
+        self.assertEqual(format_reply(text), text)
+
+
 if __name__ == "__main__":
     unittest.main()
