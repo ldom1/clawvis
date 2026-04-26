@@ -17,8 +17,6 @@ _ALLOWED = set(_DEFAULTS)
 def _config_path() -> Path:
     if p := os.environ.get("AGENT_CONFIG_PATH"):
         return Path(p)
-    if s := os.environ.get("OPENCLAW_STATE_DIR"):
-        return Path(s) / "agent-config.json"
     return Path("/tmp/agent-config.json")
 
 

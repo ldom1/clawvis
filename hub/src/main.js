@@ -188,7 +188,7 @@ const SETTINGS_TEXT = {
       "Un seul réglage côté Hub : PRIMARY_AI_PROVIDER. Skills et mémoire : hors wizard.",
     setupStep1: "PRIMARY_AI_PROVIDER — wizard ci-dessous",
     setupStep2: "Chemins Brain et skills",
-    setupWizardCta: "OpenClaw ou Claude Code →",
+    setupWizardCta: "Choisir le runtime →",
   },
   en: {
     title: "Settings",
@@ -258,7 +258,7 @@ const SETTINGS_TEXT = {
       "Only PRIMARY_AI_PROVIDER in .env. Skills and memory are outside the wizard.",
     setupStep1: "PRIMARY_AI_PROVIDER — wizard below",
     setupStep2: "Brain and skills paths",
-    setupWizardCta: "OpenClaw or Claude Code →",
+    setupWizardCta: "Choose runtime →",
   },
 };
 
@@ -284,6 +284,14 @@ const SUBPAGE_TEXT = {
       title: "Runtime IA",
       sub: "Statut de connexion et skills disponibles.",
     },
+    schedule: {
+      title: "Schedule",
+      sub: "Jobs planifiés — créer, activer, supprimer.",
+    },
+    communication: {
+      title: "Communiquer",
+      sub: "Canaux de notification — Telegram et futurs.",
+    },
   },
   en: {
     logs: {
@@ -305,6 +313,14 @@ const SUBPAGE_TEXT = {
     runtime: {
       title: "AI Runtime",
       sub: "Connection status and available skills.",
+    },
+    schedule: {
+      title: "Schedule",
+      sub: "Scheduled jobs — create, enable, delete.",
+    },
+    communication: {
+      title: "Communicate",
+      sub: "Notification channels — Telegram and beyond.",
     },
   },
 };
@@ -416,11 +432,6 @@ function wireActiveServicesCount() {
     { name: "Logs", url: "/logs/" },
     { name: "Settings", url: "/settings/" },
     { name: "Memory", url: "/memory/" },
-    {
-      name: "OpenClaw",
-      url: "/openclaw/",
-      optional: true,
-    },
   ];
   const countUp = async () => {
     try {
@@ -499,7 +510,7 @@ function renderHome() {
           </div>
         </div>
         <div class="ai-runtime-banner-right">
-          <a href="/setup/runtime/" id="ai-runtime-cta" class="btn btn-primary ai-runtime-cta">${escapeHtml(t.runtimeBannerCta)}</a>
+          <a href="/setup/runtime/" id="ai-runtime-cta" class="btn btn-primary btn-compact ai-runtime-cta">${escapeHtml(t.runtimeBannerCta)}</a>
         </div>
       </div>
       <!-- AI Runtime chip (shown when configured, hides banner) -->
@@ -513,7 +524,7 @@ function renderHome() {
           <div class="ai-runtime-chip-panel-row">
             <span id="ai-runtime-chip-panel-status"></span>
           </div>
-          <a href="/setup/runtime/" class="btn ai-runtime-chip-settings">${escapeHtml(t.runtimeBannerChange)}</a>
+          <a href="/setup/runtime/" class="btn btn-compact ai-runtime-chip-settings">${escapeHtml(t.runtimeBannerChange)}</a>
         </div>
       </div>
 
@@ -613,6 +624,33 @@ function renderHome() {
               <div class="tool-name">${escapeHtml(t.runtimeBannerTitle)}</div>
               <div class="tool-desc">${fr ? "Statut de connexion, test et skills disponibles." : "Connection status, test, and available skills."}</div>
               <div class="tool-chiprow"><span class="tool-chip">${fr ? "Statut" : "Status"}</span><span class="tool-chip">${fr ? "Test" : "Test"}</span><span class="tool-chip">Skills</span></div>
+            </div>
+          </a>
+          <a class="tool-tile" href="/schedule">
+            <span class="tool-open">&#x2197;</span>
+            <div class="tool-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 2"></path>
+              </svg>
+            </div>
+            <div class="tool-meta">
+              <div class="tool-name">Schedule</div>
+              <div class="tool-desc">${fr ? "Jobs planifiés — créer, activer, supprimer." : "Scheduled jobs — create, enable, delete."}</div>
+              <div class="tool-chiprow"><span class="tool-chip">Cron</span><span class="tool-chip">APScheduler</span><span class="tool-chip">YAML</span></div>
+            </div>
+          </a>
+          <a class="tool-tile" href="/communication">
+            <span class="tool-open">&#x2197;</span>
+            <div class="tool-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"></path>
+              </svg>
+            </div>
+            <div class="tool-meta">
+              <div class="tool-name">${fr ? "Communiquer" : "Communicate"}</div>
+              <div class="tool-desc">${fr ? "Canaux de notification — Telegram et futurs." : "Notification channels — Telegram and beyond."}</div>
+              <div class="tool-chiprow"><span class="tool-chip">Telegram</span><span class="tool-chip">${fr ? "Test" : "Test"}</span><span class="tool-chip">Discord…</span></div>
             </div>
           </a>
         </div>
@@ -974,7 +1012,7 @@ function renderSettings() {
             <li><strong>2.</strong> ${escapeHtml(t.setupStep2)} — <code id="setup-settings-memory">—</code> · <code id="setup-settings-skills">—</code></li>
           </ol>
           <div class="settings-actions" style="margin-top:8px;">
-            <a href="/setup/runtime/" class="btn btn-primary">${escapeHtml(t.setupWizardCta)}</a>
+            <a href="/setup/runtime/" class="btn btn-primary btn-compact">${escapeHtml(t.setupWizardCta)}</a>
           </div>
         </section>
         <section class="card settings-card settings-section">
@@ -1013,14 +1051,14 @@ function renderSettings() {
           <div id="instances-list" class="instances-list" role="group" aria-label="${escapeHtml(t.instancesTitle)}"></div>
         </section>
 
-        <section class="card settings-card settings-section" id="cron-section">
+        <section class="card settings-card settings-section" id="quick-links-section">
           <div class="settings-heading-row">
-            <h2 class="card-title settings-section-title">${isFr ? "Cron OpenClaw" : "OpenClaw Cron"}</h2>
-            <span id="cron-status" class="ai-runtime-status-badge warn">${isFr ? "Chargement…" : "Loading…"}</span>
-            <button id="refresh-cron" class="btn" type="button" style="margin-left:auto">${isFr ? "Actualiser" : "Refresh"}</button>
+            <h2 class="card-title settings-section-title">${isFr ? "Raccourcis" : "Quick links"}</h2>
           </div>
-          <div class="card-desc">${isFr ? "Tâches planifiées OpenClaw — ~/.openclaw/cron/jobs.json" : "Scheduled OpenClaw jobs — ~/.openclaw/cron/jobs.json"}</div>
-          <div id="cron-table-wrap"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+            <a href="/schedule" class="btn btn-compact">⏱ Schedule</a>
+            <a href="/communication" class="btn btn-compact">💬 ${isFr ? "Communiquer" : "Communicate"}</a>
+          </div>
         </section>
 
       </div>
@@ -3172,8 +3210,9 @@ function wireSystemStatus() {
     if (!statusEl) return;
 
     const labels = {
-      openclaw: "OpenClaw",
-      claude: "Claude Code",
+      cli: "CLI",
+      anthropic: "Anthropic",
+      mammouth: "OpenRouter / API",
     };
 
     const banner = document.getElementById("ai-runtime-banner");
@@ -3202,7 +3241,9 @@ function wireSystemStatus() {
 
     const pp = cfg.primary_provider;
     const configured = !!pp;
-    const providerLabel = pp ? labels[pp] || pp : "";
+    const providerLabel = pp
+      ? labels[pp] || (pp === "mammouth" ? labels.mammouth : pp)
+      : "";
 
     if (configured) {
       if (banner) banner.style.display = "none";
@@ -3524,81 +3565,8 @@ async function wireSettings() {
   });
   await loadInstances();
 
-  // --- Cron section ---
-  async function loadCronJobs() {
-    const wrap = document.getElementById("cron-table-wrap");
-    const status = document.getElementById("cron-status");
-    if (!wrap) return;
-    try {
-      const r = await fetch("/api/hub/agent/cron", {
-        signal: AbortSignal.timeout(5000),
-      });
-      if (!r.ok) {
-        if (status) {
-          status.className = "ai-runtime-status-badge warn";
-          status.textContent = isFr ? "Indisponible" : "Unavailable";
-        }
-        wrap.innerHTML = `<p class="muted" style="font-size:12px">${isFr ? "Agent service inaccessible" : "Agent service unreachable"}</p>`;
-        return;
-      }
-      const data = await r.json();
-      const jobs = data.jobs || [];
-      if (status) {
-        status.className = `ai-runtime-status-badge ${jobs.length ? "ok" : "warn"}`;
-        status.textContent = `${jobs.length} ${isFr ? "job(s)" : "job(s)"}`;
-      }
-      if (!jobs.length) {
-        wrap.innerHTML = `<p class="muted" style="font-size:12px">${isFr ? "Aucune tâche planifiée" : "No scheduled jobs"} — <code>${escapeHtml(data.path || "")}</code></p>`;
-        return;
-      }
-      const rows = jobs
-        .map((j) => {
-          const name = escapeHtml(j.name || j.id || "—");
-          const schedule = escapeHtml(j.schedule || "—");
-          const enabled = j.enabled !== false;
-          const lastRun = j.lastRun
-            ? escapeHtml(new Date(j.lastRun).toLocaleString())
-            : "—";
-          const errors = j.consecutiveErrors || 0;
-          const errBadge =
-            errors > 0
-              ? `<span class="ai-runtime-status-badge warn">${errors} err</span>`
-              : "";
-          const statusBadge = enabled
-            ? `<span class="ai-runtime-status-badge ok">${isFr ? "actif" : "active"}</span>`
-            : `<span class="ai-runtime-status-badge warn">${isFr ? "désactivé" : "disabled"}</span>`;
-          return `<tr>
-            <td class="cron-td">${name}</td>
-            <td class="cron-td"><code>${schedule}</code></td>
-            <td class="cron-td">${statusBadge} ${errBadge}</td>
-            <td class="cron-td cron-td-muted">${lastRun}</td>
-          </tr>`;
-        })
-        .join("");
-      wrap.innerHTML = `
-        <table class="cron-table">
-          <thead><tr>
-            <th class="cron-th">${isFr ? "Nom" : "Name"}</th>
-            <th class="cron-th">Schedule</th>
-            <th class="cron-th">Status</th>
-            <th class="cron-th">${isFr ? "Dernier run" : "Last run"}</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>`;
-    } catch (_) {
-      if (status) {
-        status.className = "ai-runtime-status-badge warn";
-        status.textContent = isFr ? "Erreur" : "Error";
-      }
-      wrap.innerHTML = `<p class="muted" style="font-size:12px">${isFr ? "Erreur de chargement" : "Load error"}</p>`;
-    }
-  }
-
-  document
-    .getElementById("refresh-cron")
-    ?.addEventListener("click", loadCronJobs);
-  await loadCronJobs();
 }
+
 
 async function refreshBrainSourceHint() {
   const select = document.getElementById("brain-memory-select");
@@ -3958,6 +3926,277 @@ function formatClawvisChatAssistantText(full, fr) {
   return { text: full, authError: false };
 }
 
+// ─── Schedule page ────────────────────────────────────────────────────────────
+
+function renderSchedulePage() {
+  const fr = settingsLocale() === "fr";
+  app.innerHTML = `
+    <div class="container">
+      ${subpageHeader("schedule")}
+      <div class="settings-page-body">
+
+        <section class="card settings-card settings-section" id="cron-section">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">Schedule</h2>
+            <span id="cron-status" class="ai-runtime-status-badge warn">${fr ? "Chargement…" : "Loading…"}</span>
+            <button id="add-cron-job" class="btn btn-compact btn-primary" type="button">${fr ? "+ Ajouter" : "+ Add job"}</button>
+            <button id="refresh-cron" class="btn btn-compact" type="button" style="margin-left:8px">${fr ? "Actualiser" : "Refresh"}</button>
+          </div>
+          <div class="card-desc">${fr
+            ? "Jobs planifiés. Définitions YAML sauvegardées dans <code>services/scheduler/definitions/</code>. Chaque job envoie le prompt à l'agent puis poste le résultat sur Telegram."
+            : "Scheduled jobs. YAML definitions are saved to <code>services/scheduler/definitions/</code>. Each job sends the prompt to the agent and posts the result to Telegram."
+          }</div>
+          <div id="cron-table-wrap"></div>
+          <div id="cron-add-form" class="cron-add-form" style="display:none">
+            <h3 style="margin:0 0 10px;font-size:14px">${fr ? "Nouveau job" : "New job"}</h3>
+            <div class="cron-form-grid">
+              <div class="field"><label>${fr ? "Nom" : "Name"}</label><input id="cron-name" placeholder="morning-briefing" /></div>
+              <div class="field"><label>Cron</label><input id="cron-expr" placeholder="0 9 * * *" /></div>
+              <div class="field"><label>Timezone</label><input id="cron-tz" placeholder="UTC" value="UTC" /></div>
+              <div class="field" style="grid-column:1/-1"><label>Prompt</label><textarea id="cron-prompt" rows="3" placeholder="${fr ? "Message envoyé à l'agent…" : "Message sent to the agent…"}"></textarea></div>
+              <div class="field" style="align-items:center;display:flex;gap:8px"><label style="margin:0"><input type="checkbox" id="cron-enabled" checked /> ${fr ? "Activé" : "Enabled"}</label></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button id="cron-save" class="btn btn-primary btn-compact" type="button">${fr ? "Enregistrer" : "Save"}</button>
+              <button id="cron-cancel" class="btn btn-compact" type="button">${fr ? "Annuler" : "Cancel"}</button>
+              <span id="cron-save-status" style="font-size:12px;align-self:center"></span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  `;
+}
+
+async function wireSchedulePage() {
+  const fr = settingsLocale() === "fr";
+
+  async function loadCronJobs() {
+    const wrap = document.getElementById("cron-table-wrap");
+    const status = document.getElementById("cron-status");
+    if (!wrap) return;
+    try {
+      const r = await fetch("/api/hub/agent/cron", { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) {
+        if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Indisponible" : "Unavailable"; }
+        wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Agent service inaccessible" : "Agent service unreachable"}</p>`;
+        return;
+      }
+      const data = await r.json();
+      const jobs = data.jobs || [];
+      if (status) {
+        status.className = `ai-runtime-status-badge ${jobs.length ? "ok" : "warn"}`;
+        status.textContent = `${jobs.length} ${fr ? "job(s)" : "job(s)"}`;
+      }
+      if (!jobs.length) {
+        wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Aucun job planifié." : "No scheduled jobs."}</p>`;
+        return;
+      }
+      const rows = jobs.map((j) => {
+        const rawName = j.name || j.id || "";
+        const name = escapeHtml(rawName);
+        const schedule = escapeHtml(j.schedule || "—");
+        const enabled = j.enabled !== false;
+        const nextRun = j.nextRun ? escapeHtml(new Date(j.nextRun).toLocaleString()) : "—";
+        const errors = j.consecutiveErrors || 0;
+        const errBadge = errors > 0 ? `<span class="ai-runtime-status-badge warn">${errors} err</span>` : "";
+        const statusBadge = enabled
+          ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
+          : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
+        const toggleLabel = enabled ? (fr ? "Désactiver" : "Disable") : (fr ? "Activer" : "Enable");
+        return `<tr data-cron-name="${name}">
+          <td class="cron-td"><strong>${name}</strong></td>
+          <td class="cron-td"><code>${schedule}</code></td>
+          <td class="cron-td">${statusBadge} ${errBadge}</td>
+          <td class="cron-td cron-td-muted">${nextRun}</td>
+          <td class="cron-td" style="white-space:nowrap">
+            <button class="btn btn-compact cron-toggle-btn" data-name="${name}" data-enabled="${enabled}" type="button" style="font-size:11px">${toggleLabel}</button>
+            <button class="btn btn-compact cron-delete-btn" data-name="${name}" type="button" style="font-size:11px;color:#ef4444;border-color:#ef4444;margin-left:4px">${fr ? "Suppr." : "Delete"}</button>
+          </td>
+        </tr>`;
+      }).join("");
+      wrap.innerHTML = `
+        <table class="cron-table">
+          <thead><tr>
+            <th class="cron-th">${fr ? "Nom" : "Name"}</th>
+            <th class="cron-th">Schedule</th>
+            <th class="cron-th">Status</th>
+            <th class="cron-th">${fr ? "Prochain run" : "Next run"}</th>
+            <th class="cron-th"></th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+      wrap.querySelectorAll(".cron-delete-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const name = btn.getAttribute("data-name");
+          if (!confirm(`${fr ? "Supprimer le job" : "Delete job"} "${name}" ?`)) return;
+          btn.disabled = true;
+          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, { method: "DELETE" });
+          if (res.ok) { await loadCronJobs(); } else { btn.disabled = false; alert(fr ? "Erreur lors de la suppression." : "Delete failed."); }
+        });
+      });
+      wrap.querySelectorAll(".cron-toggle-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const name = btn.getAttribute("data-name");
+          const currentlyEnabled = btn.getAttribute("data-enabled") === "true";
+          btn.disabled = true;
+          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled: !currentlyEnabled }),
+          });
+          if (res.ok) { await loadCronJobs(); } else { btn.disabled = false; alert(fr ? "Erreur lors de la mise à jour." : "Update failed."); }
+        });
+      });
+    } catch (_) {
+      if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Erreur" : "Error"; }
+      wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Erreur de chargement" : "Load error"}</p>`;
+    }
+  }
+
+  document.getElementById("refresh-cron")?.addEventListener("click", loadCronJobs);
+
+  document.getElementById("add-cron-job")?.addEventListener("click", () => {
+    const form = document.getElementById("cron-add-form");
+    if (form) form.style.display = form.style.display === "none" ? "block" : "none";
+  });
+  document.getElementById("cron-cancel")?.addEventListener("click", () => {
+    const form = document.getElementById("cron-add-form");
+    if (form) form.style.display = "none";
+  });
+  document.getElementById("cron-save")?.addEventListener("click", async () => {
+    const saveBtn = document.getElementById("cron-save");
+    const statusEl = document.getElementById("cron-save-status");
+    const name = document.getElementById("cron-name")?.value.trim();
+    const cron = document.getElementById("cron-expr")?.value.trim();
+    const prompt = document.getElementById("cron-prompt")?.value.trim();
+    const tz = document.getElementById("cron-tz")?.value.trim() || "UTC";
+    const enabled = document.getElementById("cron-enabled")?.checked ?? true;
+    if (!name || !cron || !prompt) {
+      if (statusEl) statusEl.textContent = fr ? "Nom, cron et prompt requis." : "Name, cron and prompt are required.";
+      return;
+    }
+    if (saveBtn) saveBtn.disabled = true;
+    if (statusEl) statusEl.textContent = fr ? "Enregistrement…" : "Saving…";
+    try {
+      const res = await fetch("/api/hub/agent/cron/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, cron, prompt, timezone: tz, enabled }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (statusEl) statusEl.textContent = "";
+        const form = document.getElementById("cron-add-form");
+        if (form) form.style.display = "none";
+        ["cron-name", "cron-expr", "cron-prompt"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
+        await loadCronJobs();
+      } else {
+        if (statusEl) statusEl.textContent = data.error || (fr ? "Erreur." : "Error.");
+      }
+    } catch (err) {
+      if (statusEl) statusEl.textContent = String(err);
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
+    }
+  });
+
+  await loadCronJobs();
+}
+
+// ─── Communication page ───────────────────────────────────────────────────────
+
+function renderCommunicationPage() {
+  const fr = settingsLocale() === "fr";
+  app.innerHTML = `
+    <div class="container">
+      ${subpageHeader("communication")}
+      <div class="settings-page-body">
+
+        <section class="card settings-card settings-section" id="telegram-section">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">Telegram</h2>
+            <span id="telegram-status" class="ai-runtime-status-badge warn">${fr ? "Chargement…" : "Loading…"}</span>
+            <button id="telegram-test" class="btn btn-compact btn-primary" type="button" style="margin-left:auto">${fr ? "Envoyer un test" : "Send test"}</button>
+          </div>
+          <div class="card-desc">${fr
+            ? "Service <code>telegram</code> du Docker Compose. Définis <code>TELEGRAM_BOT_TOKEN</code> et <code>TELEGRAM_CHAT_ID</code> dans <code>.env</code>. Sans token, le mode stub logue les messages sans les envoyer."
+            : "Docker Compose <code>telegram</code> service. Set <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_CHAT_ID</code> in <code>.env</code>. Without a token, stub mode logs messages instead of sending them."
+          }</div>
+          <div id="telegram-details" class="muted" style="font-size:12px;margin-top:8px"></div>
+          <div id="telegram-test-status" style="font-size:13px;margin-top:10px;font-weight:500"></div>
+        </section>
+
+        <section class="card settings-card settings-section" style="opacity:.55">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">Discord</h2>
+            <span class="ai-runtime-status-badge warn">${fr ? "Bientôt" : "Coming soon"}</span>
+          </div>
+          <div class="card-desc">${fr ? "Canal Discord — à venir." : "Discord channel — coming soon."}</div>
+        </section>
+
+      </div>
+    </div>
+  `;
+}
+
+async function wireCommunicationPage() {
+  const fr = settingsLocale() === "fr";
+
+  async function loadTelegramStatus() {
+    const statusEl = document.getElementById("telegram-status");
+    const detailsEl = document.getElementById("telegram-details");
+    try {
+      const r = await fetch("/api/hub/telegram/health", { signal: AbortSignal.timeout(4000) });
+      if (!r.ok) throw new Error("not ok");
+      const data = await r.json();
+      if (statusEl) {
+        statusEl.className = `ai-runtime-status-badge ${data.token_configured ? "ok" : "warn"}`;
+        statusEl.textContent = data.stub_mode
+          ? (fr ? "Stub (pas de token)" : "Stub (no token)")
+          : (fr ? "Configuré" : "Configured");
+      }
+      if (detailsEl) {
+        const parts = [];
+        if (data.chat_id) parts.push(`chat_id: ${data.chat_id}`);
+        if (data.stub_mode) parts.push(fr ? "Mode stub — messages loggés, pas envoyés." : "Stub mode — messages are logged, not sent.");
+        else parts.push(fr ? "Bot prêt." : "Bot ready.");
+        detailsEl.textContent = parts.join("  ·  ");
+      }
+    } catch (_) {
+      if (statusEl) { statusEl.className = "ai-runtime-status-badge warn"; statusEl.textContent = fr ? "Indisponible" : "Unavailable"; }
+    }
+  }
+
+  document.getElementById("telegram-test")?.addEventListener("click", async () => {
+    const btn = document.getElementById("telegram-test");
+    const statusEl = document.getElementById("telegram-test-status");
+    if (btn) btn.disabled = true;
+    if (statusEl) statusEl.textContent = fr ? "Envoi…" : "Sending…";
+    try {
+      const r = await fetch("/api/hub/telegram/test", { method: "POST" });
+      const data = await r.json();
+      if (r.ok && data.ok) {
+        if (statusEl) statusEl.textContent = data.stub
+          ? (fr ? "✓ Stub : message loggé (aucun token configuré)." : "✓ Stub: message logged (no token configured).")
+          : (fr ? "✓ Message envoyé avec succès !" : "✓ Message sent successfully!");
+      } else {
+        if (statusEl) statusEl.textContent = `✗ ${data.error || "error"}`;
+      }
+    } catch (err) {
+      if (statusEl) statusEl.textContent = `✗ ${err}`;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+
+  await loadTelegramStatus();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function renderRuntimePage() {
   const fr = settingsLocale() === "fr";
   app.innerHTML = `
@@ -3973,8 +4212,8 @@ function renderRuntimePage() {
           <h2 class="card-title">${fr ? "Skills Clawvis disponibles pour l'agent" : "Clawvis skills available to your agent"}</h2>
           <p class="card-desc">${
             fr
-              ? "Ces skills sont chargées par ton agent à chaque run (OpenClaw) ou utilisées depuis le hub pour des tâches ponctuelles (Claude)."
-              : "These skills are loaded by your agent on each run (OpenClaw), or used from the hub for ad-hoc tasks (Claude)."
+              ? "Skills du dépôt : utilisées par l’agent (API ou CLI) et pour des actions ponctuelles depuis le Hub."
+              : "Repo skills: used by the agent (API or CLI) and for ad-hoc actions from the Hub."
           }</p>
           <div id="runtime-skills-loading" class="muted">${fr ? "Chargement…" : "Loading…"}</div>
           <ul id="runtime-skills-list" class="runtime-skills-list" hidden></ul>
@@ -3989,8 +4228,9 @@ async function wireRuntime() {
   const fr = settingsLocale() === "fr";
 
   const providerLabels = {
-    openclaw: "OpenClaw",
-    claude: "Claude Code",
+    cli: "CLI",
+    anthropic: "Anthropic",
+    mammouth: "OpenRouter / API",
   };
 
   const infoPanel = document.getElementById("runtime-info-panel");
@@ -4000,7 +4240,9 @@ async function wireRuntime() {
       const cfg = await configRes.json();
       const pp = cfg.primary_provider;
       const configured = !!pp;
-      const providerName = pp ? providerLabels[pp] || pp : "—";
+      const providerName = pp
+        ? providerLabels[pp] || (pp === "mammouth" ? providerLabels.mammouth : pp)
+        : "—";
       const statusDot = configured
         ? `<span class="runtime-dot ok"></span>`
         : `<span class="runtime-dot warn"></span>`;
@@ -4060,39 +4302,47 @@ async function wireRuntime() {
 const SETUP_RUNTIME_TEXT = {
   fr: {
     title: "Setup",
-    subtitle: "Choisis quel agent Clawvis utilise.",
+    subtitle: "Choisis le fournisseur principal (PRIMARY_AI_PROVIDER dans .env).",
     back: "Retour au hub",
-    step1Title: "Choisir ton agent",
+    step1Title: "Runtime IA",
     step1Desc:
-      "Clawvis se connecte à l'agent que tu as déjà configuré. Choisis lequel utiliser.",
+      "API compatible OpenRouter, CLI local (Claude Code / opencode / Codex), ou clé Anthropic directe.",
     confirm: "Confirmer →",
     providers: {
-      openclaw: {
-        name: "OpenClaw",
-        cardDesc: "Ton instance OpenClaw tourne déjà sur ce serveur.",
+      openrouter: {
+        name: "OpenRouter / API",
+        cardDesc: "OpenAI-compatible (OpenRouter, Mammouth, Mistral…).",
       },
-      claude: {
-        name: "Claude Code",
-        cardDesc: "Claude Code est déjà installé sur cette machine.",
+      cli: {
+        name: "CLI",
+        cardDesc: "Claude Code, opencode ou Codex sur cette machine.",
+      },
+      anthropic: {
+        name: "Anthropic",
+        cardDesc: "Clé API Anthropic (CLAUDE_API_KEY / ANTHROPIC_API_KEY).",
       },
     },
   },
   en: {
     title: "Setup",
-    subtitle: "Choose which agent Clawvis uses.",
+    subtitle: "Pick the primary AI runtime (PRIMARY_AI_PROVIDER in .env).",
     back: "Back to hub",
-    step1Title: "Choose your agent",
+    step1Title: "AI runtime",
     step1Desc:
-      "Clawvis connects to the agent you already set up. Pick which one to use.",
+      "OpenRouter-compatible HTTP API, local CLI (Claude Code / opencode / Codex), or direct Anthropic API.",
     confirm: "Confirm →",
     providers: {
-      openclaw: {
-        name: "OpenClaw",
-        cardDesc: "Your OpenClaw instance is already running on this server.",
+      openrouter: {
+        name: "OpenRouter / API",
+        cardDesc: "OpenAI-compatible stack (OpenRouter, Mammouth, Mistral…).",
       },
-      claude: {
-        name: "Claude Code",
-        cardDesc: "Claude Code is already installed on this machine.",
+      cli: {
+        name: "CLI",
+        cardDesc: "Claude Code, opencode, or Codex on this host.",
+      },
+      anthropic: {
+        name: "Anthropic",
+        cardDesc: "Anthropic API key (CLAUDE_API_KEY / ANTHROPIC_API_KEY).",
       },
     },
   },
@@ -4121,11 +4371,13 @@ function renderSetupRuntime() {
         <h2>${escapeHtml(t.step1Title)}</h2>
         <p class="setup-step-desc">${escapeHtml(t.step1Desc)}</p>
         <div class="setup-provider-cards">
-          ${["openclaw", "claude"]
+          ${["openrouter", "cli", "anthropic"]
             .map((pid) => {
               const p = t.providers[pid];
+              const icon =
+                pid === "cli" ? "💻" : pid === "openrouter" ? "🌐" : "✦";
               return `<button class="setup-provider-card" data-provider="${pid}" type="button">
-              <span class="setup-provider-icon">${pid === "openclaw" ? "🐾" : "🧠"}</span>
+              <span class="setup-provider-icon">${icon}</span>
               <strong>${escapeHtml(p.name)}</strong>
               <span class="setup-provider-card-desc">${escapeHtml(p.cardDesc)}</span>
             </button>`;
@@ -4134,7 +4386,7 @@ function renderSetupRuntime() {
         </div>
         <div id="setup-provider-feedback" class="setup-test-result" aria-live="polite"></div>
         <div class="setup-actions">
-          <button class="btn btn-primary" id="setup-confirm" type="button" disabled>${escapeHtml(t.confirm)}</button>
+          <button class="btn btn-primary btn-compact" id="setup-confirm" type="button" disabled>${escapeHtml(t.confirm)}</button>
         </div>
       </div>
     </div>
@@ -4153,7 +4405,10 @@ async function wireSetupRuntime() {
   const feedbackEl = document.getElementById("setup-provider-feedback");
 
   const setSelectedProvider = (provider) => {
-    const ok = provider === "openclaw" || provider === "claude";
+    const ok =
+      provider === "openrouter" ||
+      provider === "cli" ||
+      provider === "anthropic";
     selectedProvider = ok ? provider : "";
     const scope = cardsRoot || document;
     scope.querySelectorAll("[data-provider]").forEach((c) => {
@@ -4185,8 +4440,10 @@ async function wireSetupRuntime() {
     if (r.ok && !userPickedProvider) {
       const cfg = await r.json();
       const pp = cfg.primary_provider;
-      if (pp === "openclaw" || pp === "claude") {
-        setSelectedProvider(pp);
+      if (pp === "cli") {
+        setSelectedProvider("cli");
+      } else if (pp === "mammouth" || pp === "anthropic") {
+        setSelectedProvider(pp === "anthropic" ? "anthropic" : "openrouter");
       }
     }
   } catch {
@@ -4239,6 +4496,8 @@ async function wireSetupRuntime() {
 async function boot() {
   if (path.startsWith("/setup/runtime")) renderSetupRuntime();
   else if (path.startsWith("/settings")) renderSettings();
+  else if (path.startsWith("/schedule")) renderSchedulePage();
+  else if (path.startsWith("/communication")) renderCommunicationPage();
   else if (path.startsWith("/logs")) renderLogs();
   else if (path.startsWith("/runtime")) renderRuntimePage();
   else if (path.startsWith("/chat"))
@@ -4264,6 +4523,8 @@ async function boot() {
   }
   if (path.startsWith("/setup/runtime")) await wireSetupRuntime();
   else if (path.startsWith("/settings")) await wireSettings();
+  else if (path.startsWith("/schedule")) await wireSchedulePage();
+  else if (path.startsWith("/communication")) await wireCommunicationPage();
   else if (path.startsWith("/logs")) await wireLogs();
   else if (path.startsWith("/runtime")) await wireRuntime();
   else if (path.startsWith("/chat"))

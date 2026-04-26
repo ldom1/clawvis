@@ -10,12 +10,12 @@ RUN apt-get update && \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /clawvis
-COPY agent/ ./agent/
+COPY services/agent/ ./services/agent/
 
-WORKDIR /clawvis/agent
+WORKDIR /clawvis/services/agent
 RUN uv sync --no-dev
 
 EXPOSE 8092
 
-CMD ["/clawvis/agent/.venv/bin/uvicorn", "agent_service.main:app", \
+CMD ["/clawvis/services/agent/.venv/bin/uvicorn", "agent_service.main:app", \
      "--host", "0.0.0.0", "--port", "8092"]

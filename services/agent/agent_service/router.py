@@ -1,36 +1,32 @@
 from __future__ import annotations
 
-import asyncio
-import json
 import os
-from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+import httpx
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
+from .cli_runner import CliRunner
 from .config_store import load_config, save_config
-from .openclaw_runner import (
-    list_sessions,
-    openclaw_available,
-    restart_gateway,
-    run_agent_session,
-)
 from .persona import load_persona
 from .provider import ProviderConfig, load_provider_config, primary_ai_provider_raw
 from .streaming import stream_anthropic, stream_openai_compat
+
+_SCHEDULER_URL = os.environ.get("SCHEDULER_URL", "http://scheduler:8095")
 
 router = APIRouter()
 
 
 def primary_provider_from_env() -> str | None:
-    """Hub UI: openclaw | claude if PRIMARY_AI_PROVIDER is set accordingly; else None."""
     raw = primary_ai_provider_raw().strip().lower()
-    if raw == "openclaw":
-        return "openclaw"
-    if raw in ("claude", "anthropic"):
-        return "claude"
+    if raw in ("cli", "claude-code", "opencode", "codex"):
+        return "cli"
+    if raw in ("anthropic", "claude"):
+        return "anthropic"
+    if raw in ("mammouth", "mistral", "openrouter"):
+        return "mammouth"
     return None
 
 
@@ -40,10 +36,10 @@ def _normalize_provider_str(v: str) -> str:
         return "anthropic"
     if s in ("anthropic", "claude"):
         return "anthropic"
-    if s in ("mammouth", "mistral", "mammoth"):
+    if s in ("mammouth", "mistral", "mammoth", "openrouter"):
         return "mammouth"
-    if s in ("openclaw",):
-        return "openclaw"
+    if s in ("cli", "claude-code", "opencode", "codex"):
+        return "cli"
     return s
 
 
@@ -61,13 +57,12 @@ def runtime_ready(cfg: ProviderConfig, eff: str) -> bool:
         return bool(cfg.anthropic_token)
     if eff == "mammouth":
         return bool(cfg.mammouth_token)
-    if eff == "openclaw":
-        return cfg.openclaw_available
+    if eff == "cli":
+        return cfg.cli_available
     return False
 
 
 def _openai_compat_kind(base_url: str) -> str:
-    """Classify the single OpenAI-compatible base URL (one token + URL in code)."""
     u = (base_url or "").lower()
     if "openrouter.ai" in u or "/openrouter" in u:
         return "openrouter"
@@ -80,7 +75,6 @@ def _openai_compat_kind(base_url: str) -> str:
     return "custom"
 
 
-# Defaults for docs/examples/agent-config-get-response.json (inactive rows).
 _OPENROUTER_DEFAULT_BASE = "https://openrouter.ai/api/v1"
 _MAMMOUTH_DEFAULT_BASE = "https://api.mammouth.ai/v1"
 _OPENROUTER_DEFAULT_MODEL = "qwen/qwen3-plus:free"
@@ -88,7 +82,6 @@ _MAMMOUTH_DEFAULT_MODEL = "mistral:mistral-small-3.2-24b-instruct"
 
 
 def _providers_nested(cfg: ProviderConfig, conf: dict) -> dict[str, Any]:
-    """Sibling rows for UI; at most one of openrouter/mammouth is active for the compat token."""
     anthropic_model = conf.get("anthropic_model") or "claude-haiku-4-5"
     configured_model = conf.get("mammouth_model") or _OPENROUTER_DEFAULT_MODEL
     base = (cfg.mammouth_base_url or "").strip()
@@ -110,9 +103,7 @@ def _providers_nested(cfg: ProviderConfig, conf: dict) -> dict[str, Any]:
             "available": openrouter_active,
             "base_url": base if openrouter_active else _OPENROUTER_DEFAULT_BASE,
             "models": {
-                "default": configured_model
-                if openrouter_active
-                else _OPENROUTER_DEFAULT_MODEL
+                "default": configured_model if openrouter_active else _OPENROUTER_DEFAULT_MODEL
             },
             "note": (
                 "Single token + base URL; qwen/qwen3-plus:free is the default model id "
@@ -124,19 +115,17 @@ def _providers_nested(cfg: ProviderConfig, conf: dict) -> dict[str, Any]:
             "base_url": base if mammouth_active else _MAMMOUTH_DEFAULT_BASE,
             "available": mammouth_active,
             "models": {
-                "default": configured_model
-                if mammouth_active
-                else _MAMMOUTH_DEFAULT_MODEL
+                "default": configured_model if mammouth_active else _MAMMOUTH_DEFAULT_MODEL
             },
             "note": (
                 "Single token + base URL; mistral:mistral-small-3.2-24b-instruct is the "
                 "default model id for this endpoint."
             ),
         },
-        "openclaw": {
-            "label": "OpenClaw gateway",
-            "available": cfg.openclaw_available,
-            "models": {},
+        "cli": {
+            "label": "CLI tool",
+            "tool": cfg.cli_tool,
+            "available": cfg.cli_available,
         },
     }
 
@@ -156,7 +145,8 @@ def status():
         "runtime_ready": runtime_ready(cfg, eff),
         "anthropic_configured": bool(cfg.anthropic_token),
         "mammouth_configured": bool(cfg.mammouth_token),
-        "openclaw_available": cfg.openclaw_available,
+        "cli_available": cfg.cli_available,
+        "cli_tool": cfg.cli_tool,
         "primary_provider": primary_provider_from_env(),
     }
 
@@ -184,8 +174,6 @@ def update_config(body: AgentConfigUpdate):
     updates: dict[str, Any] = {
         k: v for k, v in body.model_dump().items() if v is not None
     }
-    # Allow explicitly setting preferred_provider to null via a separate mechanism;
-    # for now a patch with None values is a no-op (fields not provided)
     saved = save_config(updates)
     return {"ok": True, "config": saved}
 
@@ -194,35 +182,27 @@ def update_config(body: AgentConfigUpdate):
 async def chat(req: ChatRequest):
     cfg = load_provider_config()
     conf = load_config()
-    system = load_persona(cfg.openclaw_state_dir)
+    system = load_persona(None)
 
     preferred = effective_provider(conf, cfg)
     anthropic_model = conf.get("anthropic_model", "claude-haiku-4-5")
     mammouth_model = conf.get("mammouth_model", "qwen/qwen3-plus:free")
 
-    use_openclaw = preferred == "openclaw" and openclaw_available()
+    use_cli = preferred == "cli" and cfg.cli_available
     use_anthropic = preferred == "anthropic" and bool(cfg.anthropic_token)
     use_mammouth = preferred == "mammouth" and bool(cfg.mammouth_token)
 
     async def generate():
         try:
-            if use_openclaw:
-                loop = asyncio.get_event_loop()
-                result = await loop.run_in_executor(
-                    None, lambda: run_agent_session(req.message, local=True)
-                )
-                if result.success:
-                    output = result.output
-                    if isinstance(output, dict):
-                        payloads = output.get("payloads") or []
-                        text = " ".join(p.get("text", "") for p in payloads if p.get("text"))
-                        if not text:
-                            text = output.get("message", {}).get("content", "") or str(output)
-                    else:
-                        text = str(output)
-                    yield text or "[OpenClaw: empty response]"
-                else:
-                    yield f"[OpenClaw error: {result.error}]"
+            if use_cli:
+                runner = CliRunner()
+                try:
+                    text = await runner.run(req.message)
+                    yield text or "[CLI: empty response]"
+                except TimeoutError as e:
+                    yield f"[CLI timeout: {e}]"
+                except Exception as e:
+                    yield f"[CLI error: {e}]"
             elif use_anthropic and cfg.anthropic_token:
                 async for chunk in stream_anthropic(
                     req.message, req.history, system, cfg.anthropic_token,
@@ -237,65 +217,60 @@ async def chat(req: ChatRequest):
                 ):
                     yield chunk
             else:
-                yield (
-                    "[No LLM provider configured. "
-                    "Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY in .env]"
-                )
+                yield "[No LLM provider configured. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY in .env]"
         except Exception as exc:
             yield f"[Error: {type(exc).__name__}: {exc}]"
 
     return StreamingResponse(generate(), media_type="text/plain; charset=utf-8")
 
 
-class SessionRequest(BaseModel):
-    message: str
-    session_id: str | None = None
-    local: bool = True
+# --- Cron / Scheduler proxy ---
 
-
-@router.post("/session")
-def start_session(req: SessionRequest):
-    if not openclaw_available():
-        raise HTTPException(status_code=503, detail="OpenClaw not available")
-    result = run_agent_session(req.message, req.session_id, local=req.local)
-    if not result.success:
-        raise HTTPException(status_code=500, detail=result.error)
-    return result.output
-
-
-@router.get("/sessions")
-def get_sessions():
-    if not openclaw_available():
-        raise HTTPException(status_code=503, detail="OpenClaw not available")
-    result = list_sessions()
-    if not result.success:
-        raise HTTPException(status_code=500, detail=result.error)
-    return result.output
-
-
-@router.post("/restart")
-def restart():
-    if not openclaw_available():
-        raise HTTPException(status_code=503, detail="OpenClaw not available")
-    result = restart_gateway()
-    if not result.success:
-        raise HTTPException(status_code=500, detail=result.error)
-    return {"status": "restarted"}
+async def _scheduler_request(method: str, path: str, body: dict | None = None) -> JSONResponse:
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            resp = await client.request(
+                method,
+                f"{_SCHEDULER_URL}{path}",
+                json=body,
+            )
+        return JSONResponse(content=resp.json(), status_code=resp.status_code)
+    except httpx.ConnectError:
+        return JSONResponse({"ok": False, "error": "scheduler unavailable"}, status_code=503)
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
 
 
 @router.get("/cron")
-def get_cron_jobs():
-    """Return OpenClaw cron jobs from $OPENCLAW_STATE_DIR/cron/jobs.json."""
-    state_dir = os.environ.get("OPENCLAW_STATE_DIR", "")
-    if not state_dir:
-        home = Path(os.environ.get("HOME", Path.home()))
-        state_dir = str(home / ".openclaw")
-    jobs_file = Path(state_dir) / "cron" / "jobs.json"
-    if not jobs_file.exists():
-        return {"jobs": [], "path": str(jobs_file), "found": False}
-    try:
-        data = json.loads(jobs_file.read_text(encoding="utf-8"))
-        jobs = data if isinstance(data, list) else data.get("jobs", [])
-        return {"jobs": jobs, "path": str(jobs_file), "found": True}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+async def cron_list():
+    return await _scheduler_request("GET", "/jobs")
+
+
+class CronJobCreate(BaseModel):
+    name: str
+    cron: str
+    prompt: str
+    enabled: bool = True
+    timezone: str = "UTC"
+
+
+@router.post("/cron/jobs")
+async def cron_create(body: CronJobCreate):
+    return await _scheduler_request("POST", "/jobs", body.model_dump())
+
+
+class CronJobPatch(BaseModel):
+    cron: str | None = None
+    prompt: str | None = None
+    enabled: bool | None = None
+    timezone: str | None = None
+
+
+@router.patch("/cron/jobs/{name}")
+async def cron_patch(name: str, body: CronJobPatch):
+    return await _scheduler_request("PATCH", f"/jobs/{name}", body.model_dump(exclude_none=True))
+
+
+@router.delete("/cron/jobs/{name}")
+async def cron_delete(name: str):
+    return await _scheduler_request("DELETE", f"/jobs/{name}")

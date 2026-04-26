@@ -16,7 +16,7 @@ from hub_core.brain_memory import (
     active_brain_memory_root as resolve_active_brain_memory_root,
 )
 
-from .models import (
+from kanban_api.models import (
     STATUSES,
     CommentCreate,
     DependenciesUpdate,
@@ -50,6 +50,121 @@ try:
 
     _MD_SYNC = True
 except ImportError:
+    _ROADMAP_TITLE = "## Roadmap"
+    _ROADMAP_HEADER = "| Task | Priority | Start | End | Effort | Status | Deps |"
+    _ROADMAP_DIVIDER = "|------|----------|-------|-----|--------|--------|------|"
+
+    def _md_cell(value: object) -> str:
+        if value is None:
+            return "-"
+        text = str(value).strip()
+        return text if text else "-"
+
+    def _format_status(value: object) -> str:
+        return _md_cell(value).lower()
+
+    def _format_effort(value: object) -> str:
+        if value is None:
+            return "-"
+        return str(value)
+
+    def _split_md_row(line: str) -> list[str]:
+        if "|" not in line:
+            return []
+        parts = [p.strip() for p in line.strip().strip("|").split("|")]
+        return parts if len(parts) >= 7 else []
+
+    def _roadmap_bounds(lines: list[str]) -> tuple[int, int] | None:
+        start = -1
+        for i, line in enumerate(lines):
+            if line.strip().lower() == "## roadmap":
+                start = i
+                break
+        if start < 0:
+            return None
+        end = len(lines)
+        for i in range(start + 1, len(lines)):
+            if lines[i].startswith("## "):
+                end = i
+                break
+        return (start, end)
+
+    def _ensure_roadmap_table(lines: list[str]) -> tuple[int, int]:
+        bounds = _roadmap_bounds(lines)
+        if bounds is None:
+            if lines and lines[-1].strip():
+                lines.extend(["", ""])
+            elif lines:
+                lines.append("")
+            lines.extend([_ROADMAP_TITLE, "", _ROADMAP_HEADER, _ROADMAP_DIVIDER])
+            bounds = _roadmap_bounds(lines)
+        assert bounds is not None
+        start, end = bounds
+        header_idx = -1
+        for i in range(start + 1, end):
+            if lines[i].strip() == _ROADMAP_HEADER:
+                header_idx = i
+                break
+        if header_idx < 0:
+            insert_at = start + 1
+            lines[insert_at:insert_at] = ["", _ROADMAP_HEADER, _ROADMAP_DIVIDER]
+            return (insert_at + 1, insert_at + 2)
+        divider_idx = header_idx + 1
+        if divider_idx >= len(lines) or lines[divider_idx].strip() != _ROADMAP_DIVIDER:
+            lines.insert(divider_idx, _ROADMAP_DIVIDER)
+        return (header_idx, divider_idx)
+
+    def create_task_in_md(project: str, task_data: dict) -> str:
+        slug = str(project or "").strip()
+        if not slug:
+            return ""
+        path = _memory_file_for(slug)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            content = path.read_text(encoding="utf-8")
+        else:
+            content = f"# {slug}\n"
+        lines = content.splitlines()
+        _, divider_idx = _ensure_roadmap_table(lines)
+        row = (
+            f"| {_md_cell(task_data.get('title'))} | {_md_cell(task_data.get('priority'))} | "
+            f"{_md_cell(task_data.get('start_date'))} | {_md_cell(task_data.get('end_date'))} | "
+            f"{_format_effort(task_data.get('effort_hours'))} | {_format_status(task_data.get('status'))} | - |"
+        )
+        insert_at = divider_idx + 1
+        while insert_at < len(lines) and lines[insert_at].strip().startswith("|"):
+            insert_at += 1
+        lines.insert(insert_at, row)
+        path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+        return str(path)
+
+    def write_task_to_md(source_file: str, title: str, updates: dict) -> None:
+        path = Path(source_file).expanduser()
+        if not path.exists():
+            return
+        lines = path.read_text(encoding="utf-8").splitlines()
+        bounds = _roadmap_bounds(lines)
+        if bounds is None:
+            return
+        start, end = bounds
+        for i in range(start + 1, end):
+            cols = _split_md_row(lines[i])
+            if not cols:
+                continue
+            if cols[0] != title:
+                continue
+            priority = _md_cell(updates.get("priority", cols[1]))
+            start_date = _md_cell(updates.get("start_date", cols[2]))
+            end_date = _md_cell(updates.get("end_date", cols[3]))
+            effort = _format_effort(updates.get("effort_hours", cols[4]))
+            status = _format_status(updates.get("status", cols[5]))
+            deps = _md_cell(cols[6])
+            lines[i] = (
+                f"| {cols[0]} | {priority} | {start_date} | {end_date} | {effort} | {status} | {deps} |"
+            )
+            path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+            return
+
     _MD_SYNC = False
 
 _LOGGER_DIR = str(Path.home() / ".openclaw/skills/logger/core")

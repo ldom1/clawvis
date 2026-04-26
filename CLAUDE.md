@@ -13,8 +13,15 @@
 
 ## Contrat repository
 
-- **Core** (`hub/`, `kanban/`, `hub-core/`, `skills/`, `scripts/`, compose racine) vs **instance** (`instances/<name>/`). Toute custom instance **uniquement** sous `instances/<name>/` — pas de patch ad hoc au root ; pas de secrets trackés racine ; préférer releases versionnées.
+- **Core** (`hub/`, `services/`, `hub-core/`, `skills/`, `scripts/`, compose racine) vs **instance** (`instances/<name>/`). Toute custom instance **uniquement** sous `instances/<name>/` — pas de patch ad hoc au root ; pas de secrets trackés racine ; préférer releases versionnées.
 - **Slug projet :** `project_slug == memory_page_slug == kanban_project_key` (détail → `docs/DATA-MODEL.md`).
+
+## Contrat architecture (2026)
+
+- Clawvis expose un stack unique : **hub + brain + agent + skills + telegram + scheduler (cron)**.
+- `hub` = UI ; `kanban-api` + `hub-memory-api` = brain/memory ; `agent-service` = exécution agent ; `services/telegram` + `services/scheduler` = notifications + jobs planifiés.
+- Le lien produit avec **OpenClaw** est retiré du périmètre par défaut : ne pas réintroduire de dépendance ou wording OpenClaw dans les docs/flows principaux.
+- Clawvis doit pouvoir lancer la **CLI Claude** pour exécuter les demandes utilisateur (containers/services doivent conserver ce chemin opérationnel).
 
 ## Contrat API
 

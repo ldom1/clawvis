@@ -153,3 +153,54 @@ def test_split_task_skips_md_when_no_project(monkeypatch, tmp_path):
     out = core.split_task("p2", SplitTaskRequest(count=1, base_title="Only"))
     assert len(out["children"]) == 1
     assert not out["children"][0].get("source_file")
+
+
+def test_create_task_in_md_creates_roadmap_section(monkeypatch, tmp_path):
+    projects_dir = tmp_path / "projects"
+    projects_dir.mkdir(parents=True, exist_ok=True)
+    md = projects_dir / "demo.md"
+    md.write_text("# Demo\n\n## Notes\nHello\n", encoding="utf-8")
+    monkeypatch.setattr(core, "_memory_file_for", lambda _slug: md)
+
+    source = core.create_task_in_md(
+        "demo",
+        {
+            "title": "First task",
+            "priority": "High",
+            "start_date": "2026-04-01",
+            "end_date": None,
+            "effort_hours": 1.5,
+            "status": "To Start",
+        },
+    )
+
+    assert source == str(md)
+    content = md.read_text(encoding="utf-8")
+    assert "## Roadmap" in content
+    assert "| Task | Priority | Start | End | Effort | Status | Deps |" in content
+    assert "| First task | High | 2026-04-01 | - | 1.5 | to start | - |" in content
+
+
+def test_write_task_to_md_updates_existing_roadmap_row(tmp_path):
+    md = tmp_path / "demo.md"
+    md.write_text(
+        "# Demo\n\n## Roadmap\n\n"
+        "| Task | Priority | Start | End | Effort | Status | Deps |\n"
+        "|------|----------|-------|-----|--------|--------|------|\n"
+        "| First task | P1 | 2026-04-01 | - | 1.0 | backlog | - |\n",
+        encoding="utf-8",
+    )
+
+    core.write_task_to_md(
+        str(md),
+        "First task",
+        {
+            "status": "In Progress",
+            "priority": "Critical",
+            "end_date": "2026-04-09",
+            "effort_hours": 2.0,
+        },
+    )
+
+    content = md.read_text(encoding="utf-8")
+    assert "| First task | Critical | 2026-04-01 | 2026-04-09 | 2.0 | in progress | - |" in content

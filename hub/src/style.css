@@ -209,7 +209,17 @@ body {
 }
 .ai-runtime-cta {
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 12px;
+  padding: 5px 12px;
+  line-height: 1.2;
+}
+.btn-compact {
+  padding: 5px 12px !important;
+  font-size: 12px !important;
+  line-height: 1.2;
+}
+.ai-runtime-chip-settings.btn-compact {
+  padding: 4px 10px !important;
 }
 .ai-runtime-banner-right {
   flex-shrink: 0;
@@ -332,6 +342,18 @@ body {
 }
 .cron-td-muted {
   color: var(--muted);
+}
+.cron-add-form {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.cron-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
 }
 
 .system-card {
@@ -2892,7 +2914,7 @@ body {
 }
 .tools-bar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
   gap: 0.65rem;
   margin-bottom: 1.2rem;
 }
@@ -3500,17 +3522,22 @@ body {
 /* Provider cards */
 .setup-provider-cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
   margin-bottom: 1.5rem;
-  max-width: 42rem;
+  max-width: 48rem;
   margin-left: auto;
   margin-right: auto;
+}
+@media (max-width: 720px) {
+  .setup-provider-cards {
+    grid-template-columns: 1fr;
+  }
 }
 .setup-provider-card {
   border: 2px solid var(--border);
   border-radius: 10px;
-  padding: 1rem 0.75rem;
+  padding: 0.65rem 0.55rem;
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   cursor: pointer;
   text-align: center;
@@ -3534,10 +3561,10 @@ body {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 .setup-provider-icon {
-  font-size: 1.75rem;
+  font-size: 1.35rem;
 }
 .setup-provider-card strong {
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 .setup-provider-card span {
   font-size: 0.8rem;

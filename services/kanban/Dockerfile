@@ -14,18 +14,19 @@ WORKDIR /clawvis
 COPY pyproject.toml ./
 COPY uv.lock ./
 COPY hub-core/ ./hub-core/
-COPY kanban/ ./kanban/
-COPY project-templates/ ./project-templates/
+COPY services/kanban/ ./services/kanban/
+COPY skills/project-init/templates/ ./skills/project-init/templates/
 COPY scripts/ ./scripts/
 
 RUN chmod +x scripts/build-quartz.sh
 
 WORKDIR /clawvis
 # Workspace venv at /clawvis/.venv; make it world-writable so uid 1000 can run uv in containers
-RUN uv sync --no-dev --all-packages && chmod -R a+rwX .venv
+RUN UV_HTTP_TIMEOUT=120 UV_HTTP_RETRIES=8 uv sync --frozen --no-dev --all-packages \
+    && chmod -R a+rwX .venv
 
 EXPOSE 8090
 
 # uv run avoids broken shebangs when host bind-mount overwrites .venv (absolute #! paths).
-CMD ["/usr/local/bin/uv", "run", "--directory", "/clawvis/kanban", \
+CMD ["uv", "run", "--directory", "/clawvis/services/kanban", \
      "uvicorn", "kanban_api.server:app", "--host", "0.0.0.0", "--port", "8090"]

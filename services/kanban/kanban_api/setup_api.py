@@ -1,4 +1,4 @@
-"""Setup wizard API: sync skills and memory with OpenClaw or Claude."""
+"""Setup wizard API: sync skills and memory (CLI / Claude paths, OpenRouter API)."""
 
 from __future__ import annotations
 
@@ -41,10 +41,12 @@ class ProviderBody(BaseModel):
 @router.post("/provider")
 def post_setup_provider(body: ProviderBody) -> dict:
     """Set PRIMARY_AI_PROVIDER in repo .env (restart agent / stack to apply)."""
-    if body.provider not in ("openclaw", "claude"):
+    VALID_PROVIDERS = {"anthropic", "claude", "mammouth", "mistral", "openrouter", "cli",
+                       "claude-code", "opencode", "codex"}
+    if body.provider not in VALID_PROVIDERS:
         raise HTTPException(
             status_code=400,
-            detail="provider must be openclaw or claude",
+            detail=f"provider must be one of: {', '.join(sorted(VALID_PROVIDERS))}",
         )
     env_path = _CLAWVIS_ROOT / ".env"
     try:
@@ -60,7 +62,7 @@ def get_setup_context() -> dict:
 
 
 class SyncSkillsBody(BaseModel):
-    provider: str = Field(..., description="openclaw or claude")
+    provider: str = Field(..., description="cli, anthropic, mammouth, etc.")
     skills_path: str | None = None
 
 
@@ -89,7 +91,6 @@ def post_sync_skills(body: SyncSkillsBody) -> dict:
 class SyncMemoryBody(BaseModel):
     provider: str
     memory_root: str | None = None
-    openclaw_workspace: str | None = None
 
 
 @router.post("/sync-memory")
@@ -106,7 +107,6 @@ def post_sync_memory(body: SyncMemoryBody) -> dict:
             body.provider,
             memory_root=mem,
             clawvis_root=_CLAWVIS_ROOT,
-            openclaw_workspace=body.openclaw_workspace,
         )
         if out.get("ok") is False:
             raise HTTPException(

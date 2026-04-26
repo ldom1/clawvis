@@ -17,12 +17,12 @@ def test_post_setup_provider_writes_env(tmp_path, monkeypatch):
     env_path = tmp_path / ".env"
     env_path.write_text("FOO=bar\n", encoding="utf-8")
 
-    r = client.post("/setup/provider", json={"provider": "openclaw"})
+    r = client.post("/setup/provider", json={"provider": "cli"})
     assert r.status_code == 200
-    assert "PRIMARY_AI_PROVIDER=openclaw" in env_path.read_text(encoding="utf-8")
+    assert "PRIMARY_AI_PROVIDER=cli" in env_path.read_text(encoding="utf-8")
 
 
 def test_post_setup_provider_invalid_400():
     client = TestClient(app)
-    r = client.post("/setup/provider", json={"provider": "mistral"})
+    r = client.post("/setup/provider", json={"provider": "not-a-real-provider"})
     assert r.status_code == 400

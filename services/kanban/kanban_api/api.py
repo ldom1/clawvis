@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse
 
-from .core import (
+from kanban_api.core import (
     DependencyBlockedError,
     add_comment,
     add_dependencies,

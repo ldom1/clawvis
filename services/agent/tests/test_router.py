@@ -1,6 +1,7 @@
-# agent/tests/test_router.py
+# services/agent/tests/test_router.py
 import pytest
 from httpx import AsyncClient, ASGITransport
+from unittest.mock import patch
 
 
 @pytest.mark.asyncio
@@ -12,30 +13,34 @@ async def test_health():
     assert resp.json() == {"status": "ok"}
 
 
-import os
-from unittest.mock import patch
-
-
 def test_get_config_primary_provider_from_dotenv_file(tmp_path, monkeypatch):
     envf = tmp_path / ".env"
-    envf.write_text("PRIMARY_AI_PROVIDER=claude\n", encoding="utf-8")
+    envf.write_text("PRIMARY_AI_PROVIDER=cli\n", encoding="utf-8")
     monkeypatch.setenv("CLAWVIS_DOTENV_PATH", str(envf))
     monkeypatch.delenv("PRIMARY_AI_PROVIDER", raising=False)
 
     from agent_service.router import get_config
-
     body = get_config()
     assert set(body.keys()) == {"preferred_provider", "primary_provider", "providers"}
-    assert body["primary_provider"] == "claude"
-    assert body["preferred_provider"] is None
+    assert body["primary_provider"] == "cli"
     prov = body["providers"]
-    assert "anthropic" in prov
+    assert "cli" in prov
     assert "openrouter" in prov
-    assert "mammouth" in prov
-    assert "openclaw" in prov
+    assert "openclaw" not in prov
     assert prov["openrouter"]["models"]["default"]
     assert prov["mammouth"]["models"]["default"]
     assert prov["openrouter"]["label"] == "OpenAI-compatible API"
+
+
+def test_get_config_has_cli_provider(monkeypatch):
+    monkeypatch.setenv("PRIMARY_AI_PROVIDER", "cli")
+    monkeypatch.setenv("CLI_TOOL", "opencode")
+
+    from agent_service.router import get_config
+    body = get_config()
+    assert "cli" in body["providers"]
+    assert body["providers"]["cli"]["tool"] == "opencode"
+    assert "openclaw" not in body["providers"]
 
 
 @pytest.mark.asyncio
@@ -61,6 +66,8 @@ async def test_chat_no_provider_returns_error_message(monkeypatch):
     monkeypatch.delenv("MAMMOUTH_API_KEY", raising=False)
     monkeypatch.delenv("OPENCLAW_STATE_DIR", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("PRIMARY_AI_PROVIDER", raising=False)
+    monkeypatch.delenv("CLI_BIN", raising=False)
 
     from agent_service.main import app
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -70,33 +77,17 @@ async def test_chat_no_provider_returns_error_message(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_session_503_when_openclaw_unavailable(monkeypatch):
-    monkeypatch.setenv("OPENCLAW_AVAILABLE", "false")
-    from agent_service.main import app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.post("/session", json={"message": "run task"})
-    assert resp.status_code == 503
+async def test_chat_uses_cli_runner(monkeypatch):
+    monkeypatch.setenv("PRIMARY_AI_PROVIDER", "cli")
+    monkeypatch.setenv("CLI_TOOL", "claude")
 
+    async def fake_run(self, prompt):
+        return "cli response"
 
-@pytest.mark.asyncio
-async def test_sessions_503_when_openclaw_unavailable(monkeypatch):
-    monkeypatch.setenv("OPENCLAW_AVAILABLE", "false")
-    from agent_service.main import app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/sessions")
-    assert resp.status_code == 503
-
-
-@pytest.mark.asyncio
-async def test_session_delegates_to_runner(monkeypatch):
-    from agent_service import openclaw_runner
-    from agent_service.openclaw_runner import OpenClawResult
-
-    with patch("agent_service.router.openclaw_available", return_value=True), \
-         patch("agent_service.router.run_agent_session",
-               return_value=OpenClawResult(success=True, output={"reply": "done"})):
-        from agent_service.main import app
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post("/session", json={"message": "run task"})
+    with patch("agent_service.cli_runner.CliRunner.run", fake_run):
+        with patch("agent_service.cli_runner.CliRunner.available", return_value=True):
+            from agent_service.main import app
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post("/chat", json={"message": "hi"})
     assert resp.status_code == 200
-    assert resp.json()["reply"] == "done"
+    assert "cli response" in resp.text
