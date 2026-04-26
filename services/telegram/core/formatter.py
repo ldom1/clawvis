@@ -8,6 +8,7 @@ _ERROR_SENTINELS = (
     "[CLI timeout:",
     "[CLI:",
     "[No LLM",
+    "[CLAWVIS:",
 )
 
 _SNAG_MSG = (

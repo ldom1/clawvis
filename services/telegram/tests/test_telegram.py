@@ -221,7 +221,7 @@ class TestFormatter(unittest.TestCase):
         self.assertIn("empty response", result)
 
     def test_error_sentinel_returns_snag(self) -> None:
-        from core.formatter import format_reply
+        from core.formatter import _SNAG_MSG, format_reply
 
         for sentinel in (
             "[Error: ValueError: something]",
@@ -229,11 +229,12 @@ class TestFormatter(unittest.TestCase):
             "[CLI timeout: 120s]",
             "[CLI: empty response]",
             "[No LLM provider configured. Set ANTHROPIC_API_KEY]",
+            "[CLAWVIS:AUTH]",
+            "[CLAWVIS:HTTP:503]",
         ):
             with self.subTest(sentinel=sentinel):
                 result = format_reply(sentinel)
-                self.assertNotIn("[", result[:5], f"sentinel leaked: {result!r}")
-                self.assertIn("snag", result)
+                self.assertEqual(result, _SNAG_MSG)
 
     def test_truncates_at_4096(self) -> None:
         from core.formatter import format_reply
