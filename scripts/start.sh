@@ -14,6 +14,11 @@ if [ -n "${CLAWVIS_E2E_ISOLATE:-}" ]; then
   export PROJECTS_ROOT="${ROOT_DIR}/.e2e-projects"
   export LINKED_INSTANCES=""
 fi
+# Non-compose/local runs: make CLI runtime explicit so agent-service can execute Claude CLI.
+export HOME="${HOME:-/home/${USER:-$(id -un 2>/dev/null || echo lgiron)}}"
+if [ -z "${CLI_BIN:-}" ] && [ -x "${HOME}/.local/bin/claude" ]; then
+  export CLI_BIN="${HOME}/.local/bin/claude"
+fi
 
 PORT="${HUB_PORT:-8088}"
 API_PORT="${KANBAN_API_PORT:-8090}"
@@ -36,7 +41,9 @@ init_instance_memory
 # Memory API démarre plus bas (uvicorn hub_core.memory_api). Il n’y a pas de service compose nommé « memory ».
 
 if [ -z "${CLAWVIS_SKIP_SETUP_SYNC:-}" ]; then
-  uv run --directory "${ROOT_DIR}/hub-core" python -m hub_core setup-sync-apply || true
+  UV_PROJECT_ENVIRONMENT="${ROOT_DIR}/hub-core/.venv" \
+    uv sync --directory "${ROOT_DIR}/hub-core" --frozen --no-dev >/dev/null
+  "${ROOT_DIR}/hub-core/.venv/bin/python" -m hub_core setup-sync-apply || true
 fi
 
 uvicorn_extra=()
@@ -67,33 +74,38 @@ wait_uvicorn_openapi() {
   return 1
 }
 
-uv run --directory "${ROOT_DIR}/kanban" python -m uvicorn \
+UV_PROJECT_ENVIRONMENT="${ROOT_DIR}/services/kanban/.venv" \
+  uv sync --directory "${ROOT_DIR}/services/kanban" --frozen --no-dev >/dev/null
+UV_PROJECT_ENVIRONMENT="${ROOT_DIR}/services/agent/.venv" \
+  uv sync --directory "${ROOT_DIR}/services/agent" --frozen --no-dev >/dev/null
+
+"${ROOT_DIR}/services/kanban/.venv/bin/python" -m uvicorn \
   kanban_api.server:app \
   --host 0.0.0.0 \
   --port "${API_PORT}" \
   --reload \
-  --reload-dir "${ROOT_DIR}/kanban/kanban_api" \
+  --reload-dir "${ROOT_DIR}/services/kanban/kanban_api" \
   --reload-dir "${ROOT_DIR}/hub-core/hub_core" \
   "${uvicorn_extra[@]}" &
 API_PID=$!
 
-uv run --directory "${ROOT_DIR}/kanban" python -m uvicorn \
+"${ROOT_DIR}/services/kanban/.venv/bin/python" -m uvicorn \
   hub_core.memory_api:app \
   --host 0.0.0.0 \
   --port "${MEM_API_PORT}" \
   --reload \
   --reload-dir "${ROOT_DIR}/hub-core/hub_core" \
-  --reload-dir "${ROOT_DIR}/kanban/kanban_api" \
+  --reload-dir "${ROOT_DIR}/services/kanban/kanban_api" \
   "${uvicorn_extra[@]}" &
 MEM_API_PID=$!
 
 if [ -z "${CLAWVIS_SKIP_AGENT:-}" ]; then
-  uv run --directory "${ROOT_DIR}/agent" python -m uvicorn \
+  "${ROOT_DIR}/services/agent/.venv/bin/python" -m uvicorn \
     agent_service.main:app \
     --host 0.0.0.0 \
     --port "${AGENT_PORT_VALUE}" \
     --reload \
-    --reload-dir "${ROOT_DIR}/agent/agent_service" \
+  --reload-dir "${ROOT_DIR}/services/agent/agent_service" \
     "${uvicorn_extra[@]}" &
   AGENT_PID=$!
 else

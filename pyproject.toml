@@ -1,8 +1,10 @@
-# UV workspace root: resolve hub-core ↔ kanban-api (Memory API imports kanban).
+# UV workspace root: keep only coupled Python packages here.
+# hub-core <-> services/kanban are linked (Memory API imports kanban_api).
+# services/agent, services/scheduler, and services/telegram run with isolated venvs.
 [project]
 name = "clawvis-workspace"
 version = "0.0.0"
-description = "Monorepo workspace for hub-core and kanban-api"
+description = "Workspace for coupled Clawvis Python packages (hub-core + kanban-api)"
 requires-python = ">=3.11"
 dependencies = []
 
