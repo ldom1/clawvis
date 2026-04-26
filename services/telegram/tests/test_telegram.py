@@ -128,12 +128,16 @@ class TestHttpSend(unittest.IsolatedAsyncioTestCase):
 
 
 class TestBridge(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        get_settings.cache_clear()
+
+    def tearDown(self) -> None:
+        get_settings.cache_clear()
+
     @mock.patch.dict(os.environ, _std_env(), clear=True)
     async def test_call_agent_returns_text(self) -> None:
         from core.bridge import call_agent
-        from core.config import get_settings
 
-        get_settings.cache_clear()
         settings = get_settings()
 
         mock_resp = MagicMock()
@@ -150,15 +154,12 @@ class TestBridge(unittest.IsolatedAsyncioTestCase):
             result = await call_agent(settings, "hello")
 
         self.assertEqual(result, "task created: #42")
-        get_settings.cache_clear()
 
     @mock.patch.dict(os.environ, _std_env(), clear=True)
     async def test_call_agent_raises_agent_error_on_http_error(self) -> None:
         import httpx
         from core.bridge import AgentError, call_agent
-        from core.config import get_settings
 
-        get_settings.cache_clear()
         settings = get_settings()
 
         with patch("core.bridge.httpx.AsyncClient") as mock_client_cls:
@@ -175,15 +176,12 @@ class TestBridge(unittest.IsolatedAsyncioTestCase):
 
             with self.assertRaises(AgentError):
                 await call_agent(settings, "hello")
-        get_settings.cache_clear()
 
     @mock.patch.dict(os.environ, _std_env(), clear=True)
     async def test_call_agent_raises_agent_error_on_connection_error(self) -> None:
         import httpx
         from core.bridge import AgentError, call_agent
-        from core.config import get_settings
 
-        get_settings.cache_clear()
         settings = get_settings()
 
         with patch("core.bridge.httpx.AsyncClient") as mock_client_cls:
@@ -197,7 +195,6 @@ class TestBridge(unittest.IsolatedAsyncioTestCase):
 
             with self.assertRaises(AgentError):
                 await call_agent(settings, "hello")
-        get_settings.cache_clear()
 
 
 if __name__ == "__main__":
