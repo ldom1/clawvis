@@ -10,7 +10,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 from core.bridge import AgentError, call_agent
-from core.config import TelegramSettings, get_settings
+from core.config import get_settings
 from core.formatter import format_reply
 from core.models import OutcomingMessage, incoming_from_update
 from core.router import enrich
@@ -73,12 +73,12 @@ async def on_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         raw = await call_agent(settings, incoming.text)
     except AgentError:
         log.error("agent.error freeform")
-        assert update.message is not None
-        await update.message.reply_text(_UNREACHABLE_MSG)
+        if update.message:
+            await update.message.reply_text(_UNREACHABLE_MSG)
         return
-    assert update.message is not None
-    await update.message.reply_text(format_reply(raw))
-    log.info("message.replied chars=%d", len(raw))
+    if update.message:
+        await update.message.reply_text(format_reply(raw))
+        log.info("message.replied chars=%d", len(raw))
 
 
 async def _http_send(request: web.Request) -> web.Response:
