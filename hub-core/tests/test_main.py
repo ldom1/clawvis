@@ -13,21 +13,6 @@ from hub_core.models import (
     StatusResponse,
 )
 
-# New session-based token stats format returned by get_token_stats()
-_MOCK_TOKEN_STATS = {
-    "claude": {
-        "usage_percent": 22.5,
-        "tokens_used": "65.8k",
-        "tokens_limit": "300k",
-        "reset_time": "19:00 UTC",
-    },
-    "mammouth": {
-        "subscription": "pro",
-        "credits": {"available": 100.0, "limit": 200.0, "currency": "EUR"},
-    },
-    "timestamp": "2026-02-26T12:00:00",
-}
-
 
 @pytest.fixture
 def mock_providers():
@@ -46,11 +31,6 @@ def mock_cpu_ram():
     )
 
 
-@pytest.fixture
-def mock_token_stats():
-    return _MOCK_TOKEN_STATS
-
-
 @patch("hub_core.main.get_hub_state")
 def test_main_returns_hub_state(mock_get_hub_state):
     mock_get_hub_state.return_value = HubState()
@@ -59,7 +39,6 @@ def test_main_returns_hub_state(mock_get_hub_state):
     mock_get_hub_state.assert_called_once_with(write_json=True)
 
 
-@patch("hub_core.track.tokens.get_token_stats")
 @patch("hub_core.update.system_metrics.get_cpu_ram")
 @patch("hub_core.update.status.get_status_response")
 @patch("hub_core.fetch.provider_data.get_providers_response")
@@ -67,16 +46,13 @@ def test_get_hub_state_full(
     mock_get_providers,
     mock_get_status,
     mock_get_cpu_ram,
-    mock_get_token_stats,
     mock_providers,
     mock_status,
     mock_cpu_ram,
-    mock_token_stats,
 ):
     mock_get_providers.return_value = mock_providers
     mock_get_status.return_value = mock_status
     mock_get_cpu_ram.return_value = mock_cpu_ram
-    mock_get_token_stats.return_value = mock_token_stats
 
     state = get_hub_state(write_json=False)
 
@@ -88,7 +64,6 @@ def test_get_hub_state_full(
     assert state.cpu_ram is mock_cpu_ram
     assert state.cpu_ram.cpu_percent == 10.5
     assert state.cpu_ram.ram_percent == 42.0
-    # tokens are always "N/A" (openclaw status gives % not absolute counts)
     assert state.tokens_today == "N/A"
     assert state.tokens_month == "N/A"
     assert state.system_timestamp
@@ -109,7 +84,6 @@ def test_get_hub_state_full(
     assert "mammouth_usage" in d["status"]
 
 
-@patch("hub_core.track.tokens.get_token_stats")
 @patch("hub_core.update.system_metrics.get_cpu_ram")
 @patch("hub_core.update.status.get_status_response")
 @patch("hub_core.fetch.provider_data.get_providers_response")
@@ -117,14 +91,12 @@ def test_get_hub_state_structure_and_dump(
     mock_get_providers,
     mock_get_status,
     mock_get_cpu_ram,
-    mock_get_token_stats,
 ):
     mock_get_providers.return_value = ProvidersResponse(mammouth_ai=MammouthUsage())
     mock_get_status.return_value = StatusResponse()
     mock_get_cpu_ram.return_value = CpuRam(
         cpu_percent=0, ram_percent=0, ram_used_gb=0, ram_total_gb=0
     )
-    mock_get_token_stats.return_value = _MOCK_TOKEN_STATS
 
     state = get_hub_state(write_json=False)
 
@@ -146,7 +118,6 @@ def test_get_hub_state_structure_and_dump(
     assert "providers" in j and "cpu_ram" in j
 
 
-@patch("hub_core.track.tokens.get_token_stats")
 @patch("hub_core.update.system_metrics.get_cpu_ram")
 @patch("hub_core.update.status.get_status_response")
 @patch("hub_core.fetch.provider_data.get_providers_response")
@@ -154,13 +125,11 @@ def test_get_hub_state_token_or_na(
     mock_get_providers,
     mock_get_status,
     mock_get_cpu_ram,
-    mock_get_token_stats,
 ):
-    """tokens_today and tokens_month are always N/A (openclaw status gives % not counts)."""
+    """tokens_today and tokens_month are always N/A."""
     mock_get_providers.return_value = ProvidersResponse()
     mock_get_status.return_value = StatusResponse()
     mock_get_cpu_ram.return_value = CpuRam()
-    mock_get_token_stats.return_value = _MOCK_TOKEN_STATS
 
     state = get_hub_state(write_json=False)
 
@@ -168,7 +137,6 @@ def test_get_hub_state_token_or_na(
     assert state.tokens_month == "N/A"
 
 
-@patch("hub_core.track.tokens.get_token_stats")
 @patch("hub_core.update.system_metrics.get_cpu_ram")
 @patch("hub_core.update.status.get_status_response")
 @patch("hub_core.fetch.provider_data.get_providers_response")
@@ -176,18 +144,15 @@ def test_get_simple_state_shape(
     mock_get_providers,
     mock_get_status,
     mock_get_cpu_ram,
-    mock_get_token_stats,
     mock_providers,
     mock_status,
     mock_cpu_ram,
-    mock_token_stats,
 ):
     from hub_core.main import get_simple_state
 
     mock_get_providers.return_value = mock_providers
     mock_get_status.return_value = mock_status
     mock_get_cpu_ram.return_value = mock_cpu_ram
-    mock_get_token_stats.return_value = mock_token_stats
 
     d = get_simple_state(write_json=False)
 

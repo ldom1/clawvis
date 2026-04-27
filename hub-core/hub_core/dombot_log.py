@@ -1,16 +1,16 @@
 """DomBot structured log bridge for hub-core.
 
-Writes to ~/.openclaw/logs/dombot.log (text) and dombot.jsonl (JSON),
-using the same format as the dombot-logger skill so all agents share one log.
+Writes to $DOMBOT_LOG_DIR/dombot.log (text) and dombot.jsonl (JSON),
+defaulting to <repo-root>/logs/. Override via DOMBOT_LOG_DIR env var.
 
 Usage:
     from hub_core.dombot_log import log, DomBotLog
 
     log("INFO", "hub-core:status", "system:refresh", "Hub state refreshed")
 
-    with DomBotLog("hub-core:cron", model="claude-haiku-4-5") as dbl:
-        dbl.info("task:start", "Starting provider fetch")
-        dbl.info("task:complete", "Done", credits_available=42.5)
+    dbl = DomBotLog("hub-core:cron", model="claude-haiku-4-5")
+    dbl.info("task:start", "Starting provider fetch")
+    dbl.info("task:complete", "Done", credits_available=42.5)
 """
 
 from __future__ import annotations

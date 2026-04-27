@@ -45,13 +45,6 @@ class TestHubCore:
         from hub_core.main import get_hub_state
 
         assert get_hub_state is not None
-        # transcribe is optional (requires faster_whisper)
-        try:
-            from hub_core.transcribe import transcribe
-
-            assert transcribe is not None
-        except ImportError:
-            pytest.skip("faster_whisper not installed")
 
     def test_hub_core_config_loads(self):
         from hub_core.config import HUB_API_DIR, LAB_DIR
@@ -66,14 +59,8 @@ class TestHubCore:
         assert ProvidersResponse is not None
 
 
-class TestTranscriptionAndCLI:
-    """Tests for transcription services and CLI."""
-
-    def test_transcriber_module_imports(self):
-        pytest.importorskip("faster_whisper", reason="faster_whisper not installed")
-        from hub_core.transcribe import transcribe
-
-        assert transcribe is not None
+class TestCLI:
+    """Tests for hub_core CLI."""
 
     def test_cli_main_imports(self):
         from hub_core.__main__ import main

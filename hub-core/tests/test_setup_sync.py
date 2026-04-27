@@ -20,22 +20,6 @@ def test_expected_skill_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     assert dirs[0] == str((tmp_path / "skills").resolve())
 
 
-def test_sync_skills_openclaw_idempotent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    cfg = tmp_path / "openclaw.json"
-    cfg.write_text("{}", encoding="utf-8")
-    (tmp_path / "skills").mkdir()
-    monkeypatch.setenv("INSTANCE_NAME", "example")
-    r1 = setup_sync.sync_skills_openclaw(
-        tmp_path,
-        openclaw_config=cfg,
-    )
-    assert r1.get("ok") is True
-    assert r1.get("changed") is True
-    data = json.loads(cfg.read_text(encoding="utf-8"))
-    assert data["skills"]["load"]["extraDirs"]
-    r2 = setup_sync.sync_skills_openclaw(tmp_path, openclaw_config=cfg)
-    assert r2.get("changed") is False
-
 
 def test_sync_skills_claude_symlink(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("CLAWVIS_HOST_CLAUDE_DIR", raising=False)
@@ -47,15 +31,6 @@ def test_sync_skills_claude_symlink(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert link.is_symlink()
     assert link.resolve() == (tmp_path / "skills").resolve()
 
-
-def test_sync_memory_openclaw(tmp_path: Path) -> None:
-    ws = tmp_path / "ws"
-    mem = tmp_path / "mem"
-    mem.mkdir()
-    r = setup_sync.sync_memory_openclaw(mem, workspace=ws)
-    assert r["ok"] is True
-    assert (ws / "memory").is_symlink()
-    assert (ws / "MEMORY.md").exists()
 
 
 def test_apply_localbrain_substitutions(tmp_path: Path) -> None:
