@@ -7,8 +7,10 @@ name = "agent-service"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
+    "hub-core",
     "fastapi>=0.100",
     "httpx>=0.28",
+    "loguru>=0.7",
     "pydantic>=2.0",
     "uvicorn[standard]>=0.22",
 ]
@@ -21,3 +23,6 @@ packages = ["agent_service"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.uv.sources]
+hub-core = { workspace = true }

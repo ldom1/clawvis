@@ -11,7 +11,7 @@ export UV_PYTHON="/usr/bin/python3.11"
 # Use a dedicated venv outside the workspace so the gateway's bundled uv
 # (which always rebuilds ~/Lab/clawvis/.venv with a broken Python path)
 # cannot interfere with the script's execution environment.
-export UV_PROJECT_ENVIRONMENT="$HOME/.venvs/dombot-hub-core"
+export UV_PROJECT_ENVIRONMENT="$HOME/.venvs/hub-core"
 
 HUB_CORE_DIR="$HOME/Lab/clawvis/hub-core"
 LOG_DIR="$HOME/.openclaw/logs"

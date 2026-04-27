@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Kanban & Logs API (FastAPI)"
 requires-python = ">=3.11"
 dependencies = [
-    "dombot-hub-core",
+    "hub-core",
     "fastapi>=0.100",
     "httpx>=0.28.1",
     "python-multipart>=0.0.9",
@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-dombot-hub-core = { workspace = true }
+hub-core = { workspace = true }
 
 [project.scripts]
 kanban-api = "kanban_api.__main__:main"
