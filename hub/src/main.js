@@ -3564,9 +3564,7 @@ async function wireSettings() {
     refreshHealthPills();
   });
   await loadInstances();
-
 }
-
 
 async function refreshBrainSourceHint() {
   const select = document.getElementById("brain-memory-select");
@@ -3942,9 +3940,10 @@ function renderSchedulePage() {
             <button id="add-cron-job" class="btn btn-compact btn-primary" type="button">${fr ? "+ Ajouter" : "+ Add job"}</button>
             <button id="refresh-cron" class="btn btn-compact" type="button" style="margin-left:8px">${fr ? "Actualiser" : "Refresh"}</button>
           </div>
-          <div class="card-desc">${fr
-            ? "Jobs planifiés. Définitions YAML sauvegardées dans <code>services/scheduler/definitions/</code>. Chaque job envoie le prompt à l'agent puis poste le résultat sur Telegram."
-            : "Scheduled jobs. YAML definitions are saved to <code>services/scheduler/definitions/</code>. Each job sends the prompt to the agent and posts the result to Telegram."
+          <div class="card-desc">${
+            fr
+              ? "Jobs planifiés. Définitions YAML sauvegardées dans <code>services/scheduler/definitions/</code>. Chaque job envoie le prompt à l'agent puis poste le résultat sur Telegram."
+              : "Scheduled jobs. YAML definitions are saved to <code>services/scheduler/definitions/</code>. Each job sends the prompt to the agent and posts the result to Telegram."
           }</div>
           <div id="cron-table-wrap"></div>
           <div id="cron-add-form" class="cron-add-form" style="display:none">
@@ -3977,9 +3976,14 @@ async function wireSchedulePage() {
     const status = document.getElementById("cron-status");
     if (!wrap) return;
     try {
-      const r = await fetch("/api/hub/agent/cron", { signal: AbortSignal.timeout(5000) });
+      const r = await fetch("/api/hub/agent/cron", {
+        signal: AbortSignal.timeout(5000),
+      });
       if (!r.ok) {
-        if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Indisponible" : "Unavailable"; }
+        if (status) {
+          status.className = "ai-runtime-status-badge warn";
+          status.textContent = fr ? "Indisponible" : "Unavailable";
+        }
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Agent service inaccessible" : "Agent service unreachable"}</p>`;
         return;
       }
@@ -3993,29 +3997,43 @@ async function wireSchedulePage() {
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Aucun job planifié." : "No scheduled jobs."}</p>`;
         return;
       }
-      const rows = jobs.map((j) => {
-        const rawName = j.name || j.id || "";
-        const name = escapeHtml(rawName);
-        const schedule = escapeHtml(j.schedule || "—");
-        const enabled = j.enabled !== false;
-        const nextRun = j.nextRun ? escapeHtml(new Date(j.nextRun).toLocaleString()) : "—";
-        const errors = j.consecutiveErrors || 0;
-        const errBadge = errors > 0 ? `<span class="ai-runtime-status-badge warn">${errors} err</span>` : "";
-        const statusBadge = enabled
-          ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
-          : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
-        const toggleLabel = enabled ? (fr ? "Désactiver" : "Disable") : (fr ? "Activer" : "Enable");
-        return `<tr data-cron-name="${name}">
+      const rows = jobs
+        .map((j) => {
+          const rawName = j.name || j.id || "";
+          const name = escapeHtml(rawName);
+          const schedule = escapeHtml(j.schedule || "—");
+          const enabled = j.enabled !== false;
+          const nextRun = j.nextRun
+            ? escapeHtml(new Date(j.nextRun).toLocaleString())
+            : "—";
+          const errors = j.consecutiveErrors || 0;
+          const errBadge =
+            errors > 0
+              ? `<span class="ai-runtime-status-badge warn">${errors} err</span>`
+              : "";
+          const statusBadge = enabled
+            ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
+            : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
+          const toggleLabel = enabled
+            ? fr
+              ? "Désactiver"
+              : "Disable"
+            : fr
+              ? "Activer"
+              : "Enable";
+          return `<tr data-cron-name="${name}">
           <td class="cron-td"><strong>${name}</strong></td>
           <td class="cron-td"><code>${schedule}</code></td>
           <td class="cron-td">${statusBadge} ${errBadge}</td>
           <td class="cron-td cron-td-muted">${nextRun}</td>
           <td class="cron-td" style="white-space:nowrap">
-            <button class="btn btn-compact cron-toggle-btn" data-name="${name}" data-enabled="${enabled}" type="button" style="font-size:11px">${toggleLabel}</button>
+            <button class="btn btn-compact cron-run-btn" data-name="${name}" type="button" style="font-size:11px" title="${fr ? "Déclencher maintenant" : "Trigger now"}">${fr ? "▶ Run" : "▶ Run"}</button>
+            <button class="btn btn-compact cron-toggle-btn" data-name="${name}" data-enabled="${enabled}" type="button" style="font-size:11px;margin-left:4px">${toggleLabel}</button>
             <button class="btn btn-compact cron-delete-btn" data-name="${name}" type="button" style="font-size:11px;color:#ef4444;border-color:#ef4444;margin-left:4px">${fr ? "Suppr." : "Delete"}</button>
           </td>
         </tr>`;
-      }).join("");
+        })
+        .join("");
       wrap.innerHTML = `
         <table class="cron-table">
           <thead><tr>
@@ -4028,13 +4046,51 @@ async function wireSchedulePage() {
           <tbody>${rows}</tbody>
         </table>`;
 
+      wrap.querySelectorAll(".cron-run-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const name = btn.getAttribute("data-name");
+          const orig = btn.textContent;
+          btn.disabled = true;
+          btn.textContent = fr ? "…" : "…";
+          try {
+            const res = await fetch(
+              `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}/run`,
+              { method: "POST" },
+            );
+            const data = await res.json().catch(() => ({}));
+            btn.textContent = res.ok
+              ? fr
+                ? "✓ Envoyé"
+                : "✓ Sent"
+              : fr
+                ? "✗ Erreur"
+                : "✗ Error";
+            if (!res.ok) console.error("cron trigger failed", data);
+          } catch (e) {
+            btn.textContent = fr ? "✗ Erreur" : "✗ Error";
+          }
+          setTimeout(() => {
+            btn.textContent = orig;
+            btn.disabled = false;
+          }, 2500);
+        });
+      });
       wrap.querySelectorAll(".cron-delete-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const name = btn.getAttribute("data-name");
-          if (!confirm(`${fr ? "Supprimer le job" : "Delete job"} "${name}" ?`)) return;
+          if (!confirm(`${fr ? "Supprimer le job" : "Delete job"} "${name}" ?`))
+            return;
           btn.disabled = true;
-          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, { method: "DELETE" });
-          if (res.ok) { await loadCronJobs(); } else { btn.disabled = false; alert(fr ? "Erreur lors de la suppression." : "Delete failed."); }
+          const res = await fetch(
+            `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`,
+            { method: "DELETE" },
+          );
+          if (res.ok) {
+            await loadCronJobs();
+          } else {
+            btn.disabled = false;
+            alert(fr ? "Erreur lors de la suppression." : "Delete failed.");
+          }
         });
       });
       wrap.querySelectorAll(".cron-toggle-btn").forEach((btn) => {
@@ -4042,25 +4098,39 @@ async function wireSchedulePage() {
           const name = btn.getAttribute("data-name");
           const currentlyEnabled = btn.getAttribute("data-enabled") === "true";
           btn.disabled = true;
-          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ enabled: !currentlyEnabled }),
-          });
-          if (res.ok) { await loadCronJobs(); } else { btn.disabled = false; alert(fr ? "Erreur lors de la mise à jour." : "Update failed."); }
+          const res = await fetch(
+            `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ enabled: !currentlyEnabled }),
+            },
+          );
+          if (res.ok) {
+            await loadCronJobs();
+          } else {
+            btn.disabled = false;
+            alert(fr ? "Erreur lors de la mise à jour." : "Update failed.");
+          }
         });
       });
     } catch (_) {
-      if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Erreur" : "Error"; }
+      if (status) {
+        status.className = "ai-runtime-status-badge warn";
+        status.textContent = fr ? "Erreur" : "Error";
+      }
       wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Erreur de chargement" : "Load error"}</p>`;
     }
   }
 
-  document.getElementById("refresh-cron")?.addEventListener("click", loadCronJobs);
+  document
+    .getElementById("refresh-cron")
+    ?.addEventListener("click", loadCronJobs);
 
   document.getElementById("add-cron-job")?.addEventListener("click", () => {
     const form = document.getElementById("cron-add-form");
-    if (form) form.style.display = form.style.display === "none" ? "block" : "none";
+    if (form)
+      form.style.display = form.style.display === "none" ? "block" : "none";
   });
   document.getElementById("cron-cancel")?.addEventListener("click", () => {
     const form = document.getElementById("cron-add-form");
@@ -4075,7 +4145,10 @@ async function wireSchedulePage() {
     const tz = document.getElementById("cron-tz")?.value.trim() || "UTC";
     const enabled = document.getElementById("cron-enabled")?.checked ?? true;
     if (!name || !cron || !prompt) {
-      if (statusEl) statusEl.textContent = fr ? "Nom, cron et prompt requis." : "Name, cron and prompt are required.";
+      if (statusEl)
+        statusEl.textContent = fr
+          ? "Nom, cron et prompt requis."
+          : "Name, cron and prompt are required.";
       return;
     }
     if (saveBtn) saveBtn.disabled = true;
@@ -4091,10 +4164,14 @@ async function wireSchedulePage() {
         if (statusEl) statusEl.textContent = "";
         const form = document.getElementById("cron-add-form");
         if (form) form.style.display = "none";
-        ["cron-name", "cron-expr", "cron-prompt"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
+        ["cron-name", "cron-expr", "cron-prompt"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+        });
         await loadCronJobs();
       } else {
-        if (statusEl) statusEl.textContent = data.error || (fr ? "Erreur." : "Error.");
+        if (statusEl)
+          statusEl.textContent = data.error || (fr ? "Erreur." : "Error.");
       }
     } catch (err) {
       if (statusEl) statusEl.textContent = String(err);
@@ -4121,9 +4198,10 @@ function renderCommunicationPage() {
             <span id="telegram-status" class="ai-runtime-status-badge warn">${fr ? "Chargement…" : "Loading…"}</span>
             <button id="telegram-test" class="btn btn-compact btn-primary" type="button" style="margin-left:auto">${fr ? "Envoyer un test" : "Send test"}</button>
           </div>
-          <div class="card-desc">${fr
-            ? "Service <code>telegram</code> du Docker Compose. Définis <code>TELEGRAM_BOT_TOKEN</code> et <code>TELEGRAM_CHAT_ID</code> dans <code>.env</code>. Sans token, le mode stub logue les messages sans les envoyer."
-            : "Docker Compose <code>telegram</code> service. Set <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_CHAT_ID</code> in <code>.env</code>. Without a token, stub mode logs messages instead of sending them."
+          <div class="card-desc">${
+            fr
+              ? "Service <code>telegram</code> du Docker Compose. Définis <code>TELEGRAM_BOT_TOKEN</code> et <code>TELEGRAM_CHAT_ID</code> dans <code>.env</code>. Sans token, le mode stub logue les messages sans les envoyer."
+              : "Docker Compose <code>telegram</code> service. Set <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_CHAT_ID</code> in <code>.env</code>. Without a token, stub mode logs messages instead of sending them."
           }</div>
           <div id="telegram-details" class="muted" style="font-size:12px;margin-top:8px"></div>
           <div id="telegram-test-status" style="font-size:13px;margin-top:10px;font-weight:500"></div>
@@ -4149,48 +4227,69 @@ async function wireCommunicationPage() {
     const statusEl = document.getElementById("telegram-status");
     const detailsEl = document.getElementById("telegram-details");
     try {
-      const r = await fetch("/api/hub/telegram/health", { signal: AbortSignal.timeout(4000) });
+      const r = await fetch("/api/hub/telegram/health", {
+        signal: AbortSignal.timeout(4000),
+      });
       if (!r.ok) throw new Error("not ok");
       const data = await r.json();
       if (statusEl) {
         statusEl.className = `ai-runtime-status-badge ${data.token_configured ? "ok" : "warn"}`;
         statusEl.textContent = data.stub_mode
-          ? (fr ? "Stub (pas de token)" : "Stub (no token)")
-          : (fr ? "Configuré" : "Configured");
+          ? fr
+            ? "Stub (pas de token)"
+            : "Stub (no token)"
+          : fr
+            ? "Configuré"
+            : "Configured";
       }
       if (detailsEl) {
         const parts = [];
         if (data.chat_id) parts.push(`chat_id: ${data.chat_id}`);
-        if (data.stub_mode) parts.push(fr ? "Mode stub — messages loggés, pas envoyés." : "Stub mode — messages are logged, not sent.");
+        if (data.stub_mode)
+          parts.push(
+            fr
+              ? "Mode stub — messages loggés, pas envoyés."
+              : "Stub mode — messages are logged, not sent.",
+          );
         else parts.push(fr ? "Bot prêt." : "Bot ready.");
         detailsEl.textContent = parts.join("  ·  ");
       }
     } catch (_) {
-      if (statusEl) { statusEl.className = "ai-runtime-status-badge warn"; statusEl.textContent = fr ? "Indisponible" : "Unavailable"; }
+      if (statusEl) {
+        statusEl.className = "ai-runtime-status-badge warn";
+        statusEl.textContent = fr ? "Indisponible" : "Unavailable";
+      }
     }
   }
 
-  document.getElementById("telegram-test")?.addEventListener("click", async () => {
-    const btn = document.getElementById("telegram-test");
-    const statusEl = document.getElementById("telegram-test-status");
-    if (btn) btn.disabled = true;
-    if (statusEl) statusEl.textContent = fr ? "Envoi…" : "Sending…";
-    try {
-      const r = await fetch("/api/hub/telegram/test", { method: "POST" });
-      const data = await r.json();
-      if (r.ok && data.ok) {
-        if (statusEl) statusEl.textContent = data.stub
-          ? (fr ? "✓ Stub : message loggé (aucun token configuré)." : "✓ Stub: message logged (no token configured).")
-          : (fr ? "✓ Message envoyé avec succès !" : "✓ Message sent successfully!");
-      } else {
-        if (statusEl) statusEl.textContent = `✗ ${data.error || "error"}`;
+  document
+    .getElementById("telegram-test")
+    ?.addEventListener("click", async () => {
+      const btn = document.getElementById("telegram-test");
+      const statusEl = document.getElementById("telegram-test-status");
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.textContent = fr ? "Envoi…" : "Sending…";
+      try {
+        const r = await fetch("/api/hub/telegram/test", { method: "POST" });
+        const data = await r.json();
+        if (r.ok && data.ok) {
+          if (statusEl)
+            statusEl.textContent = data.stub
+              ? fr
+                ? "✓ Stub : message loggé (aucun token configuré)."
+                : "✓ Stub: message logged (no token configured)."
+              : fr
+                ? "✓ Message envoyé avec succès !"
+                : "✓ Message sent successfully!";
+        } else {
+          if (statusEl) statusEl.textContent = `✗ ${data.error || "error"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `✗ ${err}`;
+      } finally {
+        if (btn) btn.disabled = false;
       }
-    } catch (err) {
-      if (statusEl) statusEl.textContent = `✗ ${err}`;
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  });
+    });
 
   await loadTelegramStatus();
 }
@@ -4241,7 +4340,8 @@ async function wireRuntime() {
       const pp = cfg.primary_provider;
       const configured = !!pp;
       const providerName = pp
-        ? providerLabels[pp] || (pp === "mammouth" ? providerLabels.mammouth : pp)
+        ? providerLabels[pp] ||
+          (pp === "mammouth" ? providerLabels.mammouth : pp)
         : "—";
       const statusDot = configured
         ? `<span class="runtime-dot ok"></span>`
@@ -4302,7 +4402,8 @@ async function wireRuntime() {
 const SETUP_RUNTIME_TEXT = {
   fr: {
     title: "Setup",
-    subtitle: "Choisis le fournisseur principal (PRIMARY_AI_PROVIDER dans .env).",
+    subtitle:
+      "Choisis le fournisseur principal (PRIMARY_AI_PROVIDER dans .env).",
     back: "Retour au hub",
     step1Title: "Runtime IA",
     step1Desc:
