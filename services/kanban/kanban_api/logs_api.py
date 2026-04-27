@@ -1,4 +1,4 @@
-"""Logs API router — reads ~/.openclaw/logs/dombot.jsonl with filters."""
+"""Logs API router for centralized trajectory logs."""
 
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
 def _log_jsonl_path() -> Path:
-    override = os.environ.get("DOMBOT_LOG_JSONL", "").strip()
+    override = os.environ.get("CENTRAL_LOG_FILE", "").strip()
     if override:
         return Path(override).expanduser()
-    return Path.home() / ".openclaw" / "logs" / "dombot.jsonl"
+    return Path.cwd() / "logs" / "message-trajectory.jsonl"
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
@@ -41,9 +41,11 @@ def _read_entries(
             continue
         if level and e.get("level") != level.upper():
             continue
-        if process and process not in e.get("process", ""):
+        component = str(e.get("component") or e.get("process") or "")
+        event = str(e.get("event") or e.get("action") or "")
+        if process and process not in component:
             continue
-        if action and action not in e.get("action", ""):
+        if action and action not in event:
             continue
         if search and search.lower() not in json.dumps(e).lower():
             continue
@@ -92,7 +94,7 @@ def get_logs_summary():
         except json.JSONDecodeError:
             continue
         levels[e.get("level", "INFO")] += 1
-        processes[e.get("process", "unknown")] += 1
+        processes[e.get("component", e.get("process", "unknown"))] += 1
         if e.get("level") in ("ERROR", "CRITICAL"):
             errors.append(e)
     return {

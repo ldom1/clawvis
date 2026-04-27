@@ -43,7 +43,6 @@ def test_delete_task_removes_and_cleans_deps(monkeypatch, tmp_path: Path) -> Non
         encoding="utf-8",
     )
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", False)
 
     out = core.delete_task("a")
     assert out["ok"] is True
@@ -69,7 +68,6 @@ def test_delete_task_missing_raises(monkeypatch, tmp_path: Path) -> None:
         encoding="utf-8",
     )
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", False)
     try:
         core.delete_task("missing-id")
     except KeyError:
@@ -116,7 +114,6 @@ def test_delete_tasks_bulk_all_active(monkeypatch, tmp_path: Path) -> None:
         ],
     )
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", False)
 
     out = core.delete_tasks_bulk(project=None)
     assert out == {"ok": True, "deleted": 2}
@@ -145,7 +142,6 @@ def test_delete_tasks_bulk_skips_archived(monkeypatch, tmp_path: Path) -> None:
         ],
     )
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", False)
 
     out = core.delete_tasks_bulk(project=None)
     assert out == {"ok": True, "deleted": 1}
@@ -175,7 +171,6 @@ def test_delete_tasks_bulk_scoped_by_project(monkeypatch, tmp_path: Path) -> Non
         ],
     )
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", False)
 
     out = core.delete_tasks_bulk(project="alpha")
     assert out == {"ok": True, "deleted": 1}
@@ -214,7 +209,6 @@ def test_delete_tasks_bulk_cleans_deps(monkeypatch, tmp_path: Path) -> None:
         ],
     )
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", False)
 
     core.delete_tasks_bulk(project="p1")
     data = json.loads(tasks_file.read_text(encoding="utf-8"))
@@ -238,7 +232,6 @@ def test_delete_tasks_bulk_no_match_returns_zero(
     )
     raw = tasks_file.read_text(encoding="utf-8")
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", False)
 
     assert core.delete_tasks_bulk(project=None) == {"ok": True, "deleted": 0}
     assert tasks_file.read_text(encoding="utf-8") == raw

@@ -36,7 +36,6 @@ def test_update_task_syncs_status_to_markdown(monkeypatch, tmp_path):
     tasks_file = tmp_path / "kanban" / "tasks.json"
     _seed_tasks_file(tasks_file)
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", True)
 
     calls: list[tuple[str, str, dict]] = []
 
@@ -62,7 +61,6 @@ def test_update_task_without_source_file_does_not_sync_markdown(monkeypatch, tmp
     tasks_file.write_text(json.dumps(data), encoding="utf-8")
 
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", True)
 
     called = {"value": False}
 
@@ -102,7 +100,6 @@ def test_split_task_creates_markdown_entry_per_child(monkeypatch, tmp_path):
         encoding="utf-8",
     )
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", True)
     created: list[tuple[str, str]] = []
 
     def _create(project: str, td: dict):
@@ -143,7 +140,6 @@ def test_split_task_skips_md_when_no_project(monkeypatch, tmp_path):
         encoding="utf-8",
     )
     monkeypatch.setattr(core, "TASKS_FILE", tasks_file)
-    monkeypatch.setattr(core, "_MD_SYNC", True)
     monkeypatch.setattr(
         core,
         "create_task_in_md",

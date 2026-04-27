@@ -8,13 +8,13 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from hub_core.brain_memory import (
     active_brain_memory_root as resolve_active_brain_memory_root,
 )
+from hub_core.central_logger import trace_event
 
 from kanban_api.models import (
     STATUSES,
@@ -42,156 +42,142 @@ else:
     _memory_root_path = Path.home() / ".openclaw/workspace/memory"
 
 TASKS_FILE = _memory_root_path / "kanban" / "tasks.json"
-_kanban_dir = str(TASKS_FILE.parent)
-if _kanban_dir not in sys.path:
-    sys.path.insert(0, _kanban_dir)
-try:
-    from kanban_parser.markdown_writer import create_task_in_md, write_task_to_md
 
-    _MD_SYNC = True
-except ImportError:
-    _ROADMAP_TITLE = "## Roadmap"
-    _ROADMAP_HEADER = "| Task | Priority | Start | End | Effort | Status | Deps |"
-    _ROADMAP_DIVIDER = "|------|----------|-------|-----|--------|--------|------|"
+_ROADMAP_TITLE = "## Roadmap"
+_ROADMAP_HEADER = "| Task | Priority | Start | End | Effort | Status | Deps |"
+_ROADMAP_DIVIDER = "|------|----------|-------|-----|--------|--------|------|"
 
-    def _md_cell(value: object) -> str:
-        if value is None:
-            return "-"
-        text = str(value).strip()
-        return text if text else "-"
 
-    def _format_status(value: object) -> str:
-        return _md_cell(value).lower()
+def _md_cell(value: object) -> str:
+    if value is None:
+        return "-"
+    text = str(value).strip()
+    return text if text else "-"
 
-    def _format_effort(value: object) -> str:
-        if value is None:
-            return "-"
-        return str(value)
 
-    def _split_md_row(line: str) -> list[str]:
-        if "|" not in line:
-            return []
-        parts = [p.strip() for p in line.strip().strip("|").split("|")]
-        return parts if len(parts) >= 7 else []
+def _format_status(value: object) -> str:
+    return _md_cell(value).lower()
 
-    def _roadmap_bounds(lines: list[str]) -> tuple[int, int] | None:
-        start = -1
-        for i, line in enumerate(lines):
-            if line.strip().lower() == "## roadmap":
-                start = i
-                break
-        if start < 0:
-            return None
-        end = len(lines)
-        for i in range(start + 1, len(lines)):
-            if lines[i].startswith("## "):
-                end = i
-                break
-        return (start, end)
 
-    def _ensure_roadmap_table(lines: list[str]) -> tuple[int, int]:
+def _format_effort(value: object) -> str:
+    if value is None:
+        return "-"
+    return str(value)
+
+
+def _split_md_row(line: str) -> list[str]:
+    if "|" not in line:
+        return []
+    parts = [p.strip() for p in line.strip().strip("|").split("|")]
+    return parts if len(parts) >= 7 else []
+
+
+def _roadmap_bounds(lines: list[str]) -> tuple[int, int] | None:
+    start = -1
+    for i, line in enumerate(lines):
+        if line.strip().lower() == "## roadmap":
+            start = i
+            break
+    if start < 0:
+        return None
+    end = len(lines)
+    for i in range(start + 1, len(lines)):
+        if lines[i].startswith("## "):
+            end = i
+            break
+    return (start, end)
+
+
+def _ensure_roadmap_table(lines: list[str]) -> tuple[int, int]:
+    """Guarantee a ## Roadmap section with a task table exists; return (header_idx, divider_idx)."""
+    bounds = _roadmap_bounds(lines)
+    if bounds is None:
+        if lines and lines[-1].strip():
+            lines.extend(["", ""])
+        elif lines:
+            lines.append("")
+        lines.extend([_ROADMAP_TITLE, "", _ROADMAP_HEADER, _ROADMAP_DIVIDER])
         bounds = _roadmap_bounds(lines)
-        if bounds is None:
-            if lines and lines[-1].strip():
-                lines.extend(["", ""])
-            elif lines:
-                lines.append("")
-            lines.extend([_ROADMAP_TITLE, "", _ROADMAP_HEADER, _ROADMAP_DIVIDER])
-            bounds = _roadmap_bounds(lines)
-        assert bounds is not None
-        start, end = bounds
-        header_idx = -1
-        for i in range(start + 1, end):
-            if lines[i].strip() == _ROADMAP_HEADER:
-                header_idx = i
-                break
-        if header_idx < 0:
-            insert_at = start + 1
-            lines[insert_at:insert_at] = ["", _ROADMAP_HEADER, _ROADMAP_DIVIDER]
-            return (insert_at + 1, insert_at + 2)
-        divider_idx = header_idx + 1
-        if divider_idx >= len(lines) or lines[divider_idx].strip() != _ROADMAP_DIVIDER:
-            lines.insert(divider_idx, _ROADMAP_DIVIDER)
-        return (header_idx, divider_idx)
+    assert bounds is not None
+    start, end = bounds
+    header_idx = -1
+    for i in range(start + 1, end):
+        if lines[i].strip() == _ROADMAP_HEADER:
+            header_idx = i
+            break
+    if header_idx < 0:
+        insert_at = start + 1
+        lines[insert_at:insert_at] = ["", _ROADMAP_HEADER, _ROADMAP_DIVIDER]
+        return (insert_at + 1, insert_at + 2)
+    divider_idx = header_idx + 1
+    if divider_idx >= len(lines) or lines[divider_idx].strip() != _ROADMAP_DIVIDER:
+        lines.insert(divider_idx, _ROADMAP_DIVIDER)
+    return (header_idx, divider_idx)
 
-    def create_task_in_md(project: str, task_data: dict) -> str:
-        slug = str(project or "").strip()
-        if not slug:
-            return ""
-        path = _memory_file_for(slug)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if path.exists():
-            content = path.read_text(encoding="utf-8")
-        else:
-            content = f"# {slug}\n"
-        lines = content.splitlines()
-        _, divider_idx = _ensure_roadmap_table(lines)
-        row = (
-            f"| {_md_cell(task_data.get('title'))} | {_md_cell(task_data.get('priority'))} | "
-            f"{_md_cell(task_data.get('start_date'))} | {_md_cell(task_data.get('end_date'))} | "
-            f"{_format_effort(task_data.get('effort_hours'))} | {_format_status(task_data.get('status'))} | - |"
+
+def create_task_in_md(project: str, task_data: dict) -> str:
+    """Append a task row to the project memory page, creating the file and Roadmap table if absent."""
+    slug = str(project or "").strip()
+    if not slug:
+        return ""
+    path = _memory_file_for(slug)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = path.read_text(encoding="utf-8") if path.exists() else f"# {slug}\n"
+    lines = content.splitlines()
+    _, divider_idx = _ensure_roadmap_table(lines)
+    row = (
+        f"| {_md_cell(task_data.get('title'))} | {_md_cell(task_data.get('priority'))} | "
+        f"{_md_cell(task_data.get('start_date'))} | {_md_cell(task_data.get('end_date'))} | "
+        f"{_format_effort(task_data.get('effort_hours'))} | {_format_status(task_data.get('status'))} | - |"
+    )
+    insert_at = divider_idx + 1
+    while insert_at < len(lines) and lines[insert_at].strip().startswith("|"):
+        insert_at += 1
+    lines.insert(insert_at, row)
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return str(path)
+
+
+def write_task_to_md(source_file: str, title: str, updates: dict) -> None:
+    path = Path(source_file).expanduser()
+    if not path.exists():
+        return
+    lines = path.read_text(encoding="utf-8").splitlines()
+    bounds = _roadmap_bounds(lines)
+    if bounds is None:
+        return
+    start, end = bounds
+    for i in range(start + 1, end):
+        cols = _split_md_row(lines[i])
+        if not cols:
+            continue
+        if cols[0] != title:
+            continue
+        priority = _md_cell(updates.get("priority", cols[1]))
+        start_date = _md_cell(updates.get("start_date", cols[2]))
+        end_date = _md_cell(updates.get("end_date", cols[3]))
+        effort = _format_effort(updates.get("effort_hours", cols[4]))
+        status = _format_status(updates.get("status", cols[5]))
+        deps = _md_cell(cols[6])
+        lines[i] = (
+            f"| {cols[0]} | {priority} | {start_date} | {end_date} | {effort} | {status} | {deps} |"
         )
-        insert_at = divider_idx + 1
-        while insert_at < len(lines) and lines[insert_at].strip().startswith("|"):
-            insert_at += 1
-        lines.insert(insert_at, row)
         path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-        return str(path)
+        return
 
-    def write_task_to_md(source_file: str, title: str, updates: dict) -> None:
-        path = Path(source_file).expanduser()
-        if not path.exists():
-            return
-        lines = path.read_text(encoding="utf-8").splitlines()
-        bounds = _roadmap_bounds(lines)
-        if bounds is None:
-            return
-        start, end = bounds
-        for i in range(start + 1, end):
-            cols = _split_md_row(lines[i])
-            if not cols:
-                continue
-            if cols[0] != title:
-                continue
-            priority = _md_cell(updates.get("priority", cols[1]))
-            start_date = _md_cell(updates.get("start_date", cols[2]))
-            end_date = _md_cell(updates.get("end_date", cols[3]))
-            effort = _format_effort(updates.get("effort_hours", cols[4]))
-            status = _format_status(updates.get("status", cols[5]))
-            deps = _md_cell(cols[6])
-            lines[i] = (
-                f"| {cols[0]} | {priority} | {start_date} | {end_date} | {effort} | {status} | {deps} |"
-            )
-            path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-            return
-
-    _MD_SYNC = False
-
-_LOGGER_DIR = str(Path.home() / ".openclaw/skills/logger/core")
 HUB_SETTINGS_FILE = _memory_root_path / "kanban" / "hub_settings.json"
 HUB_METADATA_FILE = ".clawvis-project.json"
 PROJECT_TEMPLATES_DIR = _CLAWVIS_ROOT / "skills" / "project-init" / "templates"
 
 
 def _log(level: str, action: str, message: str, metadata: dict | None = None):
-    cmd = [
-        "uv",
-        "run",
-        "--directory",
-        _LOGGER_DIR,
-        "dombot-log",
-        level,
-        "project:kanban-api",
-        "system",
+    trace_event(
+        "kanban.api",
         action,
-        message,
-    ]
-    if metadata:
-        cmd.append(json.dumps(metadata))
-    try:
-        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
+        level=level,
+        message=message,
+        **(metadata or {}),
+    )
 
 
 def now_iso() -> str:
@@ -335,11 +321,10 @@ def create_task(body: TaskCreate) -> dict:
         "start_date": body.start_date,
         "end_date": body.end_date,
     }
-    if _MD_SYNC:
-        try:
-            source_file = create_task_in_md(body.project, task_data)
-        except Exception:
-            pass
+    try:
+        source_file = create_task_in_md(body.project, task_data)
+    except Exception:
+        pass
     if source_file:
         tid = (
             "task-"
@@ -412,7 +397,7 @@ def update_task(task_id: str, body: TaskUpdate) -> dict:
     updates = body.model_dump(exclude_unset=True)
     if "status" in updates:
         _check_dependencies(data, task, updates["status"])
-    if _MD_SYNC and task.get("source_file"):
+    if task.get("source_file"):
         try:
             write_task_to_md(task["source_file"], task["title"], updates)
         except Exception:
@@ -443,7 +428,7 @@ def delete_task(task_id: str) -> dict:
     if not task:
         raise KeyError("Task not found")
     title = task.get("title", task_id)
-    if _MD_SYNC and task.get("source_file"):
+    if task.get("source_file"):
         try:
             write_task_to_md(
                 task["source_file"],
@@ -451,12 +436,7 @@ def delete_task(task_id: str) -> dict:
                 {"status": "Deleted", "deleted": True},
             )
         except Exception:
-            try:
-                write_task_to_md(
-                    task["source_file"], task["title"], {"status": "Archived"}
-                )
-            except Exception:
-                pass
+            pass
     kept = [t for t in tasks if t.get("id") != task_id]
     for t in kept:
         deps = t.get("dependencies") or []
@@ -482,7 +462,7 @@ def delete_tasks_bulk(project: str | None = None) -> dict:
     if not removed_ids:
         return {"ok": True, "deleted": 0}
     for task in to_remove:
-        if _MD_SYNC and task.get("source_file"):
+        if task.get("source_file"):
             try:
                 write_task_to_md(
                     task["source_file"],
@@ -490,12 +470,7 @@ def delete_tasks_bulk(project: str | None = None) -> dict:
                     {"status": "Deleted", "deleted": True},
                 )
             except Exception:
-                try:
-                    write_task_to_md(
-                        task["source_file"], task["title"], {"status": "Archived"}
-                    )
-                except Exception:
-                    pass
+                pass
     kept = [t for t in tasks if t.get("id") not in removed_ids]
     for t in kept:
         deps = t.get("dependencies") or []
@@ -515,7 +490,7 @@ def delete_tasks_bulk(project: str | None = None) -> dict:
 def archive_task(task_id: str) -> dict:
     data = _load_raw()
     task = _find_task(data, task_id)
-    if _MD_SYNC and task.get("source_file"):
+    if task.get("source_file"):
         try:
             write_task_to_md(task["source_file"], task["title"], {"status": "Archived"})
         except Exception:
@@ -530,7 +505,7 @@ def archive_task(task_id: str) -> dict:
 def restore_task(task_id: str) -> dict:
     data = _load_raw()
     task = _find_task(data, task_id)
-    if _MD_SYNC and task.get("source_file"):
+    if task.get("source_file"):
         try:
             write_task_to_md(task["source_file"], task["title"], {"status": "Backlog"})
         except Exception:
@@ -613,7 +588,7 @@ def split_task(task_id: str, body: SplitTaskRequest) -> dict:
         )
         title = f"{base} #{idx}" if body.count > 1 else base
         source_file = ""
-        if _MD_SYNC and proj:
+        if proj:
             task_md = {
                 "title": title,
                 "priority": parent.get("priority", "Medium"),
