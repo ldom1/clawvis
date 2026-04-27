@@ -1,5 +1,5 @@
 [project]
-name = "dombot-hub-core"
+name = "hub-core"
 version = "0.1.0"
 description = "LabOS hub core: metrics, providers, tokens and status aggregation."
 readme = "README.md"

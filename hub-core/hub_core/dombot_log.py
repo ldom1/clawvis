@@ -22,7 +22,20 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-LOG_DIR = Path.home() / ".openclaw" / "logs"
+def _repo_root() -> Path:
+    # hub-core/hub_core/dombot_log.py -> <repo>
+    return Path(__file__).resolve().parents[2]
+
+
+def _log_dir() -> Path:
+    raw = os.environ.get("DOMBOT_LOG_DIR", "").strip()
+    if raw:
+        return Path(raw).expanduser()
+    # Centralized default: project-local logs directory.
+    return _repo_root() / "logs"
+
+
+LOG_DIR = _log_dir()
 LOG_TEXT = LOG_DIR / "dombot.log"
 LOG_JSONL = LOG_DIR / "dombot.jsonl"
 DISCORD_SEND_SCRIPT = (
