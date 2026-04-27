@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 
 from aiohttp import web
+from hub_core.central_logger import new_trace_id, trace_event
+from loguru import logger as log
 from pydantic import ValidationError
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -14,12 +15,6 @@ from core.config import get_settings
 from core.formatter import format_reply
 from core.models import OutcomingMessage, incoming_from_update
 from core.router import enrich
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-)
-log = logging.getLogger("telegram-bot")
 
 _tg_app: Application | None = None
 
@@ -52,33 +47,75 @@ async def _cmd_routed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     command = update.message.text.split()[0].lstrip("/").split("@")[0].lower()
     args = " ".join(context.args) if context.args else ""
     prompt = enrich(command, args) or update.message.text
+    trace_id = new_trace_id()
+    trace_event(
+        "telegram.bot",
+        "command.received",
+        trace_id=trace_id,
+        command=command,
+        prompt_chars=len(prompt),
+    )
     settings = get_settings()
     try:
-        raw = await call_agent(settings, prompt)
+        raw = await call_agent(settings, prompt, trace_id=trace_id)
     except AgentError:
         log.error("agent.error command=%s", command)
+        trace_event(
+            "telegram.bot",
+            "command.agent_error",
+            trace_id=trace_id,
+            command=command,
+        )
         await update.message.reply_text(_UNREACHABLE_MSG)
         return
     await update.message.reply_text(format_reply(raw))
     log.info("command.replied command=%s chars=%d", command, len(raw))
+    trace_event(
+        "telegram.bot",
+        "command.replied",
+        trace_id=trace_id,
+        command=command,
+        response_chars=len(raw),
+    )
 
 
 async def on_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     incoming = incoming_from_update(update)
     if incoming is None:
         return
+    trace_id = new_trace_id()
     log.info("message.received from=%s", incoming.user_id)
+    trace_event(
+        "telegram.bot",
+        "message.received",
+        trace_id=trace_id,
+        user_id=str(incoming.user_id),
+        text_chars=len(incoming.text or ""),
+    )
     settings = get_settings()
     try:
-        raw = await call_agent(settings, incoming.text)
+        raw = await call_agent(settings, incoming.text, trace_id=trace_id)
     except AgentError:
         log.error("agent.error freeform")
+        trace_event(
+            "telegram.bot",
+            "message.agent_error",
+            trace_id=trace_id,
+            user_id=str(incoming.user_id),
+        )
         if update.message:
             await update.message.reply_text(_UNREACHABLE_MSG)
         return
     if update.message:
         await update.message.reply_text(format_reply(raw))
         log.info("message.replied chars=%d", len(raw))
+        trace_event(
+            "telegram.bot",
+            "message.replied",
+            trace_id=trace_id,
+            user_id=str(incoming.user_id),
+            response_chars=len(raw),
+        )
 
 
 async def _http_send(request: web.Request) -> web.Response:

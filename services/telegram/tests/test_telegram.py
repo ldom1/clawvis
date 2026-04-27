@@ -247,11 +247,24 @@ class TestFormatter(unittest.TestCase):
             "[CLI: empty response]",
             "[No LLM provider configured. Set ANTHROPIC_API_KEY]",
             "[CLAWVIS:AUTH]",
-            "[CLAWVIS:HTTP:503]",
         ):
             with self.subTest(sentinel=sentinel):
                 result = format_reply(sentinel)
                 self.assertEqual(result, _SNAG_MSG)
+
+    def test_clawvis_http_error_passes_through(self) -> None:
+        from core.formatter import format_reply
+
+        self.assertEqual(
+            format_reply("[CLAWVIS:HTTP:503]"),
+            "[CLAWVIS:HTTP:503]",
+        )
+
+    def test_clawvis_empty_content_passes_through(self) -> None:
+        from core.formatter import format_reply
+
+        t = "[CLAWVIS:empty-content:end_turn]"
+        self.assertEqual(format_reply(t), t)
 
     def test_truncates_at_4096(self) -> None:
         from core.formatter import format_reply

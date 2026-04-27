@@ -6,9 +6,11 @@ from collections.abc import Callable
 def _enrich_tasks(args: str) -> str:
     action = args.strip() or "list all tasks"
     return (
-        "You are managing the Clawvis task board via the Kanban API. "
+        "You are talking to the Clawvis agent only; the agent may call the Kanban API to create or list tasks. "
+        "You are managing the Clawvis task board. "
         f"The user wants to: {action}. "
-        "Execute the appropriate Kanban task action now and confirm with the task ID and title."
+        "When creating a task, give a clear title and project; the agent will orchestrate the Kanban write. "
+        "Confirm with the task ID and title when done."
     )
 
 

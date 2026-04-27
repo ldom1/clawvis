@@ -23,6 +23,9 @@ def format_reply(raw: str) -> str:
     text = raw.strip()
     if not text:
         return _EMPTY_MSG
+    # Pass through agent planning diagnostics (orchestration) so users see real errors.
+    if text.startswith("[CLAWVIS:HTTP:") or text.startswith("[CLAWVIS:empty-content:"):
+        return text[:_MAX_LEN]
     for sentinel in _ERROR_SENTINELS:
         if text.startswith(sentinel):
             return _SNAG_MSG
