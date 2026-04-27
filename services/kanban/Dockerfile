@@ -22,8 +22,8 @@ RUN chmod +x scripts/build-quartz.sh
 
 WORKDIR /clawvis
 # Workspace venv at /clawvis/.venv; make it world-writable so uid 1000 can run uv in containers
-RUN UV_HTTP_TIMEOUT=120 UV_HTTP_RETRIES=8 uv sync --frozen --no-dev --all-packages \
-    && chmod -R a+rwX .venv
+RUN UV_HTTP_TIMEOUT=120 UV_HTTP_RETRIES=8 uv sync --frozen --no-dev --package kanban-api \
+    && chmod -R a+rwX .venv /clawvis
 
 EXPOSE 8090
 
