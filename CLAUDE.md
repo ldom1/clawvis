@@ -6,7 +6,7 @@
 > |--------|---------|
 > | Vision produit | [`docs/GOAL.md`](docs/GOAL.md) |
 > | Architecture | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
-> | Bugs / dettes | [`docs/PITFALLS.md`](docs/PITFALLS.md) |
+> | Bugs / dettes | `$BRAIN_PATH/resources/knowledge/operational/clawvis-pitfalls.md` (Local Brain — do not add to `docs/PITFALLS.md`) |
 > | Modèle de données | [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) |
 
 ---
