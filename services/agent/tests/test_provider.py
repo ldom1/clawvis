@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch
 
 
-def test_fallback_to_env_anthropic(monkeypatch):
+def test_fallback_to_env_anthropic(monkeypatch, neutral_primary_dotenv):
     monkeypatch.delenv("OPENCLAW_STATE_DIR", raising=False)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-env")
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
@@ -16,7 +16,7 @@ def test_fallback_to_env_anthropic(monkeypatch):
     assert cfg.primary_from_env is False
 
 
-def test_provider_is_mammouth_when_no_anthropic(monkeypatch):
+def test_provider_is_mammouth_when_no_anthropic(monkeypatch, neutral_primary_dotenv):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-openrouter")
     monkeypatch.delenv("OPENCLAW_STATE_DIR", raising=False)

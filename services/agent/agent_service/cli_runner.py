@@ -7,7 +7,7 @@ import shutil
 
 
 _TOOL_FLAGS: dict[str, list[str]] = {
-    "claude": ["--print", "--no-color"],
+    "claude": ["--print"],
     "opencode": ["run"],
     "codex": [],
 }
@@ -28,11 +28,14 @@ class CliRunner:
     def available(self) -> bool:
         return self._bin is not None
 
-    async def run(self, prompt: str) -> str:
+    async def run(self, prompt: str, model: str | None = None) -> str:
         if not self._bin:
             raise RuntimeError(f"CLI tool '{self.tool}' not found in PATH")
 
-        flags = _TOOL_FLAGS.get(self.tool, [])
+        flags = list(_TOOL_FLAGS.get(self.tool, []))
+        if self.tool == "claude" and model:
+            # Claude CLI supports explicit model selection via --model.
+            flags += ["--model", model]
         cmd = [self._bin] + flags
 
         env = os.environ.copy()
@@ -47,7 +50,7 @@ class CliRunner:
         )
 
         try:
-            stdout, _ = await asyncio.wait_for(
+            stdout, stderr = await asyncio.wait_for(
                 proc.communicate(input=prompt.encode()),
                 timeout=self.timeout,
             )
@@ -56,4 +59,9 @@ class CliRunner:
             await proc.wait()
             raise TimeoutError(f"CLI tool '{self.tool}' timed out after {self.timeout}s")
 
-        return stdout.decode(errors="replace").strip()
+        out = stdout.decode(errors="replace").strip()
+        err = stderr.decode(errors="replace").strip()
+        # claude --print often leaves stdout empty while the reply (or errors) is on stderr
+        if not out and err:
+            return err
+        return out

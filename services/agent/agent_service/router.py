@@ -6,10 +6,12 @@ from typing import Any
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from hub_core.central_logger import trace_event
 from pydantic import BaseModel
 
 from .cli_runner import CliRunner
-from .config_store import load_config, save_config
+from .config_store import load_settings, save_settings
+from .orchestrate import _effective_provider as effective_provider, run_orchestrate_or_none
 from .persona import load_persona
 from .provider import ProviderConfig, load_provider_config, primary_ai_provider_raw
 from .streaming import stream_anthropic, stream_openai_compat
@@ -17,6 +19,10 @@ from .streaming import stream_anthropic, stream_openai_compat
 _SCHEDULER_URL = os.environ.get("SCHEDULER_URL", "http://scheduler:8095")
 
 router = APIRouter()
+
+
+def _trace(event: str, *, trace_id: str | None = None, **meta: object) -> None:
+    trace_event("agent.router", event, trace_id=trace_id, **meta)
 
 
 def primary_provider_from_env() -> str | None:
@@ -30,28 +36,6 @@ def primary_provider_from_env() -> str | None:
     return None
 
 
-def _normalize_provider_str(v: str) -> str:
-    s = (v or "").strip().lower()
-    if not s:
-        return "anthropic"
-    if s in ("anthropic", "claude"):
-        return "anthropic"
-    if s in ("mammouth", "mistral", "mammoth", "openrouter"):
-        return "mammouth"
-    if s in ("cli", "claude-code", "opencode", "codex"):
-        return "cli"
-    return s
-
-
-def effective_provider(conf: dict, cfg: ProviderConfig) -> str:
-    if cfg.primary_from_env:
-        return cfg.provider
-    pp = conf.get("preferred_provider")
-    if pp:
-        return _normalize_provider_str(str(pp))
-    return cfg.provider
-
-
 def runtime_ready(cfg: ProviderConfig, eff: str) -> bool:
     if eff == "anthropic":
         return bool(cfg.anthropic_token)
@@ -60,6 +44,44 @@ def runtime_ready(cfg: ProviderConfig, eff: str) -> bool:
     if eff == "cli":
         return cfg.cli_available
     return False
+
+
+def _lane_provider(conf: dict, cfg: ProviderConfig, key: str) -> str:
+    lane = conf.get(key)
+    if not lane:
+        if key == "chat_preferred_provider":
+            # Default chat lane: OpenRouter-compatible path when OPENROUTER token is configured.
+            if bool(os.environ.get("OPENROUTER_API_KEY", "").strip()):
+                lane = "mammouth"
+            else:
+                return effective_provider(conf, cfg)
+        else:
+            return effective_provider(conf, cfg)
+    c = dict(conf)
+    c["preferred_provider"] = lane
+    return effective_provider(c, cfg)
+
+
+def _provider_available(name: str, cfg: ProviderConfig) -> bool:
+    if name == "cli":
+        return cfg.cli_available
+    if name == "anthropic":
+        return bool(cfg.anthropic_token)
+    if name == "mammouth":
+        return bool(cfg.mammouth_token)
+    return False
+
+
+def _resolve_provider_for_chat(preferred: str, cfg: ProviderConfig) -> str:
+    order = [preferred, "mammouth", "anthropic", "cli"]
+    seen: set[str] = set()
+    for p in order:
+        if p in seen:
+            continue
+        seen.add(p)
+        if _provider_available(p, cfg):
+            return p
+    return preferred
 
 
 def _openai_compat_kind(base_url: str) -> str:
@@ -82,8 +104,8 @@ _MAMMOUTH_DEFAULT_MODEL = "mistral:mistral-small-3.2-24b-instruct"
 
 
 def _providers_nested(cfg: ProviderConfig, conf: dict) -> dict[str, Any]:
-    anthropic_model = conf.get("anthropic_model") or "claude-haiku-4-5"
-    configured_model = conf.get("mammouth_model") or _OPENROUTER_DEFAULT_MODEL
+    anthropic_model = conf.get("chat_model") or conf.get("task_preferred_model") or "claude-haiku-4-5"
+    configured_model = conf.get("chat_model") or _OPENROUTER_DEFAULT_MODEL
     base = (cfg.mammouth_base_url or "").strip()
     kind = _openai_compat_kind(base)
     token_ok = bool(cfg.mammouth_token)
@@ -133,13 +155,15 @@ def _providers_nested(cfg: ProviderConfig, conf: dict) -> dict[str, Any]:
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
+    trace_id: str | None = None
 
 
 @router.get("/status")
 def status():
     cfg = load_provider_config()
-    conf = load_config()
-    eff = effective_provider(conf, cfg)
+    conf = load_settings()
+    confd = conf.model_dump()
+    eff = effective_provider(confd, cfg)
     return {
         "provider": eff,
         "runtime_ready": runtime_ready(cfg, eff),
@@ -155,18 +179,28 @@ def status():
 def get_config():
     """Shape matches `docs/examples/agent-config-get-response.json` (Hub + docs)."""
     cfg = load_provider_config()
-    conf = load_config()
+    conf = load_settings()
+    confd = conf.model_dump()
+    chat_lane = conf.chat_preferred_provider
+    if not chat_lane and bool(os.environ.get("OPENROUTER_API_KEY", "").strip()):
+        chat_lane = "mammouth"
     return {
-        "preferred_provider": conf.get("preferred_provider"),
+        "preferred_provider": conf.preferred_provider,
+        "chat_preferred_provider": chat_lane,
+        "task_preferred_provider": conf.task_preferred_provider,
+        "chat_model": conf.chat_model,
+        "task_preferred_model": conf.task_preferred_model,
         "primary_provider": primary_provider_from_env(),
-        "providers": _providers_nested(cfg, conf),
+        "providers": _providers_nested(cfg, confd),
     }
 
 
 class AgentConfigUpdate(BaseModel):
     preferred_provider: str | None = None
-    anthropic_model: str | None = None
-    mammouth_model: str | None = None
+    chat_preferred_provider: str | None = None
+    task_preferred_provider: str | None = None
+    chat_model: str | None = None
+    task_preferred_model: str | None = None
 
 
 @router.patch("/config")
@@ -174,19 +208,21 @@ def update_config(body: AgentConfigUpdate):
     updates: dict[str, Any] = {
         k: v for k, v in body.model_dump().items() if v is not None
     }
-    saved = save_config(updates)
-    return {"ok": True, "config": saved}
+    saved = save_settings(updates)
+    return {"ok": True, "config": saved.model_dump()}
 
 
 @router.post("/chat")
 async def chat(req: ChatRequest):
     cfg = load_provider_config()
-    conf = load_config()
+    conf = load_settings()
+    confd = conf.model_dump()
     system = load_persona(None)
 
-    preferred = effective_provider(conf, cfg)
-    anthropic_model = conf.get("anthropic_model", "claude-haiku-4-5")
-    mammouth_model = conf.get("mammouth_model", "qwen/qwen3-plus:free")
+    preferred = _resolve_provider_for_chat(
+        _lane_provider(confd, cfg, "chat_preferred_provider"), cfg
+    )
+    chat_model = conf.chat_model or "google/gemini-2.5-flash-lite"
 
     use_cli = preferred == "cli" and cfg.cli_available
     use_anthropic = preferred == "anthropic" and bool(cfg.anthropic_token)
@@ -194,31 +230,60 @@ async def chat(req: ChatRequest):
 
     async def generate():
         try:
+            _trace(
+                "chat.received",
+                trace_id=req.trace_id,
+                message_chars=len(req.message or ""),
+                history_len=len(req.history or []),
+            )
+            orch = await run_orchestrate_or_none(
+                req.message,
+                cfg,
+                confd,
+                system,
+                "claude-haiku-4-5",
+                "qwen/qwen3-plus:free",
+                trace_id=req.trace_id,
+            )
+            if orch is not None:
+                _trace("chat.orchestrated.reply", trace_id=req.trace_id, response_chars=len(orch or ""))
+                yield orch
+                return
             if use_cli:
                 runner = CliRunner()
                 try:
-                    text = await runner.run(req.message)
+                    cli_model = chat_model if (chat_model or "").startswith("claude") else "claude-haiku-4-5"
+                    text = await runner.run(req.message, model=cli_model)
+                    _trace("chat.cli.reply", trace_id=req.trace_id, response_chars=len(text or ""))
                     yield text or "[CLI: empty response]"
                 except TimeoutError as e:
+                    _trace("chat.cli.timeout", trace_id=req.trace_id, error=str(e))
                     yield f"[CLI timeout: {e}]"
                 except Exception as e:
+                    _trace("chat.cli.error", trace_id=req.trace_id, error=str(e))
                     yield f"[CLI error: {e}]"
             elif use_anthropic and cfg.anthropic_token:
                 async for chunk in stream_anthropic(
                     req.message, req.history, system, cfg.anthropic_token,
-                    model=anthropic_model,
+                    model=chat_model,
                 ):
+                    if chunk:
+                        _trace("chat.anthropic.chunk", trace_id=req.trace_id, chunk_chars=len(chunk))
                     yield chunk
             elif use_mammouth and cfg.mammouth_token:
                 async for chunk in stream_openai_compat(
                     req.message, req.history, system,
                     cfg.mammouth_token, cfg.mammouth_base_url,
-                    model=mammouth_model,
+                    model=chat_model,
                 ):
+                    if chunk:
+                        _trace("chat.openrouter.chunk", trace_id=req.trace_id, chunk_chars=len(chunk))
                     yield chunk
             else:
+                _trace("chat.no_provider", trace_id=req.trace_id)
                 yield "[No LLM provider configured. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY in .env]"
         except Exception as exc:
+            _trace("chat.error", trace_id=req.trace_id, error=f"{type(exc).__name__}: {exc}")
             yield f"[Error: {type(exc).__name__}: {exc}]"
 
     return StreamingResponse(generate(), media_type="text/plain; charset=utf-8")
@@ -274,3 +339,8 @@ async def cron_patch(name: str, body: CronJobPatch):
 @router.delete("/cron/jobs/{name}")
 async def cron_delete(name: str):
     return await _scheduler_request("DELETE", f"/jobs/{name}")
+
+
+@router.post("/cron/jobs/{name}/run")
+async def cron_trigger(name: str):
+    return await _scheduler_request("POST", f"/jobs/{name}/run")

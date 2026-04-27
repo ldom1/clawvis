@@ -19,6 +19,8 @@ export HOME="${HOME:-/home/${USER:-$(id -un 2>/dev/null || echo lgiron)}}"
 if [ -z "${CLI_BIN:-}" ] && [ -x "${HOME}/.local/bin/claude" ]; then
   export CLI_BIN="${HOME}/.local/bin/claude"
 fi
+# Local agent orchestration → Kanban (default matches KANBAN_API_PORT)
+export KANBAN_URL="${KANBAN_URL:-http://127.0.0.1:${KANBAN_API_PORT:-8090}}"
 
 PORT="${HUB_PORT:-8088}"
 API_PORT="${KANBAN_API_PORT:-8090}"
