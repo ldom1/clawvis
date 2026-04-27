@@ -1,4 +1,4 @@
-"""Idempotent sync of Clawvis skills/memory with OpenClaw or Claude (.claude/)."""
+"""Idempotent sync of Clawvis skills/memory with Claude (.claude/)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from typing import Any
 
 import requests
 
-from hub_core.config import OPENCLAW_CONFIG
 
 _TEMPLATES = Path(__file__).resolve().parent / "templates"
 _LOCALBRAIN_URL = (
@@ -127,32 +126,6 @@ def _patch_json_file(path: Path, mutator: Any) -> tuple[bool, dict[str, Any]]:
     return True, {"ok": True, "changed": True}
 
 
-def sync_skills_openclaw(
-    clawvis_root: Path,
-    *,
-    openclaw_config: Path | None = None,
-    inst: str | None = None,
-    extra_dirs: list[str] | None = None,
-) -> dict[str, Any]:
-    cfg = openclaw_config or OPENCLAW_CONFIG
-    dirs = extra_dirs if extra_dirs is not None else expected_skill_dirs(
-        clawvis_root,
-        inst or instance_name(),
-    )
-
-    def mut(data: dict[str, Any]) -> None:
-        skills = data.setdefault("skills", {})
-        load = skills.setdefault("load", {})
-        load["extraDirs"] = dirs
-
-    ok, result = _patch_json_file(cfg, mut)
-    if not ok:
-        return result
-    result["extraDirs"] = dirs
-    result["openclaw_config"] = str(cfg)
-    return result
-
-
 def sync_skills_claude(
     clawvis_root: Path,
     *,
@@ -205,28 +178,13 @@ def sync_skills(
     clawvis_root: Path | None = None,
     *,
     skills_path: str | None = None,
-    openclaw_config: Path | None = None,
 ) -> dict[str, Any]:
     root = clawvis_root or clawvis_root_from_env_or_file()
     p = (provider or "").strip().lower()
-    if p == "openclaw":
-        extra = None
-        if skills_path:
-            extra = [str(Path(skills_path).expanduser().resolve())]
-        return sync_skills_openclaw(
-            root,
-            openclaw_config=openclaw_config,
-            extra_dirs=extra,
-        )
     if p in ("claude", "anthropic"):
         st = Path(skills_path).expanduser().resolve() if skills_path else None
         return sync_skills_claude(root, skills_target=st)
     return {"ok": False, "error": f"Unknown provider: {provider}"}
-
-
-def _memory_template_openclaw(memory_abs: Path) -> str:
-    tpl = (_TEMPLATES / "MEMORY.openclaw.md").read_text(encoding="utf-8")
-    return tpl.replace("{{MEMORY_ROOT_ABS}}", str(memory_abs))
 
 
 def _fetch_localbrain_fallback() -> str:
@@ -252,52 +210,6 @@ def apply_localbrain_substitutions(text: str, memory_abs: Path) -> str:
         text,
     )
     return text
-
-
-def openclaw_workspace_path(override: Path | str | None) -> Path:
-    if override is not None:
-        return Path(str(override)).expanduser().resolve()
-    return (
-        Path(os.environ.get("OPENCLAW_WORKSPACE", str(Path.home() / ".openclaw" / "workspace")))
-        .expanduser()
-        .resolve()
-    )
-
-
-def sync_memory_openclaw(
-    memory_root: Path,
-    *,
-    workspace: Path | None = None,
-) -> dict[str, Any]:
-    ws = openclaw_workspace_path(workspace)
-    mem = memory_root.resolve()
-    mem.mkdir(parents=True, exist_ok=True)
-    link = ws / "memory"
-    changed = False
-    if link.is_symlink():
-        if link.resolve() != mem:
-            link.unlink()
-            os.symlink(mem, link)
-            changed = True
-    elif link.exists():
-        return {"ok": False, "error": f"memory path exists and is not a symlink: {link}"}
-    else:
-        ws.mkdir(parents=True, exist_ok=True)
-        os.symlink(mem, link)
-        changed = True
-    md_path = ws / "MEMORY.md"
-    content = _memory_template_openclaw(mem)
-    if not md_path.exists() or md_path.read_text(encoding="utf-8") != content:
-        md_path.write_text(content, encoding="utf-8")
-        changed = True
-    return {
-        "ok": True,
-        "changed": changed,
-        "openclaw_workspace": str(ws),
-        "memory_symlink": str(link),
-        "memory_root": str(mem),
-        "memory_md": str(md_path),
-    }
 
 
 def sync_memory_claude(
@@ -328,7 +240,6 @@ def sync_memory(
     *,
     memory_root: Path | str | None = None,
     clawvis_root: Path | None = None,
-    openclaw_workspace: Path | str | None = None,
 ) -> dict[str, Any]:
     root = clawvis_root or clawvis_root_from_env_or_file()
     mem = (
@@ -337,8 +248,6 @@ def sync_memory(
         else resolve_memory_root(root)
     )
     p = (provider or "").strip().lower()
-    if p == "openclaw":
-        return sync_memory_openclaw(mem, workspace=openclaw_workspace)
     if p in ("claude", "anthropic"):
         return sync_memory_claude(root, mem)
     return {"ok": False, "error": f"Unknown provider: {provider}"}
@@ -527,19 +436,11 @@ def setup_context_payload(clawvis_root: Path | None = None) -> dict[str, Any]:
     inst = instance_name()
     skills_core = root / "skills"
     skills_path = str(skills_core.resolve()) if skills_core.is_dir() else ""
-    try:
-        extra = expected_skill_dirs(root, inst)
-    except ValueError:
-        extra = []
     return {
         "clawvis_root": str(root),
         "instance_name": inst,
         "memory_root": str(mem),
         "skills_path": skills_path,
-        "openclaw_extra_dirs_preview": extra,
-        "openclaw_config": str(OPENCLAW_CONFIG),
-        "openclaw_workspace_default": str(openclaw_workspace_path(None)),
-        "openclaw_base_url": os.environ.get("OPENCLAW_BASE_URL", ""),
         "primary_ai_provider": os.environ.get("PRIMARY_AI_PROVIDER", ""),
         "claude_host_claude_dir": _claude_host_config_dir_raw() or "",
         "claude_repo_host_path": os.environ.get("CLAWVIS_REPO_HOST_PATH", "").strip(),
@@ -554,20 +455,7 @@ def apply_sync_check(
     root = clawvis_root or clawvis_root_from_env_or_file()
     prov = (os.environ.get("PRIMARY_AI_PROVIDER") or "").strip().lower()
     out: dict[str, Any] = {"provider": prov, "actions": []}
-    if prov == "openclaw":
-        try:
-            r = sync_skills("openclaw", root)
-            if r.get("changed"):
-                out["actions"].append({"skills": r})
-        except Exception as e:
-            out["actions"].append({"skills_error": str(e)})
-        try:
-            r = sync_memory("openclaw", clawvis_root=root)
-            if r.get("changed"):
-                out["actions"].append({"memory": r})
-        except Exception as e:
-            out["actions"].append({"memory_error": str(e)})
-    elif prov in ("claude", "anthropic"):
+    if prov in ("claude", "anthropic"):
         try:
             r = sync_skills("claude", root)
             if r.get("changed"):
