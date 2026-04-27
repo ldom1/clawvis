@@ -9,9 +9,6 @@ dependencies = [
     "pydantic>=2.0",
     "python-dotenv>=1.2.1",
     "requests>=2.32.5",
-    "fastapi>=0.109",
-    "uvicorn>=0.27",
-    "kanban-api",
 ]
 
 [project.scripts]
