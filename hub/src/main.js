@@ -116,6 +116,168 @@ function showConfirm(opts) {
   });
 }
 
+// --- Cron result modal ---
+let _cronModalPollTimer = null;
+
+function ensureCronModal() {
+  if (document.getElementById("cron-result-overlay")) return;
+  const fr = settingsLocale() === "fr";
+  const wrap = document.createElement("div");
+  wrap.id = "cron-result-overlay";
+  wrap.className = "modal-overlay";
+  wrap.innerHTML = `
+    <div class="panel cron-modal-panel" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close" id="cron-modal-close" aria-label="${fr ? "Fermer" : "Close"}">×</button>
+      <h2 id="cron-modal-title" class="cron-modal-title"></h2>
+      <div id="cron-modal-status" class="cron-modal-status"></div>
+      <ul id="cron-modal-timeline" class="cron-modal-timeline"></ul>
+      <div class="cron-modal-footer">
+        <a id="cron-modal-logs-link" href="/logs/" class="btn btn-compact">${fr ? "Voir les logs →" : "View logs →"}</a>
+        <button type="button" class="btn btn-compact" id="cron-modal-close-btn">${fr ? "Fermer" : "Close"}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const closeModal = () => closeCronModal();
+  document.getElementById("cron-modal-close").addEventListener("click", closeModal);
+  document.getElementById("cron-modal-close-btn").addEventListener("click", closeModal);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) closeModal(); });
+}
+
+function closeCronModal() {
+  if (_cronModalPollTimer) {
+    clearInterval(_cronModalPollTimer);
+    _cronModalPollTimer = null;
+  }
+  const overlay = document.getElementById("cron-result-overlay");
+  if (overlay) overlay.classList.remove("open");
+}
+
+function _cronEventLabel(event, entry, fr) {
+  const map = {
+    "job.trigger": fr ? "Job déclenché" : "Job dispatched",
+    "agent.request.start": fr ? "Appel agent…" : "Calling agent…",
+    "agent.request.ok": fr
+      ? `Agent répondu (${entry.result_chars ?? "?"} car.)`
+      : `Agent replied (${entry.result_chars ?? "?"} chars)`,
+    "agent.request.error": `${fr ? "Erreur agent" : "Agent error"}: ${entry.error || ""}`,
+    "telegram.notify.start": fr ? "Notification Telegram…" : "Notifying Telegram…",
+    "telegram.notify.ok": fr ? "Telegram notifié ✓" : "Telegram notified ✓",
+    "telegram.notify.error": `${fr ? "Erreur Telegram" : "Telegram error"}: ${entry.error || ""}`,
+    "job.invalid_payload": `${fr ? "Payload invalide" : "Invalid payload"}: ${entry.error || ""}`,
+  };
+  return map[event] || event;
+}
+
+function _cronEventDotClass(event) {
+  if (event === "agent.request.ok" || event === "telegram.notify.ok") return "ok";
+  if ((event || "").includes("error") || event === "job.invalid_payload") return "error";
+  return "";
+}
+
+function openCronModal(jobName) {
+  ensureCronModal();
+  const fr = settingsLocale() === "fr";
+  const overlay = document.getElementById("cron-result-overlay");
+  const titleEl = document.getElementById("cron-modal-title");
+  const statusEl = document.getElementById("cron-modal-status");
+  const timelineEl = document.getElementById("cron-modal-timeline");
+  const logsLink = document.getElementById("cron-modal-logs-link");
+  if (titleEl) titleEl.textContent = `▶ ${jobName}`;
+  if (statusEl) statusEl.innerHTML = `<span class="cron-spinner"></span> ${fr ? "En cours…" : "Running…"}`;
+  if (timelineEl) timelineEl.innerHTML = "";
+  if (logsLink) logsLink.href = `/logs/?search=${encodeURIComponent(jobName)}`;
+  if (overlay) overlay.classList.add("open");
+}
+
+function _updateCronModal(events, done, timedOut) {
+  const fr = settingsLocale() === "fr";
+  const statusEl = document.getElementById("cron-modal-status");
+  const timelineEl = document.getElementById("cron-modal-timeline");
+  if (!timelineEl) return;
+  timelineEl.innerHTML = events.map((entry) => {
+    const event = entry.event || "";
+    const dotClass = _cronEventDotClass(event);
+    const label = _cronEventLabel(event, entry, fr);
+    const ts = entry.ts
+      ? new Date(entry.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      : "";
+    return `<li class="cron-modal-event">
+      <span class="cron-modal-event-ts">${escapeHtml(ts)}</span>
+      <span class="cron-modal-event-dot ${dotClass}"></span>
+      <span>${escapeHtml(label)}</span>
+    </li>`;
+  }).join("");
+  if (!statusEl) return;
+  const hasError = events.some((e) => (e.event || "").includes("error") || e.event === "job.invalid_payload");
+  const hasOk = events.some((e) => e.event === "agent.request.ok");
+  if (timedOut) {
+    statusEl.innerHTML = `<span style="color:var(--amber,#f59e0b)">${fr ? "Délai dépassé" : "Timed out"}</span>`;
+  } else if (done) {
+    if (hasError && !hasOk) {
+      statusEl.innerHTML = `<span style="color:#ef4444">${fr ? "Erreur ✗" : "Error ✗"}</span>`;
+    } else {
+      statusEl.innerHTML = `<span style="color:#22c55e">${fr ? "Terminé ✓" : "Done ✓"}</span>`;
+    }
+  } else {
+    statusEl.innerHTML = `<span class="cron-spinner"></span> ${fr ? "En cours…" : "Running…"}`;
+  }
+}
+
+async function startCronModalPolling(jobName, sinceIso) {
+  const sinceMs = new Date(sinceIso).getTime() - 2000;
+  const deadline = Date.now() + 130000;
+  const seenKeys = new Set();
+  const collected = [];
+  let completionSeenAt = null;
+
+  if (_cronModalPollTimer) {
+    clearInterval(_cronModalPollTimer);
+    _cronModalPollTimer = null;
+  }
+
+  async function poll() {
+    try {
+      const res = await fetch("/api/hub/kanban/logs?limit=100");
+      if (!res.ok) return;
+      const data = await res.json();
+      const fresh = (data.logs || [])
+        .filter((e) => {
+          const comp = e.component || "";
+          const ts = e.ts ? new Date(e.ts).getTime() : 0;
+          return comp.includes("scheduler") && e.name === jobName && ts >= sinceMs;
+        })
+        .reverse();
+
+      let changed = false;
+      for (const entry of fresh) {
+        const key = `${entry.ts}-${entry.event}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          collected.push(entry);
+          changed = true;
+        }
+      }
+
+      const agentDone = collected.some((e) => e.event === "agent.request.ok" || e.event === "agent.request.error");
+      const timedOut = Date.now() > deadline;
+      if (agentDone && !completionSeenAt) completionSeenAt = Date.now();
+      const telegramDone = completionSeenAt && (Date.now() - completionSeenAt > 4000);
+      const fullyDone = agentDone && telegramDone;
+
+      if (changed || fullyDone || timedOut) {
+        _updateCronModal(collected, fullyDone || timedOut, timedOut);
+      }
+      if (fullyDone || timedOut) {
+        clearInterval(_cronModalPollTimer);
+        _cronModalPollTimer = null;
+      }
+    } catch (_) {}
+  }
+
+  await poll();
+  _cronModalPollTimer = setInterval(poll, 2000);
+}
+
 const SETTINGS_TEXT = {
   fr: {
     title: "Paramètres",
@@ -2537,7 +2699,11 @@ async function wireLogs() {
   const processEl = document.getElementById("log-process-filter");
   const autoBtn = document.getElementById("log-auto-toggle");
 
-  if (searchEl) searchEl.value = localStorage.getItem(LS.search) || "";
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlSearch = urlParams.get("search") || "";
+  const urlProcess = urlParams.get("process") || "";
+
+  if (searchEl) searchEl.value = urlSearch || localStorage.getItem(LS.search) || "";
   if (levelEl) levelEl.value = localStorage.getItem(LS.level) || "";
   autoOn = localStorage.getItem(LS.auto) === "1";
 
@@ -2552,7 +2718,7 @@ async function wireLogs() {
     const saved = (localStorage.getItem(LS.process) || "").trim();
     const set = new Set();
     allLogs.forEach((e) => {
-      const p = (e.process || e.agent || "").trim();
+      const p = (e.component || e.process || e.agent || "").trim();
       if (p) set.add(p);
     });
     const sorted = [...set].sort();
@@ -2563,7 +2729,13 @@ async function wireLogs() {
           (p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`,
         )
         .join("");
-    if (saved && sorted.includes(saved)) processEl.value = saved;
+    const preferred = urlProcess || saved;
+    if (preferred) {
+      const exact = sorted.find((p) => p === preferred);
+      const partial = sorted.find((p) => p.includes(preferred));
+      if (exact) processEl.value = exact;
+      else if (partial) processEl.value = partial;
+    }
   }
 
   function renderRows(logs) {
@@ -2591,7 +2763,7 @@ async function wireLogs() {
       .map((entry) => {
         const level = (entry.level || "INFO").toUpperCase();
         const proc =
-          (entry.process || entry.agent || "system").trim() || "system";
+          (entry.component || entry.process || entry.agent || "system").trim() || "system";
         const lvlCls = logLevelRowClass(level);
         const rawMsg = entry.message || entry.msg || "";
         const { primary, meta } = splitLogMessage(rawMsg);
@@ -2605,7 +2777,7 @@ async function wireLogs() {
           <td><span class="log-level ${lvlCls}">${escapeHtml(level)}</span></td>
           <td><span class="log-process-pill">${escapeHtml(proc)}</span></td>
           <td class="col-mono log-model">${escapeHtml(entry.model || "—")}</td>
-          <td class="col-mono log-action">${escapeHtml(entry.action || "—")}</td>
+          <td class="col-mono log-action">${escapeHtml(entry.event || entry.action || "—")}</td>
           <td>${msgHtml}</td>
         </tr>`;
       })
@@ -2628,16 +2800,19 @@ async function wireLogs() {
           if (eRaw !== "ERROR" && eRaw !== "CRITICAL") return false;
         } else if (eRaw !== level) return false;
       }
-      const eProc = (entry.process || entry.agent || "").trim();
+      const eProc = (entry.component || entry.process || entry.agent || "").trim();
       if (process && eProc !== process) return false;
       if (!search) return true;
       const rawTs = logEntryRawTimestamp(entry);
       const haystack = [
         entry.message || entry.msg || "",
+        entry.event || "",
         entry.action || "",
+        entry.component || "",
         entry.model || "",
         entry.process || "",
         entry.agent || "",
+        entry.name || "",
         rawTs,
         formatLogDisplayTs(rawTs),
       ]
@@ -3939,6 +4114,7 @@ function renderSchedulePage() {
             <span id="cron-status" class="ai-runtime-status-badge warn">${fr ? "Chargement…" : "Loading…"}</span>
             <button id="add-cron-job" class="btn btn-compact btn-primary" type="button">${fr ? "+ Ajouter" : "+ Add job"}</button>
             <button id="refresh-cron" class="btn btn-compact" type="button" style="margin-left:8px">${fr ? "Actualiser" : "Refresh"}</button>
+            <a href="/logs/?search=scheduler" class="btn btn-compact" style="margin-left:auto">${fr ? "Logs →" : "Logs →"}</a>
           </div>
           <div class="card-desc">${
             fr
@@ -4049,30 +4225,28 @@ async function wireSchedulePage() {
       wrap.querySelectorAll(".cron-run-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const name = btn.getAttribute("data-name");
-          const orig = btn.textContent;
-          btn.disabled = true;
-          btn.textContent = fr ? "…" : "…";
+          const sinceIso = new Date().toISOString();
+          openCronModal(name);
           try {
             const res = await fetch(
               `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}/run`,
               { method: "POST" },
             );
             const data = await res.json().catch(() => ({}));
-            btn.textContent = res.ok
-              ? fr
-                ? "✓ Envoyé"
-                : "✓ Sent"
-              : fr
-                ? "✗ Erreur"
-                : "✗ Error";
-            if (!res.ok) console.error("cron trigger failed", data);
+            if (!res.ok) {
+              const statusEl = document.getElementById("cron-modal-status");
+              if (statusEl) {
+                statusEl.innerHTML = `<span style="color:#ef4444">${fr ? "Erreur" : "Error"}: ${escapeHtml(data.error || "trigger failed")}</span>`;
+              }
+              return;
+            }
+            await startCronModalPolling(name, sinceIso);
           } catch (e) {
-            btn.textContent = fr ? "✗ Erreur" : "✗ Error";
+            const statusEl = document.getElementById("cron-modal-status");
+            if (statusEl) {
+              statusEl.innerHTML = `<span style="color:#ef4444">Error: ${escapeHtml(String(e))}</span>`;
+            }
           }
-          setTimeout(() => {
-            btn.textContent = orig;
-            btn.disabled = false;
-          }, 2500);
         });
       });
       wrap.querySelectorAll(".cron-delete-btn").forEach((btn) => {
