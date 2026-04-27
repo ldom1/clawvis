@@ -1,0 +1,17 @@
+cron: 30 23 * * *
+enabled: true
+name: knowledge-consolidator-consolidate
+prompt: "You are running the Knowledge Consolidator — Phase 2: Consolidate.\n\nSteps:\n\
+  1. SCAN: read all files under <memory_root>/daily/ and <memory_root>/resources/curiosity/\
+  \ modified in the last 24h (use bash: find ... -mtime -1). Extract facts, decisions,\
+  \ learnings.\n2. SYNTHESIZE: deduplicate, group by theme, extract only durable knowledge.\n\
+  3. WRITE synthesis to <memory_root>/consolidation/$(date +%Y-%m-%d).md\n4. UPDATE\
+  \ MEMORY.md ONLY if a truly new durable pattern or reference emerges — max ~2000\
+  \ chars total, no dated content.\n5. CLEANUP: if MEMORY.md exceeds target size or\
+  \ contains dated entries, move them to daily/consolidation refs.\n6. SEND a Telegram\
+  \ report (POST to $TELEGRAM_URL/send if available) following this exact template:\n\
+  \   1. Contexte — Memory Consolidation — [date]\n   2. Souvenirs consolidés — N\n\
+  \   3. Thèmes principaux — [short list]\n   4. Statut QMD — [ok / en cours / erreur]\n\
+  \   5. Insight du jour — [one sentence: most notable fact learned today]\n\nMemory\
+  \ root: use $MEMORY_ROOT env var, fallback to ~/.openclaw/workspace/memory"
+timezone: Europe/Paris

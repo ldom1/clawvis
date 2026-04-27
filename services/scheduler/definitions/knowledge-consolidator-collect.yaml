@@ -1,0 +1,26 @@
+cron: 0 23 * * *
+enabled: true
+name: knowledge-consolidator-collect
+prompt: 'You are running the Knowledge Consolidator — Phase 1: Collect.
+
+
+  For each knowledge domain (tech, geopolitics, culture, community, latest, tech_news):
+
+  1. Determine the brain memory root: use $MEMORY_ROOT env var, fallback to ~/.openclaw/workspace/memory
+
+  2. Write a curiosity note to <memory_root>/resources/curiosity/$(date +%Y-%m-%d)-<domain>.md
+
+  3. Record key trends, discoveries and insights for that domain — concise, max 400
+  words per file
+
+
+  Rules:
+
+  - SILENT phase — do NOT send any Telegram message
+
+  - Do NOT modify MEMORY.md (perennial index)
+
+  - Write ONLY into resources/curiosity/
+
+  - One file per domain named YYYY-MM-DD-<domain>.md'
+timezone: Europe/Paris

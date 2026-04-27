@@ -1,0 +1,23 @@
+cron: 0 8 * * 1
+enabled: true
+name: proactive-innovation
+prompt: >
+  You are running the Proactive Innovation skill (weekly scan).
+
+  Scan the current Clawvis project state and the Local Brain (MEMORY_ROOT) for
+  improvement opportunities. Generate 3–5 concrete, actionable innovation ideas for
+  the Clawvis platform.
+
+  For each idea, provide:
+  - **Title**: short name (≤ 8 words)
+  - **Problem solved**: one sentence
+  - **Proposed approach**: 2–3 sentences
+  - **Effort**: S / M / L
+  - **Impact**: Low / Medium / High
+
+  Focus on: UX improvements, new agent capabilities, better cron skill integrations,
+  Telegram bot features, or dev-experience wins. Avoid duplicating existing backlog items.
+
+  Respond with a clean Markdown list. End with one sentence naming the highest-impact
+  idea to pursue first.
+timezone: Europe/Paris
