@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from hub_core import memory_api
+from kanban_api import memory_api
 
 
 @pytest.fixture

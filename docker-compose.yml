@@ -47,6 +47,7 @@ services:
     volumes:
       # Full repo RW so setup API can sync skills/ and .claude/ (host checkout replaces /clawvis).
       - .:/clawvis:rw
+      - ./logs:/logs:rw
       # Kanban scans PROJECTS_ROOT from .env — bind the host folder at the same path.
       # RW: POST /hub/projects mkdir + git init + template files (RO mount → 500, Hub alert "Creation impossible").
       - "${PROJECTS_ROOT:?Set PROJECTS_ROOT in .env}:${PROJECTS_ROOT}:rw"
@@ -62,7 +63,7 @@ services:
       - UV_CACHE_DIR=/tmp/uv-cache
       - HOME=/home/${USER}
       - MEMORY_ROOT=${BRAIN_PATH}
-      - DOMBOT_LOG_JSONL=${DOMBOT_LOG_JSONL:-/openclaw-logs/dombot.jsonl}
+      - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
       - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
     # Allow reaching OpenClaw running on the Docker host (same VPS, different process)
     extra_hosts:
@@ -104,9 +105,9 @@ services:
         "uv",
         "run",
         "--directory",
-        "/clawvis",
+        "/clawvis/services/kanban",
         "uvicorn",
-        "hub_core.memory_api:app",
+        "kanban_api.memory_api:app",
         "--host",
         "0.0.0.0",
         "--port",
@@ -139,6 +140,7 @@ services:
     env_file: .env
     volumes:
       - ./instances:/app/instances
+      - ./logs:/logs:rw
       # Live PRIMARY_AI_PROVIDER for /agent/config (setup wizard updates repo .env without container recreate)
       - ./.env:/clawvis/.env:ro
       # Claude CLI runtime (for provider=cli): mount host binary tree + auth/config in matching HOME paths.
@@ -149,8 +151,14 @@ services:
       - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
       - CLI_BIN=/home/${USER}/.local/bin/claude
       - HOME=/home/${USER}
+      - UV_CACHE_DIR=/tmp/uv-cache
       - OPENCLAW_AVAILABLE=${OPENCLAW_AVAILABLE:-false}
       - SCHEDULER_URL=http://scheduler:8095
+      - KANBAN_URL=http://kanban-api:8090
+      - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
+    depends_on:
+      kanban-api:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
@@ -181,6 +189,8 @@ services:
     build:
       context: .
       dockerfile: services/telegram/Dockerfile
+    volumes:
+      - ./logs:/logs:rw
     ports:
       - "127.0.0.1:${TELEGRAM_SEND_PORT:-8094}:8094"
     env_file: .env
@@ -188,6 +198,7 @@ services:
       - AGENT_URL=http://agent-service:8092
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
     depends_on:
       agent-service:
         condition: service_healthy
@@ -205,8 +216,10 @@ services:
       - AGENT_URL=http://agent-service:8092
       - TELEGRAM_URL=http://telegram:8094
       - SKILLS_DIR=/skills
+      - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
     volumes:
       - ./services/scheduler/definitions:/skills:rw
+      - ./logs:/logs:rw
     depends_on:
       agent-service:
         condition: service_healthy
