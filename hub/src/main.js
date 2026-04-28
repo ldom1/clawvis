@@ -1,6 +1,9 @@
 import "./style.css";
 import { marked } from "marked";
 import { escapeHtml, projectInitials, projectAvatarHue } from "./utils.js";
+import { createRoot } from "react-dom/client";
+import React from "react";
+import WorkflowBuilder from "./WorkflowBuilder.jsx";
 
 marked.use({ gfm: true, breaks: true });
 
@@ -4101,6 +4104,52 @@ function formatClawvisChatAssistantText(full, fr) {
 
 // ─── Schedule page ────────────────────────────────────────────────────────────
 
+function openWorkflowModal(jobs, fr, onSaved) {
+  if (document.getElementById("workflow-modal-overlay")) return;
+  const overlay = document.createElement("div");
+  overlay.id = "workflow-modal-overlay";
+  overlay.className = "workflow-modal-overlay";
+  overlay.innerHTML = `
+    <div class="workflow-modal-panel">
+      <div class="workflow-modal-header">
+        <h2 style="margin:0;font-size:16px">${fr ? "Nouveau workflow" : "New workflow"}</h2>
+        <button id="workflow-modal-close" class="modal-close" aria-label="${fr ? "Fermer" : "Close"}">×</button>
+      </div>
+      <div id="workflow-canvas-root" style="flex:1;overflow:hidden"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const root = createRoot(document.getElementById("workflow-canvas-root"));
+
+  function closeModal() {
+    root.unmount();
+    overlay.remove();
+  }
+
+  root.render(
+    React.createElement(WorkflowBuilder, {
+      jobs,
+      fr,
+      onCancel: closeModal,
+      onSave: async (data) => {
+        const res = await fetch("/api/hub/agent/cron/workflows", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || "Save failed");
+        closeModal();
+        onSaved();
+      },
+    }),
+  );
+
+  document
+    .getElementById("workflow-modal-close")
+    .addEventListener("click", closeModal);
+}
+
 function renderSchedulePage() {
   const fr = settingsLocale() === "fr";
   app.innerHTML = `
@@ -4110,26 +4159,32 @@ function renderSchedulePage() {
 
         <section class="card settings-card settings-section" id="cron-section">
           <div class="settings-heading-row">
-            <h2 class="card-title settings-section-title">Schedule</h2>
+            <h2 class="card-title settings-section-title">Jobs</h2>
             <span id="cron-status" class="ai-runtime-status-badge warn">${fr ? "Chargement…" : "Loading…"}</span>
-            <button id="add-cron-job" class="btn btn-compact btn-primary" type="button">${fr ? "+ Ajouter" : "+ Add job"}</button>
+            <button id="add-cron-job" class="btn btn-compact btn-primary" type="button">${fr ? "+ Ajouter job" : "+ Add job"}</button>
             <button id="refresh-cron" class="btn btn-compact" type="button" style="margin-left:8px">${fr ? "Actualiser" : "Refresh"}</button>
             <a href="/logs/?search=scheduler" class="btn btn-compact" style="margin-left:auto">${fr ? "Logs →" : "Logs →"}</a>
           </div>
           <div class="card-desc">${
             fr
-              ? "Jobs planifiés. Définitions YAML sauvegardées dans <code>services/scheduler/definitions/</code>. Chaque job envoie le prompt à l'agent puis poste le résultat sur Telegram."
-              : "Scheduled jobs. YAML definitions are saved to <code>services/scheduler/definitions/</code>. Each job sends the prompt to the agent and posts the result to Telegram."
+              ? "Jobs planifiés. Définitions YAML dans <code>services/scheduler/definitions/</code>. Chaque job envoie le prompt à l'agent puis poste le résultat sur Telegram."
+              : "Scheduled jobs. YAML definitions in <code>services/scheduler/definitions/</code>. Each job sends the prompt to the agent and posts the result to Telegram."
           }</div>
           <div id="cron-table-wrap"></div>
           <div id="cron-add-form" class="cron-add-form" style="display:none">
             <h3 style="margin:0 0 10px;font-size:14px">${fr ? "Nouveau job" : "New job"}</h3>
             <div class="cron-form-grid">
               <div class="field"><label>${fr ? "Nom" : "Name"}</label><input id="cron-name" placeholder="morning-briefing" /></div>
-              <div class="field"><label>Cron</label><input id="cron-expr" placeholder="0 9 * * *" /></div>
+              <div class="field">
+                <label>Cron <span id="cron-manual-indicator" style="display:none;color:#94a3b8;font-size:11px">(${fr ? "manuel" : "manual"})</span></label>
+                <input id="cron-expr" placeholder="0 9 * * *" />
+              </div>
               <div class="field"><label>Timezone</label><input id="cron-tz" placeholder="UTC" value="UTC" /></div>
               <div class="field" style="grid-column:1/-1"><label>Prompt</label><textarea id="cron-prompt" rows="3" placeholder="${fr ? "Message envoyé à l'agent…" : "Message sent to the agent…"}"></textarea></div>
-              <div class="field" style="align-items:center;display:flex;gap:8px"><label style="margin:0"><input type="checkbox" id="cron-enabled" checked /> ${fr ? "Activé" : "Enabled"}</label></div>
+              <div class="field" style="align-items:center;display:flex;gap:16px;flex-wrap:wrap">
+                <label style="margin:0"><input type="checkbox" id="cron-enabled" checked /> ${fr ? "Activé" : "Enabled"}</label>
+                <label style="margin:0"><input type="checkbox" id="cron-manual" /> ${fr ? "Manuel uniquement (pas de cron)" : "Manual only (no schedule)"}</label>
+              </div>
             </div>
             <div style="display:flex;gap:8px;margin-top:10px">
               <button id="cron-save" class="btn btn-primary btn-compact" type="button">${fr ? "Enregistrer" : "Save"}</button>
@@ -4137,6 +4192,21 @@ function renderSchedulePage() {
               <span id="cron-save-status" style="font-size:12px;align-self:center"></span>
             </div>
           </div>
+        </section>
+
+        <section class="card settings-card settings-section" id="workflows-section">
+          <div class="settings-heading-row">
+            <h2 class="card-title settings-section-title">Workflows</h2>
+            <span id="workflow-status" class="ai-runtime-status-badge warn">${fr ? "Chargement…" : "Loading…"}</span>
+            <button id="add-workflow" class="btn btn-compact btn-primary" type="button">${fr ? "+ Ajouter workflow" : "+ Add workflow"}</button>
+            <button id="refresh-workflows" class="btn btn-compact" type="button" style="margin-left:8px">${fr ? "Actualiser" : "Refresh"}</button>
+          </div>
+          <div class="card-desc">${
+            fr
+              ? "Pipelines de jobs exécutés séquentiellement. S'arrête au premier échec. Chaque job notifie Telegram indépendamment."
+              : "Pipelines of jobs executed sequentially. Stops on first failure. Each job notifies Telegram independently."
+          }</div>
+          <div id="workflow-table-wrap"></div>
         </section>
 
       </div>
@@ -4147,19 +4217,16 @@ function renderSchedulePage() {
 async function wireSchedulePage() {
   const fr = settingsLocale() === "fr";
 
+  // ── Jobs ──────────────────────────────────────────────────────────────────
+
   async function loadCronJobs() {
     const wrap = document.getElementById("cron-table-wrap");
     const status = document.getElementById("cron-status");
     if (!wrap) return;
     try {
-      const r = await fetch("/api/hub/agent/cron", {
-        signal: AbortSignal.timeout(5000),
-      });
+      const r = await fetch("/api/hub/agent/cron", { signal: AbortSignal.timeout(5000) });
       if (!r.ok) {
-        if (status) {
-          status.className = "ai-runtime-status-badge warn";
-          status.textContent = fr ? "Indisponible" : "Unavailable";
-        }
+        if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Indisponible" : "Unavailable"; }
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Agent service inaccessible" : "Agent service unreachable"}</p>`;
         return;
       }
@@ -4167,49 +4234,39 @@ async function wireSchedulePage() {
       const jobs = data.jobs || [];
       if (status) {
         status.className = `ai-runtime-status-badge ${jobs.length ? "ok" : "warn"}`;
-        status.textContent = `${jobs.length} ${fr ? "job(s)" : "job(s)"}`;
+        status.textContent = `${jobs.length} job(s)`;
       }
       if (!jobs.length) {
-        wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Aucun job planifié." : "No scheduled jobs."}</p>`;
+        wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Aucun job." : "No jobs."}</p>`;
         return;
       }
-      const rows = jobs
-        .map((j) => {
-          const rawName = j.name || j.id || "";
-          const name = escapeHtml(rawName);
-          const schedule = escapeHtml(j.schedule || "—");
-          const enabled = j.enabled !== false;
-          const nextRun = j.nextRun
-            ? escapeHtml(new Date(j.nextRun).toLocaleString())
-            : "—";
-          const errors = j.consecutiveErrors || 0;
-          const errBadge =
-            errors > 0
-              ? `<span class="ai-runtime-status-badge warn">${errors} err</span>`
-              : "";
-          const statusBadge = enabled
-            ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
-            : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
-          const toggleLabel = enabled
-            ? fr
-              ? "Désactiver"
-              : "Disable"
-            : fr
-              ? "Activer"
-              : "Enable";
-          return `<tr data-cron-name="${name}">
+      const rows = jobs.map((j) => {
+        const rawName = j.name || j.id || "";
+        const name = escapeHtml(rawName);
+        const isManual = j.schedule === "manual";
+        const schedule = isManual
+          ? `<span class="badge-manual">${fr ? "manuel" : "manual"}</span>`
+          : `<code>${escapeHtml(j.schedule || "—")}</code>`;
+        const enabled = j.enabled !== false;
+        const nextRun = (!isManual && j.nextRun) ? escapeHtml(new Date(j.nextRun).toLocaleString()) : "—";
+        const errors = j.consecutiveErrors || 0;
+        const errBadge = errors > 0 ? `<span class="ai-runtime-status-badge warn">${errors} err</span>` : "";
+        const statusBadge = enabled
+          ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
+          : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
+        const toggleLabel = enabled ? (fr ? "Désactiver" : "Disable") : (fr ? "Activer" : "Enable");
+        return `<tr data-cron-name="${name}">
           <td class="cron-td"><strong>${name}</strong></td>
-          <td class="cron-td"><code>${schedule}</code></td>
+          <td class="cron-td">${schedule}</td>
           <td class="cron-td">${statusBadge} ${errBadge}</td>
           <td class="cron-td cron-td-muted">${nextRun}</td>
           <td class="cron-td" style="white-space:nowrap">
-            <button class="btn btn-compact cron-run-btn" data-name="${name}" type="button" style="font-size:11px" title="${fr ? "Déclencher maintenant" : "Trigger now"}">${fr ? "▶ Run" : "▶ Run"}</button>
+            <button class="btn btn-compact cron-run-btn" data-name="${name}" type="button" style="font-size:11px">▶ Run</button>
             <button class="btn btn-compact cron-toggle-btn" data-name="${name}" data-enabled="${enabled}" type="button" style="font-size:11px;margin-left:4px">${toggleLabel}</button>
             <button class="btn btn-compact cron-delete-btn" data-name="${name}" type="button" style="font-size:11px;color:#ef4444;border-color:#ef4444;margin-left:4px">${fr ? "Suppr." : "Delete"}</button>
           </td>
         </tr>`;
-        })
-        .join("");
+      }).join("");
       wrap.innerHTML = `
         <table class="cron-table">
           <thead><tr>
@@ -4228,43 +4285,27 @@ async function wireSchedulePage() {
           const sinceIso = new Date().toISOString();
           openCronModal(name);
           try {
-            const res = await fetch(
-              `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}/run`,
-              { method: "POST" },
-            );
+            const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}/run`, { method: "POST" });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
               const statusEl = document.getElementById("cron-modal-status");
-              if (statusEl) {
-                statusEl.innerHTML = `<span style="color:#ef4444">${fr ? "Erreur" : "Error"}: ${escapeHtml(data.error || "trigger failed")}</span>`;
-              }
+              if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444">${fr ? "Erreur" : "Error"}: ${escapeHtml(data.error || "trigger failed")}</span>`;
               return;
             }
             await startCronModalPolling(name, sinceIso);
           } catch (e) {
             const statusEl = document.getElementById("cron-modal-status");
-            if (statusEl) {
-              statusEl.innerHTML = `<span style="color:#ef4444">Error: ${escapeHtml(String(e))}</span>`;
-            }
+            if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444">Error: ${escapeHtml(String(e))}</span>`;
           }
         });
       });
       wrap.querySelectorAll(".cron-delete-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const name = btn.getAttribute("data-name");
-          if (!confirm(`${fr ? "Supprimer le job" : "Delete job"} "${name}" ?`))
-            return;
+          if (!confirm(`${fr ? "Supprimer le job" : "Delete job"} "${name}" ?`)) return;
           btn.disabled = true;
-          const res = await fetch(
-            `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`,
-            { method: "DELETE" },
-          );
-          if (res.ok) {
-            await loadCronJobs();
-          } else {
-            btn.disabled = false;
-            alert(fr ? "Erreur lors de la suppression." : "Delete failed.");
-          }
+          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, { method: "DELETE" });
+          if (res.ok) { await loadCronJobs(); } else { btn.disabled = false; alert(fr ? "Erreur." : "Delete failed."); }
         });
       });
       wrap.querySelectorAll(".cron-toggle-btn").forEach((btn) => {
@@ -4272,57 +4313,158 @@ async function wireSchedulePage() {
           const name = btn.getAttribute("data-name");
           const currentlyEnabled = btn.getAttribute("data-enabled") === "true";
           btn.disabled = true;
-          const res = await fetch(
-            `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`,
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ enabled: !currentlyEnabled }),
-            },
-          );
-          if (res.ok) {
-            await loadCronJobs();
-          } else {
-            btn.disabled = false;
-            alert(fr ? "Erreur lors de la mise à jour." : "Update failed.");
-          }
+          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled: !currentlyEnabled }),
+          });
+          if (res.ok) { await loadCronJobs(); } else { btn.disabled = false; alert(fr ? "Erreur." : "Update failed."); }
         });
       });
     } catch (_) {
-      if (status) {
-        status.className = "ai-runtime-status-badge warn";
-        status.textContent = fr ? "Erreur" : "Error";
-      }
+      if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Erreur" : "Error"; }
       wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Erreur de chargement" : "Load error"}</p>`;
     }
   }
 
-  document
-    .getElementById("refresh-cron")
-    ?.addEventListener("click", loadCronJobs);
+  // ── Workflows ─────────────────────────────────────────────────────────────
+
+  async function loadWorkflows() {
+    const wrap = document.getElementById("workflow-table-wrap");
+    const status = document.getElementById("workflow-status");
+    if (!wrap) return;
+    try {
+      const r = await fetch("/api/hub/agent/cron/workflows", { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) {
+        if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Indisponible" : "Unavailable"; }
+        wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Indisponible" : "Unavailable"}</p>`;
+        return;
+      }
+      const data = await r.json();
+      const workflows = data.workflows || [];
+      if (status) {
+        status.className = `ai-runtime-status-badge ${workflows.length ? "ok" : "warn"}`;
+        status.textContent = `${workflows.length} workflow(s)`;
+      }
+      if (!workflows.length) {
+        wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Aucun workflow." : "No workflows."}</p>`;
+        return;
+      }
+      const rows = workflows.map((wf) => {
+        const name = escapeHtml(wf.name || "");
+        const isManual = wf.schedule === "manual";
+        const schedule = isManual
+          ? `<span class="badge-manual">${fr ? "manuel" : "manual"}</span>`
+          : `<code>${escapeHtml(wf.schedule || "—")}</code>`;
+        const enabled = wf.enabled !== false;
+        const nextRun = (!isManual && wf.nextRun) ? escapeHtml(new Date(wf.nextRun).toLocaleString()) : "—";
+        const statusBadge = enabled
+          ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
+          : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
+        const jobBadges = (wf.jobs || []).map((j) => `<span class="badge-job">${escapeHtml(j)}</span>`).join(" → ");
+        const toggleLabel = enabled ? (fr ? "Désactiver" : "Disable") : (fr ? "Activer" : "Enable");
+        return `<tr data-workflow-name="${name}">
+          <td class="cron-td"><strong>${name}</strong></td>
+          <td class="cron-td workflow-jobs-cell">${jobBadges}</td>
+          <td class="cron-td">${schedule}</td>
+          <td class="cron-td">${statusBadge}</td>
+          <td class="cron-td cron-td-muted">${nextRun}</td>
+          <td class="cron-td" style="white-space:nowrap">
+            <button class="btn btn-compact wf-run-btn" data-name="${name}" type="button" style="font-size:11px">▶ Run</button>
+            <button class="btn btn-compact wf-toggle-btn" data-name="${name}" data-enabled="${enabled}" type="button" style="font-size:11px;margin-left:4px">${toggleLabel}</button>
+            <button class="btn btn-compact wf-delete-btn" data-name="${name}" type="button" style="font-size:11px;color:#ef4444;border-color:#ef4444;margin-left:4px">${fr ? "Suppr." : "Delete"}</button>
+          </td>
+        </tr>`;
+      }).join("");
+      wrap.innerHTML = `
+        <table class="cron-table">
+          <thead><tr>
+            <th class="cron-th">${fr ? "Nom" : "Name"}</th>
+            <th class="cron-th">Jobs</th>
+            <th class="cron-th">Schedule</th>
+            <th class="cron-th">Status</th>
+            <th class="cron-th">${fr ? "Prochain run" : "Next run"}</th>
+            <th class="cron-th"></th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+      wrap.querySelectorAll(".wf-run-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const name = btn.getAttribute("data-name");
+          btn.disabled = true;
+          try {
+            const res = await fetch(`/api/hub/agent/cron/workflows/${encodeURIComponent(name)}/run`, { method: "POST" });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) alert(`${fr ? "Erreur" : "Error"}: ${data.error || "trigger failed"}`);
+          } finally { btn.disabled = false; }
+        });
+      });
+      wrap.querySelectorAll(".wf-delete-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const name = btn.getAttribute("data-name");
+          if (!confirm(`${fr ? "Supprimer le workflow" : "Delete workflow"} "${name}" ?`)) return;
+          btn.disabled = true;
+          const res = await fetch(`/api/hub/agent/cron/workflows/${encodeURIComponent(name)}`, { method: "DELETE" });
+          if (res.ok) { await loadWorkflows(); } else { btn.disabled = false; alert(fr ? "Erreur." : "Delete failed."); }
+        });
+      });
+      wrap.querySelectorAll(".wf-toggle-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const name = btn.getAttribute("data-name");
+          const currentlyEnabled = btn.getAttribute("data-enabled") === "true";
+          btn.disabled = true;
+          const res = await fetch(`/api/hub/agent/cron/workflows/${encodeURIComponent(name)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled: !currentlyEnabled }),
+          });
+          if (res.ok) { await loadWorkflows(); } else { btn.disabled = false; alert(fr ? "Erreur." : "Update failed."); }
+        });
+      });
+    } catch (_) {
+      if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Erreur" : "Error"; }
+      wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Erreur de chargement" : "Load error"}</p>`;
+    }
+  }
+
+  // ── Event wiring ──────────────────────────────────────────────────────────
+
+  document.getElementById("refresh-cron")?.addEventListener("click", loadCronJobs);
+  document.getElementById("refresh-workflows")?.addEventListener("click", loadWorkflows);
 
   document.getElementById("add-cron-job")?.addEventListener("click", () => {
     const form = document.getElementById("cron-add-form");
-    if (form)
-      form.style.display = form.style.display === "none" ? "block" : "none";
+    if (form) form.style.display = form.style.display === "none" ? "block" : "none";
   });
   document.getElementById("cron-cancel")?.addEventListener("click", () => {
     const form = document.getElementById("cron-add-form");
     if (form) form.style.display = "none";
   });
+
+  document.getElementById("cron-manual")?.addEventListener("change", (e) => {
+    const exprInput = document.getElementById("cron-expr");
+    const indicator = document.getElementById("cron-manual-indicator");
+    if (exprInput) exprInput.disabled = e.target.checked;
+    if (indicator) indicator.style.display = e.target.checked ? "inline" : "none";
+    if (e.target.checked && exprInput) exprInput.value = "";
+  });
+
   document.getElementById("cron-save")?.addEventListener("click", async () => {
     const saveBtn = document.getElementById("cron-save");
     const statusEl = document.getElementById("cron-save-status");
     const name = document.getElementById("cron-name")?.value.trim();
-    const cron = document.getElementById("cron-expr")?.value.trim();
+    const isManual = document.getElementById("cron-manual")?.checked ?? false;
+    const cron = isManual ? null : document.getElementById("cron-expr")?.value.trim();
     const prompt = document.getElementById("cron-prompt")?.value.trim();
     const tz = document.getElementById("cron-tz")?.value.trim() || "UTC";
     const enabled = document.getElementById("cron-enabled")?.checked ?? true;
-    if (!name || !cron || !prompt) {
-      if (statusEl)
-        statusEl.textContent = fr
-          ? "Nom, cron et prompt requis."
-          : "Name, cron and prompt are required.";
+    if (!name || !prompt) {
+      if (statusEl) statusEl.textContent = fr ? "Nom et prompt requis." : "Name and prompt are required.";
+      return;
+    }
+    if (!isManual && !cron) {
+      if (statusEl) statusEl.textContent = fr ? "Cron requis (ou cochez Manuel)." : "Cron required (or check Manual).";
       return;
     }
     if (saveBtn) saveBtn.disabled = true;
@@ -4338,14 +4480,10 @@ async function wireSchedulePage() {
         if (statusEl) statusEl.textContent = "";
         const form = document.getElementById("cron-add-form");
         if (form) form.style.display = "none";
-        ["cron-name", "cron-expr", "cron-prompt"].forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) el.value = "";
-        });
+        ["cron-name", "cron-expr", "cron-prompt"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
         await loadCronJobs();
       } else {
-        if (statusEl)
-          statusEl.textContent = data.error || (fr ? "Erreur." : "Error.");
+        if (statusEl) statusEl.textContent = data.error || (fr ? "Erreur." : "Error.");
       }
     } catch (err) {
       if (statusEl) statusEl.textContent = String(err);
@@ -4354,7 +4492,17 @@ async function wireSchedulePage() {
     }
   });
 
-  await loadCronJobs();
+  document.getElementById("add-workflow")?.addEventListener("click", async () => {
+    try {
+      const r = await fetch("/api/hub/agent/cron", { signal: AbortSignal.timeout(5000) });
+      const data = r.ok ? await r.json() : { jobs: [] };
+      openWorkflowModal(data.jobs || [], fr, loadWorkflows);
+    } catch (_) {
+      openWorkflowModal([], fr, loadWorkflows);
+    }
+  });
+
+  await Promise.all([loadCronJobs(), loadWorkflows()]);
 }
 
 // ─── Communication page ───────────────────────────────────────────────────────
