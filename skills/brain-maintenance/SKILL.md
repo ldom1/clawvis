@@ -7,19 +7,19 @@ Maintenance scripts for keeping DomBot's memory hierarchy healthy.
 ### trim (weekly)
 L1 Brain file audit (token budget). Run via core package:
 ```bash
-uv run --directory ~/.openclaw/skills/brain-maintenance/core python -m brain_maintenance trim
+uv run --directory ${CLAWVIS_ROOT}/skills/brain-maintenance/core python -m brain_maintenance trim
 ```
 
 ### recalibrate (bi-weekly)
 Drift detection: SOUL.md / AGENTS.md vs recent behavior.
 ```bash
-uv run --directory ~/.openclaw/skills/brain-maintenance/core python -m brain_maintenance recalibrate
+uv run --directory ${CLAWVIS_ROOT}/skills/brain-maintenance/core python -m brain_maintenance recalibrate
 ```
 
 ### recover (on-demand)
 Context reconstruction from last daily note + L2 breadcrumbs.
 ```bash
-uv run --directory ~/.openclaw/skills/brain-maintenance/core python -m brain_maintenance recover
+uv run --directory ${CLAWVIS_ROOT}/skills/brain-maintenance/core python -m brain_maintenance recover
 ```
 
 ## Security Audit (Integrated)
@@ -34,7 +34,7 @@ Runs nightly at 04:00 CET as part of system health check.
 
 ## Schedule
 
-| Trigger | Frequency | Cron (openclaw `~/.openclaw/cron/jobs.json`) |
+| Trigger | Frequency | Cron (openclaw `${CLAWVIS_ROOT}/cron/jobs.json`) |
 |---------|-----------|------|
 | trim | Weekly Sunday 22:00 | `0 22 * * 0` (Brain Maintenance — Trim) |
 | recalibrate | Weekly Wednesday 22:00 | `0 22 * * 3` (Brain Maintenance — Recalibrate) |
@@ -43,7 +43,7 @@ Runs nightly at 04:00 CET as part of system health check.
 
 ## Output
 
-All logs written to `~/.openclaw/workspace/.logs/`.
+All logs written to `$BRAIN_PATH/.logs/`.
 
 ## Message Telegram (si envoi)
 

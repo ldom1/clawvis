@@ -1,0 +1,91 @@
+{"ts": "2026-04-27T20:36:05.892608Z", "component": "scheduler.main", "event": "scheduler.start", "trace_id": "f28b076edec94fee929ba32994f22908", "registered": 3, "skills_dir": "/skills", "level": "INFO"}
+{"ts": "2026-04-27T20:36:05.952221Z", "component": "scheduler.main", "event": "scheduler.running", "trace_id": "39cd0e7a86c9449f9afc97bebd634554", "level": "INFO"}
+{"ts": "2026-04-27T20:36:05.986357Z", "component": "scheduler.api", "event": "scheduler.api.listen", "trace_id": "59cceb0a11cb48f3bf64e752a02e1c63", "port": 8095, "level": "INFO"}
+{"ts": "2026-04-27T20:36:37.517201Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "e58212b11e844b8698a5aad55500f315", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:36:37.876793Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "e58212b11e844b8698a5aad55500f315", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:36:37.929930Z", "component": "agent.router", "event": "chat.received", "trace_id": "887c0d6cd8b94265be07dcec73a9d064", "message_chars": 634, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T20:36:57.033347Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "cce7e00c322e4074ba9af39ebf84327c", "response_chars": 859, "level": "INFO"}
+{"ts": "2026-04-27T20:36:57.041642Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "e58212b11e844b8698a5aad55500f315", "name": "knowledge-consolidator-collect", "result_chars": 859, "level": "INFO"}
+{"ts": "2026-04-27T20:36:57.061040Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "e58212b11e844b8698a5aad55500f315", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:36:57.232882Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "e58212b11e844b8698a5aad55500f315", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:40:05.459950Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "40f8c65bb159407a8185aae8aad5ff55", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:40:05.477423Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "40f8c65bb159407a8185aae8aad5ff55", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:40:05.494367Z", "component": "agent.router", "event": "chat.received", "trace_id": "13be569517d04f10bf84264f6600269d", "message_chars": 713, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T20:40:55.869583Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "eb8393844d3645a1aefd2e8ab0b2dd12", "response_chars": 2910, "level": "INFO"}
+{"ts": "2026-04-27T20:40:55.875016Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "40f8c65bb159407a8185aae8aad5ff55", "name": "proactive-innovation", "result_chars": 2910, "level": "INFO"}
+{"ts": "2026-04-27T20:40:55.887190Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "40f8c65bb159407a8185aae8aad5ff55", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:40:56.105535Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "40f8c65bb159407a8185aae8aad5ff55", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:52:53.978286Z", "component": "scheduler.main", "event": "scheduler.start", "trace_id": "f976f2b522954d02be71d9d701bb367c", "registered": 3, "skills_dir": "/skills", "level": "INFO"}
+{"ts": "2026-04-27T20:52:54.050921Z", "component": "scheduler.main", "event": "scheduler.running", "trace_id": "72737339294c4c048dc025b93f5f91b4", "level": "INFO"}
+{"ts": "2026-04-27T20:52:54.100643Z", "component": "scheduler.api", "event": "scheduler.api.listen", "trace_id": "e31ff87991ed4f1da3e0697386661d02", "port": 8095, "level": "INFO"}
+{"ts": "2026-04-27T20:53:52.790751Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "fd4a29617e8a4386aa3bf8968ed6f52a", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:53:53.218007Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "fd4a29617e8a4386aa3bf8968ed6f52a", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:53:53.267338Z", "component": "agent.router", "event": "chat.received", "trace_id": "a5fa1fa22fcd44fcb1f789464b09d2cd", "message_chars": 634, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T20:54:05.349739Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "1a5f4da893c74223b6f6ab3710fc5e1a", "response_chars": 833, "level": "INFO"}
+{"ts": "2026-04-27T20:54:05.374727Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "fd4a29617e8a4386aa3bf8968ed6f52a", "name": "knowledge-consolidator-collect", "result_chars": 833, "level": "INFO"}
+{"ts": "2026-04-27T20:54:05.402993Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "fd4a29617e8a4386aa3bf8968ed6f52a", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:54:05.583587Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "fd4a29617e8a4386aa3bf8968ed6f52a", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:54:57.002382Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "f84c26e60c6e44ebbcdf32e37a980038", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:54:57.026019Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "f84c26e60c6e44ebbcdf32e37a980038", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:54:57.049547Z", "component": "agent.router", "event": "chat.received", "trace_id": "466525580b51458e9126d7d2aa7b39a7", "message_chars": 713, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T20:55:39.143215Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "517c218bcfd04ba99c1da0708a703e13", "response_chars": 3237, "level": "INFO"}
+{"ts": "2026-04-27T20:55:39.155078Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "f84c26e60c6e44ebbcdf32e37a980038", "name": "proactive-innovation", "result_chars": 3237, "level": "INFO"}
+{"ts": "2026-04-27T20:55:39.196482Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "f84c26e60c6e44ebbcdf32e37a980038", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:55:39.566001Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "f84c26e60c6e44ebbcdf32e37a980038", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:59:34.262289Z", "component": "scheduler.main", "event": "scheduler.start", "trace_id": "3cbefde214b4478d861c945cb9901589", "registered": 3, "skills_dir": "/skills", "level": "INFO"}
+{"ts": "2026-04-27T20:59:34.292924Z", "component": "scheduler.main", "event": "scheduler.running", "trace_id": "e63bd4457e5c4ac29579608bc368aaea", "level": "INFO"}
+{"ts": "2026-04-27T20:59:34.313124Z", "component": "scheduler.api", "event": "scheduler.api.listen", "trace_id": "2482bd18214c47cd92d49df22132107b", "port": 8095, "level": "INFO"}
+{"ts": "2026-04-27T20:59:38.615842Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "c860bf54f9e04e4fb285c8a39a29530c", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:59:38.801312Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "c860bf54f9e04e4fb285c8a39a29530c", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T20:59:38.847457Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "b30bfc912f904039af02d76130ab4517", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:59:38.857707Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "b30bfc912f904039af02d76130ab4517", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T20:59:38.869455Z", "component": "agent.router", "event": "chat.received", "trace_id": "308e36c6606942879ea2e3283854b79c", "message_chars": 883, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T20:59:38.936648Z", "component": "agent.router", "event": "chat.received", "trace_id": "8b59ebda309a4f70a0681b8d1ee74cc4", "message_chars": 1048, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T21:00:00.813374Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "cca4093de44548069f8961bb9af57643", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:00:00.852000Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "cca4093de44548069f8961bb9af57643", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:00:00.871620Z", "component": "agent.router", "event": "chat.received", "trace_id": "06592e9cd4804e849598b6e862e0ce0c", "message_chars": 883, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T21:00:47.731561Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "ecf50f2c46ba4fd4bd359bc1ec556525", "response_chars": 653, "level": "INFO"}
+{"ts": "2026-04-27T21:00:47.744924Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "c860bf54f9e04e4fb285c8a39a29530c", "name": "knowledge-consolidator-collect", "result_chars": 653, "level": "INFO"}
+{"ts": "2026-04-27T21:00:47.779196Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "c860bf54f9e04e4fb285c8a39a29530c", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:00:48.016826Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "c860bf54f9e04e4fb285c8a39a29530c", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:00:59.618471Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "cca4093de44548069f8961bb9af57643", "name": "knowledge-consolidator-collect", "result_chars": 828, "level": "INFO"}
+{"ts": "2026-04-27T21:00:59.614724Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "9691f8188dd24fbd982b08e1bdba65ba", "response_chars": 828, "level": "INFO"}
+{"ts": "2026-04-27T21:00:59.641255Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "cca4093de44548069f8961bb9af57643", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:00:59.841430Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "cca4093de44548069f8961bb9af57643", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:01:10.281306Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "137fd31ff17c49a09d9f311aa2000131", "response_chars": 2420, "level": "INFO"}
+{"ts": "2026-04-27T21:01:10.287902Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "b30bfc912f904039af02d76130ab4517", "name": "proactive-innovation", "result_chars": 2420, "level": "INFO"}
+{"ts": "2026-04-27T21:01:10.318426Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "b30bfc912f904039af02d76130ab4517", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T21:01:10.471384Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "b30bfc912f904039af02d76130ab4517", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-27T21:01:26.068066Z", "component": "agent.router", "event": "chat.received", "trace_id": "332319ebccfe47efa8aba89715c4480b", "message_chars": 738, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T21:01:55.820973Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "4de7012f71b54cf4b2af4dfcf0960e19", "response_chars": 207, "level": "INFO"}
+{"ts": "2026-04-27T21:03:36.713851Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "f7c84aa60c7a435a9e8b94c907cb57d6", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:03:36.746979Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "f7c84aa60c7a435a9e8b94c907cb57d6", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:03:36.774454Z", "component": "agent.router", "event": "chat.received", "trace_id": "39d533c0ad974cf6bb3b82851572de07", "message_chars": 883, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T21:04:01.332238Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "7a6257775ba84f8d9d96ab4da0d2e8bf", "response_chars": 713, "level": "INFO"}
+{"ts": "2026-04-27T21:04:01.338494Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "f7c84aa60c7a435a9e8b94c907cb57d6", "name": "knowledge-consolidator-collect", "result_chars": 713, "level": "INFO"}
+{"ts": "2026-04-27T21:04:01.354656Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "f7c84aa60c7a435a9e8b94c907cb57d6", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:04:01.536439Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "f7c84aa60c7a435a9e8b94c907cb57d6", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:04:51.114479Z", "component": "agent.router", "event": "chat.received", "trace_id": "6f834b143ca04626890cbd9deb9408e8", "message_chars": 511, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T21:05:06.929059Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "408805a498e54a399cde586cb65ee7ff", "response_chars": 85, "level": "INFO"}
+{"ts": "2026-04-27T21:07:01.204634Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "8a3f3a819dde425c97660873e636d2aa", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:07:01.218505Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "8a3f3a819dde425c97660873e636d2aa", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:07:01.225736Z", "component": "agent.router", "event": "chat.received", "trace_id": "0d35077dd5b34efb8f2a085277a0fe99", "message_chars": 883, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-27T21:07:13.319447Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "48c3c897fab44abfb4551dee8b6068b6", "response_chars": 901, "level": "INFO"}
+{"ts": "2026-04-27T21:07:13.324385Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "8a3f3a819dde425c97660873e636d2aa", "name": "knowledge-consolidator-collect", "result_chars": 901, "level": "INFO"}
+{"ts": "2026-04-27T21:07:13.337532Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "8a3f3a819dde425c97660873e636d2aa", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:07:13.602365Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "8a3f3a819dde425c97660873e636d2aa", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-27T21:11:43.232800Z", "component": "scheduler.main", "event": "scheduler.start", "trace_id": "a14da8866c5742d1a25046fe9856ee68", "registered": 3, "skills_dir": "/skills", "level": "INFO"}
+{"ts": "2026-04-27T21:11:43.253830Z", "component": "scheduler.main", "event": "scheduler.running", "trace_id": "4ede1e301a1b467f800c303861f3ba5f", "level": "INFO"}
+{"ts": "2026-04-27T21:11:43.277735Z", "component": "scheduler.api", "event": "scheduler.api.listen", "trace_id": "4e4a9b64039a456788b87e099ae83904", "port": 8095, "level": "INFO"}
+{"ts": "2026-04-28T06:55:05.390086Z", "component": "scheduler.main", "event": "scheduler.start", "trace_id": "2f37f62cded14326bbc1278ea66b3934", "registered": 3, "skills_dir": "/skills", "level": "INFO"}
+{"ts": "2026-04-28T06:55:05.426033Z", "component": "scheduler.main", "event": "scheduler.running", "trace_id": "2f07474c2953439dbd7ef7a0562fef73", "level": "INFO"}
+{"ts": "2026-04-28T06:55:05.444166Z", "component": "scheduler.api", "event": "scheduler.api.listen", "trace_id": "805a0c4d51314fc8bd9e38efe838a783", "port": 8095, "level": "INFO"}
+{"ts": "2026-04-28T06:55:06.262754Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "7c853395780840beaef758cc1315f74b", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-28T06:55:06.460713Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "7c853395780840beaef758cc1315f74b", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-28T06:55:06.501592Z", "component": "agent.router", "event": "chat.received", "trace_id": "7fa9dcb4cff14b7fb148b56133d52bf0", "message_chars": 883, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-28T06:56:23.570359Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "04d14119225942d7aa2d3b408d4b909b", "response_chars": 2043, "level": "INFO"}
+{"ts": "2026-04-28T06:56:23.579744Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "7c853395780840beaef758cc1315f74b", "name": "knowledge-consolidator-collect", "result_chars": 2043, "level": "INFO"}
+{"ts": "2026-04-28T06:56:23.602103Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "7c853395780840beaef758cc1315f74b", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-28T06:56:23.833698Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "7c853395780840beaef758cc1315f74b", "name": "knowledge-consolidator-collect", "level": "INFO"}
+{"ts": "2026-04-28T06:56:35.130522Z", "component": "agent.router", "event": "chat.received", "trace_id": "956fb719affd4b5283b561fc4b338dcd", "message_chars": 21, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-28T06:56:44.028724Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "f5eff203bd8d429980a3623982fb10d3", "response_chars": 6, "level": "INFO"}

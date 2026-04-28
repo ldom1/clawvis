@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
@@ -156,6 +156,7 @@ class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
     trace_id: str | None = None
+    mode: Literal["chat", "skill"] = "chat"
 
 
 @router.get("/status")
@@ -219,14 +220,19 @@ async def chat(req: ChatRequest):
     confd = conf.model_dump()
     system = load_persona(None)
 
-    preferred = _resolve_provider_for_chat(
-        _lane_provider(confd, cfg, "chat_preferred_provider"), cfg
-    )
-    chat_model = conf.chat_model or "google/gemini-2.5-flash-lite"
+    if req.mode == "skill":
+        use_cli = cfg.cli_available
+        use_anthropic = False
+        use_mammouth = False
+    else:
+        preferred = _resolve_provider_for_chat(
+            _lane_provider(confd, cfg, "chat_preferred_provider"), cfg
+        )
+        use_cli = preferred == "cli" and cfg.cli_available
+        use_anthropic = preferred == "anthropic" and bool(cfg.anthropic_token)
+        use_mammouth = preferred == "mammouth" and bool(cfg.mammouth_token)
 
-    use_cli = preferred == "cli" and cfg.cli_available
-    use_anthropic = preferred == "anthropic" and bool(cfg.anthropic_token)
-    use_mammouth = preferred == "mammouth" and bool(cfg.mammouth_token)
+    chat_model = conf.chat_model or "google/gemini-2.5-flash-lite"
 
     async def generate():
         try:
@@ -236,7 +242,7 @@ async def chat(req: ChatRequest):
                 message_chars=len(req.message or ""),
                 history_len=len(req.history or []),
             )
-            orch = await run_orchestrate_or_none(
+            orch = None if req.mode == "skill" else await run_orchestrate_or_none(
                 req.message,
                 cfg,
                 confd,

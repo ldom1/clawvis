@@ -9,7 +9,7 @@ metadata:
 ## ⚡ Exécution rapide
 
 ```bash
-~/.openclaw/skills/git-sync/scripts/sync.sh
+${CLAWVIS_ROOT}/skills/git-sync/scripts/sync.sh
 ```
 
 Synchronise la configuration essentielle OpenClaw dans **un seul dépôt** : **openclaw-dombot**. Contenu : `workspace/` (AGENTS, SOUL, memory, etc.) et `skills/`. Aucune clé API ni fichier sensible.
@@ -26,7 +26,7 @@ Synchronise la configuration essentielle OpenClaw dans **un seul dépôt** : **o
 
 ## Invocation
 
-1. Exécuter : `~/.openclaw/skills/git-sync/scripts/sync.sh`
+1. Exécuter : `${CLAWVIS_ROOT}/skills/git-sync/scripts/sync.sh`
 2. Rapporter : succès/échec, push OK ou erreur.
 
 ## GitHub CLI (gh)

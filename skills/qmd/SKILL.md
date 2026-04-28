@@ -29,7 +29,7 @@ qmd --version
 
 ### Test Search
 ```bash
-qmd search "Claude" --path ~/.openclaw/workspace/memory
+qmd search "Claude" --path $BRAIN_PATH
 qmd search "technology" --full
 qmd query "latest discoveries"  # With LLM re-ranking
 ```
@@ -48,7 +48,7 @@ After Curiosity creates discoveries, QMD indexes them:
 
 ```bash
 # Auto-update index (add to cron):
-*/5 * * * * qmd update --path ~/.openclaw/workspace/memory
+*/5 * * * * qmd update --path $BRAIN_PATH
 
 # Or manual:
 qmd update
@@ -101,13 +101,13 @@ for item in recent:
 OpenClaw natively supports QMD for memory search:
 
 ```bash
-# In ~/.openclaw/openclaw.json:
+# In ${CLAWVIS_ROOT}/config.json:
 {
   "memory": {
     "backend": "qmd",
     "paths": [
-      "~/.openclaw/workspace/MEMORY.md",
-      "~/.openclaw/workspace/memory/"
+      "$BRAIN_PATH/MEMORY.md",
+      "$BRAIN_PATH/"
     ]
   }
 }
@@ -197,6 +197,6 @@ qmd mcp --http --daemon
 
 ---
 
-**Skill Location:** `~/.openclaw/workspace/skills/qmd/`  
+**Skill Location:** `$BRAIN_PATH/skills/qmd/`  
 **Executable:** `qmd` (CLI, installed globally)  
 **Documentation:** `memory/QMD_INTEGRATION_ANALYSIS.md` + `memory/QMD_QUICKSTART.md`

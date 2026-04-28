@@ -7,7 +7,7 @@ RUN apt-get update && \
     apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.10.0 /uv /uvx /usr/local/bin/
 
 # Pre-create the runtime home dir so the entrypoint can write .claude.json.
 # The container runs as HOST_UID (default 1000); chmod 1777 lets any uid write.

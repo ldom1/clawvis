@@ -146,6 +146,8 @@ services:
       # Claude CLI runtime (for provider=cli): mount host binary tree + auth/config in matching HOME paths.
       - "${HOME}/.local:/home/${USER}/.local:ro"
       - "${HOME}/.claude:/home/${USER}/.claude:rw"
+      # Local Brain (BRAIN_PATH) — rw so cron skills can write curiosity/innovation notes.
+      - "${BRAIN_PATH}:${BRAIN_PATH}:rw"
     environment:
       - CLAWVIS_DOTENV_PATH=/clawvis/.env
       - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
@@ -156,6 +158,8 @@ services:
       - SCHEDULER_URL=http://scheduler:8095
       - KANBAN_URL=http://kanban-api:8090
       - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
+      - BRAIN_PATH=${BRAIN_PATH}
+      - MEMORY_ROOT=${BRAIN_PATH}
     depends_on:
       kanban-api:
         condition: service_healthy

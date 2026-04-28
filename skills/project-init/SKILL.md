@@ -14,7 +14,7 @@ Créer un projet **clôt côté Hub** : dépôt sous `PROJECTS_ROOT`, mémoire `
 
 ```bash
 # Description (obligatoire), nom affiché optionnel
-~/.openclaw/skills/project-init/scripts/init.sh "Description du projet (≥3 caractères)" "Nom lisible"
+${CLAWVIS_ROOT}/skills/project-init/scripts/init.sh "Description du projet (≥3 caractères)" "Nom lisible"
 
 # Variables optionnelles
 export KANBAN_API_URL=http://127.0.0.1:8090
@@ -40,13 +40,13 @@ Creates a complete project from a single voice note or text idea.
 
 ```bash
 # From text
-uv run --directory ~/.openclaw/skills/project-init/core python -m project_init \
+uv run --directory ${CLAWVIS_ROOT}/skills/project-init/core python -m project_init \
   --slug "my-project" \
   --name "My Project" \
   --description "A SaaS to automate freelance quotes with AI"
 
 # Check what would be created (dry-run)
-uv run --directory ~/.openclaw/skills/project-init/core python -m project_init \
+uv run --directory ${CLAWVIS_ROOT}/skills/project-init/core python -m project_init \
   --slug "my-project" --name "My Project" --description "..." --dry-run
 ```
 
@@ -67,7 +67,7 @@ Extract from the text:
 ### Step 2 — Create project + tasks
 
 ```bash
-uv run --directory ~/.openclaw/skills/project-init/core python -m project_init \
+uv run --directory ${CLAWVIS_ROOT}/skills/project-init/core python -m project_init \
   --slug "<slug>" --name "<name>" --description "<description>"
 ```
 
@@ -128,7 +128,7 @@ Keep it under 100 lines — goal is a runnable skeleton, not a full implementati
 |----------|---------|-------------|
 | `KANBAN_API_URL` | `http://localhost:8088/api/hub/kanban` | Kanban API base URL |
 | `HUB_URL` | `http://localhost:8088` | Hub public URL (used in messages) |
-| `MEMORY_ROOT` | `~/.openclaw/workspace/memory` | Path to instance memory root |
+| `MEMORY_ROOT` | `$BRAIN_PATH` | Path to instance memory root |
 | `GITHUB_TOKEN` | _(empty)_ | GitHub PAT — repo creation skipped if absent |
 | `GITHUB_USER` | _(empty)_ | GitHub username or org |
 | `TELEGRAM_TARGET` | _(empty)_ | Telegram user ID for confirmation message |

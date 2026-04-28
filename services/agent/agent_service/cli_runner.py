@@ -7,7 +7,7 @@ import shutil
 
 
 _TOOL_FLAGS: dict[str, list[str]] = {
-    "claude": ["--print"],
+    "claude": ["--print", "--dangerously-skip-permissions"],
     "opencode": ["run"],
     "codex": [],
 }

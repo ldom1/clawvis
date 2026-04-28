@@ -85,7 +85,7 @@ Before assembling ANY section, validate sources:
 
 **Primary source (local, via `knowledge_consolidator`):**
 
-1. Look for the most recent files in `~/.openclaw/workspace/memory/resources/curiosity/`:
+1. Look for the most recent files in `$BRAIN_PATH/resources/knowledge/curiosity/`:
    - `YYYY-MM-DD-tech_news.md`
    - `YYYY-MM-DD-tech.md`
 2. Découper les blocs avec des titres du type `## 1.`, `## 1)`, `##1.` (regex tolérante). Extraire `Title`, `Source` (ligne `**Source :**` / variantes), `Lien`, `Résumé`.
@@ -110,7 +110,7 @@ Before assembling ANY section, validate sources:
 
 **Primary source (local, via `knowledge_consolidator`):**
 
-1. Look for the most recent `~/.openclaw/workspace/memory/resources/curiosity/YYYY-MM-DD-latest.md`.
+1. Look for the most recent `$BRAIN_PATH/resources/knowledge/curiosity/YYYY-MM-DD-latest.md`.
 2. Prendre le **premier** bloc numéroté (`## 1.` / `## 1)` / etc.) + `Source`, `Lien`, `Résumé`.
 
 **Fallback (external, via `web_search` + Brave) — only if no local curiosity file found:**
@@ -137,7 +137,7 @@ Le lab est accessible à l'URL fixe `https://lab.dombot.tech` — toujours inclu
 
 ## Step 6 — Assemble Briefing
 
-Use the template at `/home/lgiron/.openclaw/skills/morning-briefing/BRIEFING_TEMPLATE.md`.
+Use the template at `${CLAWVIS_ROOT}/skills/morning-briefing/BRIEFING_TEMPLATE.md`.
 
 Replace placeholders:
 - `{{DATE}}` → today's date (`YYYY-MM-DD`)

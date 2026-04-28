@@ -15,7 +15,7 @@ export CLAWVIS_ROOT="$HOME/Lab/clawvis" INSTANCE_NAME=dombot
 bash "$CLAWVIS_ROOT/skills/skill-tester/scripts/test-all.sh"
 
 # Ancien mode : symlinks sous ~/.openclaw/skills
-~/.openclaw/skills/skill-tester/scripts/test-all.sh
+${CLAWVIS_ROOT}/skills/skill-tester/scripts/test-all.sh
 
 # Un skill / liste
 bash …/test-all.sh logger
@@ -63,7 +63,7 @@ dev = ["pytest>=8.0"]
 
 Lancer :
 ```bash
-uv run --directory ~/.openclaw/skills/<nom>/core pytest tests/ -v
+uv run --directory ${CLAWVIS_ROOT}/skills/<nom>/core pytest tests/ -v
 ```
 
 ---
@@ -74,10 +74,10 @@ Pour les skills sans Python core (git-sync, brain-pulse) :
 
 ```bash
 # Vérifier la syntaxe bash (si shellcheck installé)
-shellcheck ~/.openclaw/skills/git-sync/scripts/sync.sh
+shellcheck ${CLAWVIS_ROOT}/skills/git-sync/scripts/sync.sh
 
 # Dry run : lire le SKILL.md et vérifier les chemins référencés
-grep -r "~/.openclaw/skills" ~/.openclaw/skills/git-sync/SKILL.md | \
+grep -r "~/.openclaw/skills" ${CLAWVIS_ROOT}/skills/git-sync/SKILL.md | \
   while read path; do [ -f "$path" ] && echo "✅ $path" || echo "❌ MISSING: $path"; done
 ```
 

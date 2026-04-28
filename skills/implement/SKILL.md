@@ -11,11 +11,11 @@ Executes one kanban task end-to-end. Called by `kanban-implementer` after task s
 
 ```bash
 # Implement a specific task
-uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
   --task-id task-XXXXXXXX
 
 # Mark task done after implementation
-uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
   --task-id task-XXXXXXXX --mark-done
 ```
 
@@ -26,7 +26,7 @@ uv run --directory ~/.openclaw/skills/implement/core python -m implement \
 ### Step 1 — Load context
 
 ```bash
-uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
   --task-id <TASK_ID>
 ```
 
@@ -60,11 +60,11 @@ If implementation introduces a new decision or component, append to the **Archiv
 
 ```bash
 # Mark In Progress at start (optional, for long tasks)
-uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
   --task-id <TASK_ID> --set-status "In Progress"
 
 # Mark Done when complete
-uv run --directory ~/.openclaw/skills/implement/core python -m implement \
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
   --task-id <TASK_ID> --mark-done
 ```
 
@@ -82,7 +82,7 @@ Via logger skill:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `KANBAN_API_URL` | `http://localhost:8088/api/hub/kanban` | Kanban API base URL |
-| `MEMORY_ROOT` | `~/.openclaw/workspace/memory` | Path to instance memory root |
+| `MEMORY_ROOT` | `$BRAIN_PATH` | Path to instance memory root |
 
 ---
 

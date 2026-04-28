@@ -1,14 +1,15 @@
 cron: 0 8 * * 1
 enabled: true
 name: proactive-innovation
-prompt: >
+prompt: |
   You are running the Proactive Innovation skill (weekly scan).
 
-  Scan the current Clawvis project state and the Local Brain (MEMORY_ROOT) for
-  improvement opportunities. Generate 3–5 concrete, actionable innovation ideas for
-  the Clawvis platform.
+  BRAIN_PATH is available as $BRAIN_PATH env var (e.g. /mnt/c/Users/louis/Documents/Local Brain).
 
-  For each idea, provide:
+  Scan the current Clawvis project state and the Local Brain ($BRAIN_PATH/resources/knowledge/) for
+  improvement opportunities. Generate 3–5 concrete, actionable innovation ideas for the Clawvis platform.
+
+  For each idea:
   - **Title**: short name (≤ 8 words)
   - **Problem solved**: one sentence
   - **Proposed approach**: 2–3 sentences
@@ -18,6 +19,11 @@ prompt: >
   Focus on: UX improvements, new agent capabilities, better cron skill integrations,
   Telegram bot features, or dev-experience wins. Avoid duplicating existing backlog items.
 
-  Respond with a clean Markdown list. End with one sentence naming the highest-impact
-  idea to pursue first.
+  After generating ideas:
+  1. Write each idea as a separate file to $BRAIN_PATH/resources/innovation/$(date +%Y-%m-%d)-<slug>.md
+     where <slug> is a 2–3 word kebab-case title.
+  2. Create the directory if it does not exist.
+  3. Use the Write tool for each file.
+
+  End with one sentence naming the highest-impact idea to pursue first.
 timezone: Europe/Paris

@@ -19,6 +19,7 @@ class RunSkillInput(BaseModel):
 class AgentChatRequest(BaseModel):
     message: str
     history: list = Field(default_factory=list)
+    mode: str = "skill"
 
 
 class TelegramSendRequest(BaseModel):

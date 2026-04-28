@@ -11,21 +11,21 @@ Implémentation automatique de tâches Kanban par DomBot, une par session. Suit 
 
 ```bash
 # Sélectionner la prochaine tâche (affiche contexte + TASK_ID)
-uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer select
+uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer select
 
 # Prioriser un projet spécifique
-uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer select --project hub
+uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer select --project hub
 
 # Lister les tâches éligibles
-uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer list
+uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer list
 
 # Mettre à jour le statut d'une tâche
-uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer update task-XXXXXXXX "In Progress"
-uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer update task-XXXXXXXX "Review"
-uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer update task-XXXXXXXX "Done"
+uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer update task-XXXXXXXX "In Progress"
+uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer update task-XXXXXXXX "Review"
+uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer update task-XXXXXXXX "Done"
 
 # Via script shell (avec logs)
-~/.openclaw/skills/kanban-implementer/scripts/run.sh [--project PROJECT_NAME]
+${CLAWVIS_ROOT}/skills/kanban-implementer/scripts/run.sh [--project PROJECT_NAME]
 ```
 
 ---
@@ -67,7 +67,7 @@ Si aucune tâche éligible → arrêt propre (pas d'erreur).
 ### Étape 1 — Sélection
 
 ```bash
-uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer select [--project PROJECT]
+uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer select [--project PROJECT]
 ```
 
 Note le `TASK_ID` retourné. Si "Aucune tâche éligible" → session terminée, rapporter à Ldom.
@@ -78,14 +78,14 @@ La sortie de `select` inclut `IS_AMBIGUOUS=true|false` (heuristique sur titre + 
 
 - Si **`IS_AMBIGUOUS=true`** : **ne pas implémenter**. Ouvrir une issue GitHub pour clarifier, puis :
   ```bash
-  uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer update TASK_ID "Blocked"
+  uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer update TASK_ID "Blocked"
   ```
   Rapporter à Ldom (Telegram / log) et **arrêter la session** (pas de branche, pas de PR).
 
 ### Étape 2 — Lecture du contexte
 
 Avant de coder :
-1. Exécuter **`~/.openclaw/skills/implement/scripts/run.sh TASK_ID`** — affiche le JSON tâche et le rappel des étapes (pont agent).
+1. Exécuter **`${CLAWVIS_ROOT}/skills/implement/scripts/run.sh TASK_ID`** — affiche le JSON tâche et le rappel des étapes (pont agent).
 2. Lire `~/Lab/PROTOCOL.md` (règles obligatoires du Lab).
 3. Lire le fichier projet (`source_file` affiché par `select`).
 4. Si le repo concerné existe : explorer la structure, lire les tests existants.
@@ -93,7 +93,7 @@ Avant de coder :
 ### Étape 3 — Marquer "In Progress"
 
 ```bash
-uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer update TASK_ID "In Progress"
+uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer update TASK_ID "In Progress"
 ```
 
 ### Étape 4 — Implémentation (règles PROTOCOL.md obligatoires)
@@ -154,7 +154,7 @@ Si `gh` non disponible ou pas de remote : committer sur `develop` et noter la br
 La tâche passe en **Review** (pas Done) — c'est Ldom qui valide et merge.
 
 ```bash
-uv run --directory ~/.openclaw/skills/kanban-implementer/core python -m kanban_implementer update TASK_ID "Review"
+uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanban_implementer update TASK_ID "Review"
 ```
 
 ### Étape 7 — Rapport Telegram + log
@@ -164,7 +164,7 @@ msg=$'🔧 Kanban — PR prête pour review\n\n📋 [TASK_ID] Titre de la tâche
 
 openclaw message send --channel telegram --target 5689694685 --message "$msg"
 
-uv run --directory ~/.openclaw/skills/logger/core \
+uv run --directory ${CLAWVIS_ROOT}/skills/logger/core \
   dombot-log "INFO" "cron:kanban-implementer" "system" "impl:complete" "Task TASK_ID implemented + PR opened"
 ```
 
@@ -187,7 +187,7 @@ Commandes exactes utilisées pour valider que le skill fonctionne — à réutil
 ### 1. Vérifier le sélecteur (Python)
 
 ```bash
-cd ~/.openclaw/skills/kanban-implementer/core
+cd ${CLAWVIS_ROOT}/skills/kanban-implementer/core
 uv run python -c "
 from kanban_implementer.selector import load_tasks, select_task
 
@@ -212,7 +212,7 @@ Résultat attendu : une tâche sélectionnée avec `confidence_effective ≥ 0.4
 ### 2. Vérifier le filtre confidence (tests unitaires)
 
 ```bash
-cd ~/.openclaw/skills/kanban-implementer/core
+cd ${CLAWVIS_ROOT}/skills/kanban-implementer/core
 uv run python -m pytest tests/test_selector.py -v
 ```
 
@@ -222,7 +222,7 @@ Couvre : filtre confidence, `is_ambiguous` (mots-vagues / titre clair), statut *
 ### 3. Vérifier le passage de statut via CLI
 
 ```bash
-cd ~/.openclaw/skills/kanban-implementer/core
+cd ${CLAWVIS_ROOT}/skills/kanban-implementer/core
 
 # Récupérer un TASK_ID éligible
 TASK_ID=$(uv run python -c "
