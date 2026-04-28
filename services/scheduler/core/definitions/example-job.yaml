@@ -1,0 +1,6 @@
+name: example-job
+cron: "0 9 * * *"
+prompt: |
+  Run a simple daily check and post the result to Telegram.
+timezone: Europe/Paris
+enabled: false

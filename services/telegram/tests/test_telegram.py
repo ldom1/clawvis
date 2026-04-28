@@ -143,6 +143,35 @@ class TestHttpSend(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(body.get("ok"))
         self.assertEqual(body["error"], "bot not ready")
 
+    @mock.patch.dict(
+        os.environ,
+        {**_std_env(), "TELEGRAM_BOT_TOKEN": ""},
+        clear=True,
+    )
+    async def test_health_reports_stub_mode(self) -> None:
+        from core import bot
+
+        res = await bot._http_health(mock.AsyncMock())  # type: ignore[misc]
+        self.assertEqual(res.status, 200)
+        body = json.loads(res.body)
+        self.assertTrue(body.get("ok"))
+        self.assertTrue(body.get("stub_mode"))
+        self.assertFalse(body.get("token_configured"))
+
+    @mock.patch.dict(
+        os.environ,
+        {**_std_env(), "TELEGRAM_BOT_TOKEN": ""},
+        clear=True,
+    )
+    async def test_test_endpoint_in_stub_mode(self) -> None:
+        from core import bot
+
+        res = await bot._http_test(mock.AsyncMock())  # type: ignore[misc]
+        self.assertEqual(res.status, 200)
+        body = json.loads(res.body)
+        self.assertTrue(body.get("ok"))
+        self.assertTrue(body.get("stub"))
+
 
 class TestBridge(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:

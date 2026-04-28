@@ -12,11 +12,17 @@ import scheduler as scheduler_module  # noqa: E402
 
 
 class _FakeResponse:
-    def __init__(self, text: str = "ok") -> None:
+    def __init__(self, text: str = "ok", *, status_code: int = 200, payload: dict | None = None) -> None:
         self.text = text
+        self.status_code = status_code
+        self._payload = payload if payload is not None else {"ok": True}
 
     def raise_for_status(self) -> None:
-        return
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+    def json(self) -> dict:
+        return self._payload
 
 
 class _FakeAsyncClient:
@@ -35,7 +41,7 @@ class _FakeAsyncClient:
         _FakeAsyncClient.calls.append((url, json, self.timeout))
         if url.endswith("/chat"):
             return _FakeResponse("agent-result")
-        return _FakeResponse("")
+        return _FakeResponse("", payload={"ok": True})
 
 
 class SchedulerTests(unittest.IsolatedAsyncioTestCase):

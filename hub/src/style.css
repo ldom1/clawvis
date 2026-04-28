@@ -2108,6 +2108,11 @@ select {
   margin-top: 0.35rem;
   overflow: visible;
 }
+.settings-page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
 .settings-section.card {
   margin: 0;
   padding: 1.25rem 1.35rem;

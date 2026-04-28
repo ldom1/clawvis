@@ -47,6 +47,8 @@ services:
     volumes:
       # Full repo RW so setup API can sync skills/ and .claude/ (host checkout replaces /clawvis).
       - .:/clawvis:rw
+      # Keep a container-local virtualenv writable by the runtime user.
+      - /clawvis/.venv
       - ./logs:/logs:rw
       # Kanban scans PROJECTS_ROOT from .env — bind the host folder at the same path.
       # RW: POST /hub/projects mkdir + git init + template files (RO mount → 500, Hub alert "Creation impossible").
@@ -93,10 +95,10 @@ services:
     volumes:
       - ./instances:/clawvis/instances
       - ./quartz:/clawvis/quartz
-      - "${BRAIN_PATH}:${BRAIN_PATH}:ro"
+      - "${BRAIN_PATH}:${BRAIN_PATH}:rw"
     environment:
       - UV_CACHE_DIR=/tmp/uv-cache
-      - MEMORY_ROOT=/clawvis/instances/${INSTANCE_NAME:-example}/workspace
+      - MEMORY_ROOT=${BRAIN_PATH}
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     labels:
       - "app=clawvis"

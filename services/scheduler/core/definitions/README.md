@@ -1,1 +1,9 @@
-Drop `*.yaml` cron definitions here (see `../scheduler.py`). Example file is disabled by default; set `enabled: true` when ready.
+Scheduler definition examples (reference only).
+
+Live definitions are loaded from:
+- `services/scheduler/definitions/jobs/*.yaml`
+- `services/scheduler/definitions/workflows/*.yaml`
+
+Use these examples as copy/paste starters:
+- `example-job.yaml`
+- `example-workflow.yaml`

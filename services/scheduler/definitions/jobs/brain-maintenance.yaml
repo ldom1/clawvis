@@ -1,0 +1,11 @@
+cron: 30 0 * * *
+enabled: true
+name: brain-maintenance
+prompt: |
+  Run the brain-maintenance skill now.
+
+  Requirements:
+  - Apply normal maintenance checks and cleanup behavior.
+  - Keep the run safe and non-destructive.
+  - Report key maintenance outcomes clearly.
+timezone: Europe/Paris

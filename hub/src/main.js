@@ -4167,8 +4167,8 @@ function renderSchedulePage() {
           </div>
           <div class="card-desc">${
             fr
-              ? "Jobs planifiés. Définitions YAML dans <code>services/scheduler/definitions/</code>. Chaque job envoie le prompt à l'agent puis poste le résultat sur Telegram."
-              : "Scheduled jobs. YAML definitions in <code>services/scheduler/definitions/</code>. Each job sends the prompt to the agent and posts the result to Telegram."
+              ? "Jobs planifiés. Définitions YAML dans <code>services/scheduler/definitions/jobs/</code>. Chaque job envoie le prompt à l'agent puis poste le résultat sur Telegram."
+              : "Scheduled jobs. YAML definitions in <code>services/scheduler/definitions/jobs/</code>. Each job sends the prompt to the agent and posts the result to Telegram."
           }</div>
           <div id="cron-table-wrap"></div>
           <div id="cron-add-form" class="cron-add-form" style="display:none">
@@ -4262,6 +4262,7 @@ async function wireSchedulePage() {
           <td class="cron-td cron-td-muted">${nextRun}</td>
           <td class="cron-td" style="white-space:nowrap">
             <button class="btn btn-compact cron-run-btn" data-name="${name}" type="button" style="font-size:11px">▶ Run</button>
+            <button class="btn btn-compact cron-edit-btn" data-name="${name}" data-schedule="${escapeHtml(j.schedule || "")}" type="button" style="font-size:11px;margin-left:4px" ${isManual ? "disabled title=\"Manual job\"" : ""}>${fr ? "Éditer" : "Edit"}</button>
             <button class="btn btn-compact cron-toggle-btn" data-name="${name}" data-enabled="${enabled}" type="button" style="font-size:11px;margin-left:4px">${toggleLabel}</button>
             <button class="btn btn-compact cron-delete-btn" data-name="${name}" type="button" style="font-size:11px;color:#ef4444;border-color:#ef4444;margin-left:4px">${fr ? "Suppr." : "Delete"}</button>
           </td>
@@ -4319,6 +4320,32 @@ async function wireSchedulePage() {
             body: JSON.stringify({ enabled: !currentlyEnabled }),
           });
           if (res.ok) { await loadCronJobs(); } else { btn.disabled = false; alert(fr ? "Erreur." : "Update failed."); }
+        });
+      });
+      wrap.querySelectorAll(".cron-edit-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const name = btn.getAttribute("data-name");
+          const currentSchedule = (btn.getAttribute("data-schedule") || "").trim();
+          const nextCron = prompt(fr ? `Nouvelle expression cron pour "${name}"` : `New cron expression for "${name}"`, currentSchedule);
+          if (nextCron == null) return;
+          const cron = nextCron.trim();
+          if (!cron || cron.toLowerCase() === "manual") {
+            alert(fr ? "Expression cron invalide." : "Invalid cron expression.");
+            return;
+          }
+          btn.disabled = true;
+          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cron }),
+          });
+          if (res.ok) {
+            await loadCronJobs();
+          } else {
+            btn.disabled = false;
+            const data = await res.json().catch(() => ({}));
+            alert(data.error || (fr ? "Erreur." : "Update failed."));
+          }
         });
       });
     } catch (_) {
