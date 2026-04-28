@@ -319,7 +319,7 @@ async def cron_list():
 
 class CronJobCreate(BaseModel):
     name: str
-    cron: str
+    cron: str | None = None  # None = manual only
     prompt: str
     enabled: bool = True
     timezone: str = "UTC"
@@ -350,3 +350,43 @@ async def cron_delete(name: str):
 @router.post("/cron/jobs/{name}/run")
 async def cron_trigger(name: str):
     return await _scheduler_request("POST", f"/jobs/{name}/run")
+
+
+class WorkflowCreate(BaseModel):
+    name: str
+    jobs: list[str]
+    cron: str | None = None
+    enabled: bool = True
+    timezone: str = "UTC"
+
+
+class WorkflowPatch(BaseModel):
+    jobs: list[str] | None = None
+    cron: str | None = None
+    enabled: bool | None = None
+    timezone: str | None = None
+
+
+@router.get("/cron/workflows")
+async def workflow_list():
+    return await _scheduler_request("GET", "/workflows")
+
+
+@router.post("/cron/workflows")
+async def workflow_create(body: WorkflowCreate):
+    return await _scheduler_request("POST", "/workflows", body.model_dump())
+
+
+@router.delete("/cron/workflows/{name}")
+async def workflow_delete(name: str):
+    return await _scheduler_request("DELETE", f"/workflows/{name}")
+
+
+@router.patch("/cron/workflows/{name}")
+async def workflow_patch(name: str, body: WorkflowPatch):
+    return await _scheduler_request("PATCH", f"/workflows/{name}", body.model_dump(exclude_none=True))
+
+
+@router.post("/cron/workflows/{name}/run")
+async def workflow_trigger(name: str):
+    return await _scheduler_request("POST", f"/workflows/{name}/run")
