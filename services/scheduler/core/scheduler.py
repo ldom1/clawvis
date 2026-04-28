@@ -20,7 +20,7 @@ from hub_core.central_logger import new_trace_id, trace_event
 from pydantic import ValidationError
 
 from config import SchedulerSettings, get_settings
-from models import AgentChatRequest, RunSkillInput, SkillDefinition, TelegramSendRequest
+from models import AgentChatRequest, RunSkillInput, SkillDefinition, TelegramSendRequest, WorkflowDefinition
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,7 +33,7 @@ _scheduler: AsyncIOScheduler | None = None
 _skills_dir: Path | None = None
 
 
-async def _run_skill(skill_data: dict) -> None:
+async def _run_skill(skill_data: dict) -> str:
     trace_id = new_trace_id()
     try:
         skill = RunSkillInput.model_validate(skill_data)
@@ -48,10 +48,11 @@ async def _run_skill(skill_data: dict) -> None:
             payload=skill_data,
             error=str(exc),
         )
-        return
+        return f"[agent error: invalid payload — {exc}]"
 
     log.info("job.trigger name=%s", skill.name)
     trace_event("scheduler.job", "job.trigger", trace_id=trace_id, name=skill.name)
+    result = "[agent error: unknown]"
     try:
         async with httpx.AsyncClient(timeout=120) as client:
             trace_event("scheduler.job", "agent.request.start", trace_id=trace_id, name=skill.name)
@@ -101,6 +102,69 @@ async def _run_skill(skill_data: dict) -> None:
             error=str(exc),
         )
 
+    return result
+
+
+async def _run_workflow(workflow_data: dict) -> None:
+    trace_id = new_trace_id()
+    try:
+        workflow = WorkflowDefinition.model_validate(workflow_data)
+        settings = get_settings()
+    except ValidationError as exc:
+        log.error("workflow.invalid_payload payload=%s error=%s", workflow_data, exc)
+        trace_event(
+            "scheduler.workflow", "workflow.invalid_payload",
+            trace_id=trace_id, level="ERROR", error=str(exc),
+        )
+        return
+
+    log.info("workflow.trigger name=%s jobs=%s", workflow.name, workflow.jobs)
+    trace_event(
+        "scheduler.workflow", "workflow.trigger",
+        trace_id=trace_id, name=workflow.name, jobs=workflow.jobs,
+    )
+
+    sd = _skills_dir or settings.skills_dir
+    for job_name in workflow.jobs:
+        job_path = sd / f"{job_name}.yaml"
+        if not job_path.exists():
+            log.error("workflow.job_not_found workflow=%s job=%s", workflow.name, job_name)
+            trace_event(
+                "scheduler.workflow", "workflow.job_not_found",
+                trace_id=trace_id, level="ERROR", workflow=workflow.name, job=job_name,
+            )
+            return
+
+        try:
+            job_data = yaml.safe_load(job_path.read_text(encoding="utf-8")) or {}
+            skill = SkillDefinition.model_validate(job_data)
+        except (yaml.YAMLError, ValidationError) as exc:
+            log.error("workflow.job_parse_error workflow=%s job=%s error=%s", workflow.name, job_name, exc)
+            trace_event(
+                "scheduler.workflow", "workflow.job_parse_error",
+                trace_id=trace_id, level="ERROR", workflow=workflow.name, job=job_name, error=str(exc),
+            )
+            return
+
+        result = await _run_skill(RunSkillInput(name=skill.name, prompt=skill.prompt).model_dump())
+
+        if result.startswith("[agent error:"):
+            log.error("workflow.stopped workflow=%s failed_job=%s", workflow.name, job_name)
+            trace_event(
+                "scheduler.workflow", "workflow.stopped",
+                trace_id=trace_id, level="ERROR", workflow=workflow.name, failed_job=job_name,
+            )
+            return
+
+        log.info("workflow.job_done workflow=%s job=%s", workflow.name, job_name)
+        trace_event(
+            "scheduler.workflow", "workflow.job_done",
+            trace_id=trace_id, workflow=workflow.name, job=job_name,
+        )
+
+    log.info("workflow.complete name=%s", workflow.name)
+    trace_event("scheduler.workflow", "workflow.complete", trace_id=trace_id, name=workflow.name)
+
 
 def _load_skills(skills_dir: Path) -> list[SkillDefinition]:
     skills: list[SkillDefinition] = []
@@ -119,6 +183,9 @@ def _load_skills(skills_dir: Path) -> list[SkillDefinition]:
 
 
 def _register_skill(scheduler: AsyncIOScheduler, skill: SkillDefinition) -> None:
+    if not skill.cron:
+        log.info("skill.manual name=%s (no cron — manual only)", skill.name)
+        return
     parts = skill.cron.strip().split()
     if len(parts) != 5:
         log.error("skill.invalid_cron name=%s cron=%r (need 5 fields)", skill.name, skill.cron)
@@ -151,7 +218,7 @@ def _skill_to_job_dict(skill: SkillDefinition) -> dict:
     return {
         "id": skill.name,
         "name": skill.name,
-        "schedule": skill.cron,
+        "schedule": skill.cron or "manual",
         "prompt": skill.prompt,
         "enabled": skill.enabled,
         "timezone": skill.timezone,
@@ -159,6 +226,48 @@ def _skill_to_job_dict(skill: SkillDefinition) -> dict:
         "lastRun": None,
         "consecutiveErrors": 0,
     }
+
+
+def _workflow_to_dict(wf: WorkflowDefinition) -> dict:
+    job_id = f"workflow:{wf.name}"
+    apjob = _scheduler.get_job(job_id) if _scheduler else None
+    next_run = None
+    if apjob and apjob.next_run_time:
+        next_run = apjob.next_run_time.isoformat()
+    return {
+        "id": wf.name,
+        "name": wf.name,
+        "jobs": wf.jobs,
+        "schedule": wf.cron or "manual",
+        "enabled": wf.enabled,
+        "timezone": wf.timezone,
+        "nextRun": next_run,
+    }
+
+
+def _register_workflow(scheduler: AsyncIOScheduler, wf: WorkflowDefinition) -> None:
+    if not wf.cron:
+        return
+    parts = wf.cron.strip().split()
+    if len(parts) != 5:
+        log.error("workflow.invalid_cron name=%s cron=%r", wf.name, wf.cron)
+        return
+    minute, hour, day, month, day_of_week = parts
+    scheduler.add_job(
+        _run_workflow,
+        "cron",
+        args=[wf.model_dump()],
+        minute=minute,
+        hour=hour,
+        day=day,
+        month=month,
+        day_of_week=day_of_week,
+        timezone=wf.timezone,
+        id=f"workflow:{wf.name}",
+        name=f"workflow:{wf.name}",
+        replace_existing=True,
+    )
+    log.info("workflow.registered name=%s cron=%r tz=%s", wf.name, wf.cron, wf.timezone)
 
 
 # --- HTTP management handlers ---
@@ -270,6 +379,117 @@ async def _http_trigger_job(request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "triggered": name})
 
 
+async def _http_list_workflows(request: web.Request) -> web.Response:
+    sd = _skills_dir or get_settings().skills_dir
+    wf_dir = sd / "workflows"
+    wf_dir.mkdir(exist_ok=True)
+    workflows = []
+    for path in sorted(wf_dir.glob("*.yaml")):
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            wf = WorkflowDefinition.model_validate(data)
+            workflows.append(_workflow_to_dict(wf))
+        except Exception as exc:
+            log.warning("workflows.list_skip path=%s error=%s", path.name, exc)
+    return web.json_response({"workflows": workflows})
+
+
+async def _http_create_workflow(request: web.Request) -> web.Response:
+    sd = _skills_dir or get_settings().skills_dir
+    wf_dir = sd / "workflows"
+    wf_dir.mkdir(exist_ok=True)
+    try:
+        data = await request.json()
+        wf = WorkflowDefinition.model_validate(data)
+    except (ValidationError, ValueError) as exc:
+        return web.json_response({"ok": False, "error": str(exc)}, status=400)
+
+    path = wf_dir / f"{wf.name}.yaml"
+    if path.exists():
+        return web.json_response({"ok": False, "error": "workflow already exists"}, status=409)
+
+    path.write_text(
+        yaml.dump(wf.model_dump(), allow_unicode=True, default_flow_style=False),
+        encoding="utf-8",
+    )
+    log.info("workflow.created name=%s", wf.name)
+
+    if wf.enabled and wf.cron and _scheduler:
+        _register_workflow(_scheduler, wf)
+
+    return web.json_response({"ok": True, "workflow": _workflow_to_dict(wf)}, status=201)
+
+
+async def _http_delete_workflow(request: web.Request) -> web.Response:
+    sd = _skills_dir or get_settings().skills_dir
+    name = request.match_info["name"]
+    path = (sd / "workflows") / f"{name}.yaml"
+
+    if not path.exists():
+        return web.json_response({"ok": False, "error": "not found"}, status=404)
+
+    path.unlink()
+    log.info("workflow.deleted name=%s", name)
+
+    if _scheduler and _scheduler.get_job(f"workflow:{name}"):
+        _scheduler.remove_job(f"workflow:{name}")
+
+    return web.json_response({"ok": True})
+
+
+async def _http_patch_workflow(request: web.Request) -> web.Response:
+    sd = _skills_dir or get_settings().skills_dir
+    name = request.match_info["name"]
+    path = (sd / "workflows") / f"{name}.yaml"
+
+    if not path.exists():
+        return web.json_response({"ok": False, "error": "not found"}, status=404)
+
+    try:
+        patch = await request.json()
+        existing = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        valid_fields = set(WorkflowDefinition.model_fields)
+        existing.update({k: v for k, v in patch.items() if k in valid_fields})
+        wf = WorkflowDefinition.model_validate(existing)
+    except (ValidationError, ValueError) as exc:
+        return web.json_response({"ok": False, "error": str(exc)}, status=400)
+
+    path.write_text(
+        yaml.dump(wf.model_dump(), allow_unicode=True, default_flow_style=False),
+        encoding="utf-8",
+    )
+    log.info("workflow.patched name=%s enabled=%s", wf.name, wf.enabled)
+
+    if _scheduler:
+        job_id = f"workflow:{wf.name}"
+        if wf.enabled and wf.cron:
+            _register_workflow(_scheduler, wf)
+        elif _scheduler.get_job(job_id):
+            _scheduler.remove_job(job_id)
+            log.info("workflow.disabled name=%s", wf.name)
+
+    return web.json_response({"ok": True, "workflow": _workflow_to_dict(wf)})
+
+
+async def _http_trigger_workflow(request: web.Request) -> web.Response:
+    sd = _skills_dir or get_settings().skills_dir
+    name = request.match_info["name"]
+    path = (sd / "workflows") / f"{name}.yaml"
+
+    if not path.exists():
+        return web.json_response({"ok": False, "error": "not found"}, status=404)
+
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        wf = WorkflowDefinition.model_validate(data)
+    except (yaml.YAMLError, ValidationError) as exc:
+        return web.json_response({"ok": False, "error": str(exc)}, status=400)
+
+    asyncio.create_task(_run_workflow(wf.model_dump()))
+    log.info("workflow.manual_trigger name=%s", name)
+    return web.json_response({"ok": True, "triggered": name})
+
+
 async def _start_http_server(port: int) -> None:
     app = web.Application()
     app.router.add_get("/jobs", _http_list_jobs)
@@ -277,6 +497,11 @@ async def _start_http_server(port: int) -> None:
     app.router.add_delete("/jobs/{name}", _http_delete_job)
     app.router.add_patch("/jobs/{name}", _http_patch_job)
     app.router.add_post("/jobs/{name}/run", _http_trigger_job)
+    app.router.add_get("/workflows", _http_list_workflows)
+    app.router.add_post("/workflows", _http_create_workflow)
+    app.router.add_delete("/workflows/{name}", _http_delete_workflow)
+    app.router.add_patch("/workflows/{name}", _http_patch_workflow)
+    app.router.add_post("/workflows/{name}/run", _http_trigger_workflow)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
@@ -314,6 +539,18 @@ async def main() -> None:
     _scheduler = AsyncIOScheduler()
     for skill in skills:
         _register_skill(_scheduler, skill)
+
+    wf_dir = settings.skills_dir / "workflows"
+    wf_dir.mkdir(exist_ok=True)
+    for wf_path in sorted(wf_dir.glob("*.yaml")):
+        try:
+            data = yaml.safe_load(wf_path.read_text(encoding="utf-8")) or {}
+            wf = WorkflowDefinition.model_validate(data)
+            if wf.enabled and wf.cron:
+                _register_workflow(_scheduler, wf)
+                log.info("workflow.loaded name=%s cron=%s", wf.name, wf.cron)
+        except Exception as exc:
+            log.error("workflow.load_error path=%s error=%s", wf_path.name, exc)
 
     _scheduler.start()
     log.info("scheduler.running")
