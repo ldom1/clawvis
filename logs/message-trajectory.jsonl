@@ -89,3 +89,73 @@
 {"ts": "2026-04-28T06:56:23.833698Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "7c853395780840beaef758cc1315f74b", "name": "knowledge-consolidator-collect", "level": "INFO"}
 {"ts": "2026-04-28T06:56:35.130522Z", "component": "agent.router", "event": "chat.received", "trace_id": "956fb719affd4b5283b561fc4b338dcd", "message_chars": 21, "history_len": 0, "level": "INFO"}
 {"ts": "2026-04-28T06:56:44.028724Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "f5eff203bd8d429980a3623982fb10d3", "response_chars": 6, "level": "INFO"}
+{"ts": "2026-04-28T07:22:41.812135Z", "component": "scheduler.job", "event": "job.invalid_payload", "trace_id": "5c6abe594c034729a780c3af564d1775", "payload": {"name": "daily"}, "error": "1 validation error for RunSkillInput\nprompt\n  Field required [type=missing, input_value={'name': 'daily'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing", "level": "ERROR"}
+{"ts": "2026-04-28T07:22:41.823281Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "ff71d674a9454a9797e17b550c6c2e19", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:22:41.823841Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "ff71d674a9454a9797e17b550c6c2e19", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:22:41.824565Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "ff71d674a9454a9797e17b550c6c2e19", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-04-28T07:22:41.824919Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "ff71d674a9454a9797e17b550c6c2e19", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:22:41.825249Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "ff71d674a9454a9797e17b550c6c2e19", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:22:55.728165Z", "component": "scheduler.job", "event": "job.invalid_payload", "trace_id": "f653007534b9418f8935780d268333c8", "payload": {"name": "daily"}, "error": "1 validation error for RunSkillInput\nprompt\n  Field required [type=missing, input_value={'name': 'daily'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing", "level": "ERROR"}
+{"ts": "2026-04-28T07:22:55.761334Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "21d1909dbf504b589ecb354b1b3bc451", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:22:55.762675Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "21d1909dbf504b589ecb354b1b3bc451", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:22:55.765397Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "21d1909dbf504b589ecb354b1b3bc451", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-04-28T07:22:55.766455Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "21d1909dbf504b589ecb354b1b3bc451", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:22:55.773181Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "21d1909dbf504b589ecb354b1b3bc451", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:23:17.963382Z", "component": "scheduler.job", "event": "job.invalid_payload", "trace_id": "5bb4ab6ae6244a5c8f3be1655aa7fc72", "payload": {"name": "daily"}, "error": "1 validation error for RunSkillInput\nprompt\n  Field required [type=missing, input_value={'name': 'daily'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing", "level": "ERROR"}
+{"ts": "2026-04-28T07:23:17.982935Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "847c88c9bacc45c5802cab9e15104524", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:23:17.983822Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "847c88c9bacc45c5802cab9e15104524", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:23:17.985043Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "847c88c9bacc45c5802cab9e15104524", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-04-28T07:23:17.986992Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "847c88c9bacc45c5802cab9e15104524", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:23:17.991299Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "847c88c9bacc45c5802cab9e15104524", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:23:17.997755Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "51bb0d5dd8a6480eb24a5649b0b4fe4c", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:23:17.998423Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "51bb0d5dd8a6480eb24a5649b0b4fe4c", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:23:17.999987Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "51bb0d5dd8a6480eb24a5649b0b4fe4c", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.000622Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "51bb0d5dd8a6480eb24a5649b0b4fe4c", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.001495Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "51bb0d5dd8a6480eb24a5649b0b4fe4c", "name": "daily", "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.015393Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "b832386af91b4837820c12dd91016f44", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.017193Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "b832386af91b4837820c12dd91016f44", "workflow": "my-workflow", "job": "job-a", "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.019161Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "b832386af91b4837820c12dd91016f44", "workflow": "my-workflow", "job": "job-b", "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.020649Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "b832386af91b4837820c12dd91016f44", "workflow": "my-workflow", "job": "job-c", "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.021369Z", "component": "scheduler.workflow", "event": "workflow.complete", "trace_id": "b832386af91b4837820c12dd91016f44", "name": "my-workflow", "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.032660Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "5d0e2bdc895240128dbaabd5028cc856", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.034122Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "5d0e2bdc895240128dbaabd5028cc856", "workflow": "my-workflow", "job": "job-a", "level": "INFO"}
+{"ts": "2026-04-28T07:23:18.035593Z", "component": "scheduler.workflow", "event": "workflow.stopped", "trace_id": "5d0e2bdc895240128dbaabd5028cc856", "workflow": "my-workflow", "failed_job": "job-b", "level": "ERROR"}
+{"ts": "2026-04-28T17:59:35.260744Z", "component": "scheduler.main", "event": "scheduler.start", "trace_id": "c31e3ec2502c44fc929c2d98ecb71a31", "registered": 3, "skills_dir": "/skills", "level": "INFO"}
+{"ts": "2026-04-28T17:59:35.298401Z", "component": "scheduler.main", "event": "scheduler.running", "trace_id": "1a569b84dbe34d9db127150a78cb38d6", "level": "INFO"}
+{"ts": "2026-04-28T17:59:35.314832Z", "component": "scheduler.api", "event": "scheduler.api.listen", "trace_id": "5051b80324c0468ca24486a15f1e306d", "port": 8095, "level": "INFO"}
+{"ts": "2026-04-28T18:03:40.059451Z", "component": "telegram.bot", "event": "message.received", "trace_id": "082690f75bba4ff98bd91e5ea5b70ac2", "user_id": "5689694685", "text_chars": 74, "level": "INFO"}
+{"ts": "2026-04-28T18:03:40.120931Z", "component": "telegram.bridge", "event": "agent.request.start", "trace_id": "082690f75bba4ff98bd91e5ea5b70ac2", "prompt_chars": 74, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-28T18:03:40.164669Z", "component": "agent.router", "event": "chat.received", "trace_id": "082690f75bba4ff98bd91e5ea5b70ac2", "message_chars": 74, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-28T18:03:40.193008Z", "component": "agent.orchestrate", "event": "orchestrate.start", "trace_id": "082690f75bba4ff98bd91e5ea5b70ac2", "message_len": 74, "level": "INFO"}
+{"ts": "2026-04-28T18:03:41.509994Z", "component": "agent.orchestrate", "event": "kanban.get_projects.ok", "trace_id": "082690f75bba4ff98bd91e5ea5b70ac2", "project_count": 24, "level": "INFO"}
+{"ts": "2026-04-28T18:03:51.896619Z", "component": "kanban.api", "event": "task:create", "trace_id": "ff059ae604b746469d494de60a623a6c", "message": "Created 'Rendez vous, starter'", "id": "task-fc3bcc84", "project": "epidemie-des-mots", "level": "INFO"}
+{"ts": "2026-04-28T18:03:51.921672Z", "component": "agent.orchestrate", "event": "kanban.create_task.ok", "trace_id": "082690f75bba4ff98bd91e5ea5b70ac2", "task_id": "task-fc3bcc84", "project": "epidemie-des-mots", "level": "INFO"}
+{"ts": "2026-04-28T18:03:51.922779Z", "component": "agent.router", "event": "chat.orchestrated.reply", "trace_id": "082690f75bba4ff98bd91e5ea5b70ac2", "response_chars": 77, "level": "INFO"}
+{"ts": "2026-04-28T18:03:51.924599Z", "component": "telegram.bridge", "event": "agent.request.ok", "trace_id": "082690f75bba4ff98bd91e5ea5b70ac2", "status_code": 200, "response_chars": 77, "level": "INFO"}
+{"message": "message.replied chars=%d", "level": "INFO", "ts": "2026-04-28T18:03:52.086152+00:00Z"}
+{"ts": "2026-04-28T18:03:52.085572Z", "component": "telegram.bot", "event": "message.replied", "trace_id": "082690f75bba4ff98bd91e5ea5b70ac2", "user_id": "5689694685", "response_chars": 77, "level": "INFO"}
+{"ts": "2026-04-28T18:04:43.748591Z", "component": "kanban.api", "event": "task:update", "trace_id": "11d23d48c3894a0a8214d633841bd65d", "message": "Updated 'Rendez vous, starter'", "id": "task-fc3bcc84", "fields": ["status"], "level": "INFO"}
+{"message": "message.received from=%s", "level": "INFO", "ts": "2026-04-28T18:05:04.149621+00:00Z"}
+{"ts": "2026-04-28T18:05:04.148053Z", "component": "telegram.bot", "event": "message.received", "trace_id": "278f89904efe435286c1972780432ee4", "user_id": "5689694685", "text_chars": 50, "level": "INFO"}
+{"ts": "2026-04-28T18:05:04.150410Z", "component": "telegram.bridge", "event": "agent.request.start", "trace_id": "278f89904efe435286c1972780432ee4", "prompt_chars": 50, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-28T18:05:04.253579Z", "component": "agent.router", "event": "chat.received", "trace_id": "278f89904efe435286c1972780432ee4", "message_chars": 50, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-28T18:05:14.651821Z", "component": "telegram.bridge", "event": "agent.request.ok", "trace_id": "278f89904efe435286c1972780432ee4", "status_code": 200, "response_chars": 445, "level": "INFO"}
+{"ts": "2026-04-28T18:05:14.620147Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "278f89904efe435286c1972780432ee4", "response_chars": 445, "level": "INFO"}
+{"message": "message.replied chars=%d", "level": "INFO", "ts": "2026-04-28T18:05:14.895556+00:00Z"}
+{"ts": "2026-04-28T18:05:14.895082Z", "component": "telegram.bot", "event": "message.replied", "trace_id": "278f89904efe435286c1972780432ee4", "user_id": "5689694685", "response_chars": 445, "level": "INFO"}
+{"ts": "2026-04-28T18:07:07.077504Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "1660ac12ba67419d8dcee3db37b6eafe", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-28T18:07:07.396002Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "1660ac12ba67419d8dcee3db37b6eafe", "name": "proactive-innovation", "level": "INFO"}
+{"ts": "2026-04-28T18:07:07.457943Z", "component": "agent.router", "event": "chat.received", "trace_id": "84abcb375edc4d318e20cf343f71c69c", "message_chars": 1048, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-28T18:08:24.791546Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "43b9b73d86e5487391d0e11f868a3f48", "response_chars": 2245, "level": "INFO"}
+{"ts": "2026-04-28T18:08:24.809234Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "1660ac12ba67419d8dcee3db37b6eafe", "name": "proactive-innovation", "result_chars": 2245, "level": "INFO"}
+{"ts": "2026-04-28T18:08:24.825740Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "1660ac12ba67419d8dcee3db37b6eafe", "name": "proactive-innovation", "level": "INFO"}
+{"message": "send.ok chars=%d", "level": "INFO", "ts": "2026-04-28T18:08:25.054107+00:00Z"}
+{"ts": "2026-04-28T18:08:25.063879Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "1660ac12ba67419d8dcee3db37b6eafe", "name": "proactive-innovation", "level": "INFO"}
+{"message": "message.received from=%s", "level": "INFO", "ts": "2026-04-28T18:13:15.808692+00:00Z"}
+{"ts": "2026-04-28T18:13:15.805035Z", "component": "telegram.bot", "event": "message.received", "trace_id": "1500fd890779496cb0962db8677d38a1", "user_id": "5689694685", "text_chars": 202, "level": "INFO"}
+{"ts": "2026-04-28T18:13:15.805652Z", "component": "telegram.bridge", "event": "agent.request.start", "trace_id": "1500fd890779496cb0962db8677d38a1", "prompt_chars": 202, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-28T18:13:15.900844Z", "component": "agent.router", "event": "chat.received", "trace_id": "1500fd890779496cb0962db8677d38a1", "message_chars": 202, "history_len": 0, "level": "INFO"}
+{"ts": "2026-04-28T18:13:44.268242Z", "component": "agent.router", "event": "chat.cli.reply", "trace_id": "1500fd890779496cb0962db8677d38a1", "response_chars": 461, "level": "INFO"}
+{"ts": "2026-04-28T18:13:44.272423Z", "component": "telegram.bridge", "event": "agent.request.ok", "trace_id": "1500fd890779496cb0962db8677d38a1", "status_code": 200, "response_chars": 461, "level": "INFO"}
+{"message": "message.replied chars=%d", "level": "INFO", "ts": "2026-04-28T18:13:44.407666+00:00Z"}
+{"ts": "2026-04-28T18:13:44.406665Z", "component": "telegram.bot", "event": "message.replied", "trace_id": "1500fd890779496cb0962db8677d38a1", "user_id": "5689694685", "response_chars": 461, "level": "INFO"}
