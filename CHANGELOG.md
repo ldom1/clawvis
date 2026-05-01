@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Skills — hub-refresh + self-improvement (2026-05-02)
+- **`skills/hub-refresh/SKILL.md`** : enregistrement du skill (description, run, troubleshooting) pour exposition dans l’index agent.
+- **`skills/hub-refresh/scripts/run.sh`** : résolution du dépôt via `CLAWVIS_ROOT` ou `$HOME/lab/clawvis` / `$HOME/Lab/clawvis` ; chemins `hub-core` et `skills/logger/core` relatifs à cette racine ; message si logger absent.
+- **`skills/self-improvement/SKILL.md`** : skill documentaire aligné sur le job cron `services/scheduler/definitions/jobs/self-improvement.yaml` et la séparation avec `knowledge-consolidator`.
+
+### Hub — Schedule view: React Flow workflow graph (2026-05-01)
+- **`hub/src/workflow/`** (nouveau): composants React lecture seule pour visualiser jobs et workflows en graphe — `WorkflowView` (React Flow + dagre), `JobNode` (custom node coloré par statut, dot pulsant pour `running`), `useWorkflowGraph` (transformation `nodeIds + edges → { nodes, edges }`, détection de cycle/duplicates), `WorkflowRunModal` (graphe en exécution, polling `/api/hub/kanban/logs` filtré sur `scheduler.workflow`).
+- **`hub/src/main.js`**: ajout d'un toggle « Liste / Workflow » sur les sections **Jobs** et **Workflows** de `/schedule` ; préférence persistée dans `localStorage` (`hub.schedule.jobsView`, `hub.schedule.workflowsView`). Run d'un workflow ouvre désormais une modal avec graphe animé (jobs courants `running`, edges `success/failed/pending`, jobs restants `skipped` après échec).
+- **`hub/src/style.css`**: thème React Flow aligné sur les variables Hub (`--surface`, `--accent`, `--border`), bordures pulsantes pour `running`, edges `pending` en pointillés, classes `wf-stacked-card` pour la liste de pipelines.
+- **`hub/package.json`**: ajout `dagre` (runtime) et `typescript`, `@types/dagre`, `@types/react`, `@types/react-dom` (devDeps) ; nouveau `hub/tsconfig.json` strict, `hub/src/vite-env.d.ts` pour les imports CSS.
+- Pas de changement backend : la « source de vérité » des statuts d'exécution reste les events `workflow.trigger`, `workflow.job_done`, `workflow.stopped`, `workflow.complete` déjà émis par `services/scheduler/core/scheduler.py`.
+
 ### CI — kanban + Hub format (2026-05-01)
 - **`tests/test_memory_api.py`**: `test_quartz_static_serves_memory_projects_when_no_quartz_build` monkeypatch `kanban_api.core.active_brain_memory_root` (pas seulement `memory_api`) car `_fallback_projects_dir()` vit dans `core` et appelait le vrai `get_hub_settings()` → `PermissionError` sur `hub_settings.json` en CI.
 - **Hub**: `yarn --cwd hub prettier --write src/main.js` pour refaire passer `format:check`.
