@@ -4317,7 +4317,7 @@ async function wireSchedulePage() {
           <td class="cron-td cron-td-muted">${nextRun}</td>
           <td class="cron-td" style="white-space:nowrap">
             <button class="btn btn-compact cron-run-btn" data-name="${name}" type="button" style="font-size:11px">▶ Run</button>
-            <button class="btn btn-compact cron-edit-btn" data-name="${name}" data-schedule="${escapeHtml(j.schedule || "")}" type="button" style="font-size:11px;margin-left:4px" ${isManual ? "disabled title=\"Manual job\"" : ""}>${fr ? "Éditer" : "Edit"}</button>
+            <button class="btn btn-compact cron-edit-btn" data-name="${name}" data-schedule="${escapeHtml(j.schedule || "")}" type="button" style="font-size:11px;margin-left:4px" ${isManual ? 'disabled title="Manual job"' : ""}>${fr ? "Éditer" : "Edit"}</button>
             <button class="btn btn-compact cron-toggle-btn" data-name="${name}" data-enabled="${enabled}" type="button" style="font-size:11px;margin-left:4px">${toggleLabel}</button>
             <button class="btn btn-compact cron-delete-btn" data-name="${name}" type="button" style="font-size:11px;color:#ef4444;border-color:#ef4444;margin-left:4px">${fr ? "Suppr." : "Delete"}</button>
           </td>
@@ -4403,20 +4403,32 @@ async function wireSchedulePage() {
       wrap.querySelectorAll(".cron-edit-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const name = btn.getAttribute("data-name");
-          const currentSchedule = (btn.getAttribute("data-schedule") || "").trim();
-          const nextCron = prompt(fr ? `Nouvelle expression cron pour "${name}"` : `New cron expression for "${name}"`, currentSchedule);
+          const currentSchedule = (
+            btn.getAttribute("data-schedule") || ""
+          ).trim();
+          const nextCron = prompt(
+            fr
+              ? `Nouvelle expression cron pour "${name}"`
+              : `New cron expression for "${name}"`,
+            currentSchedule,
+          );
           if (nextCron == null) return;
           const cron = nextCron.trim();
           if (!cron || cron.toLowerCase() === "manual") {
-            alert(fr ? "Expression cron invalide." : "Invalid cron expression.");
+            alert(
+              fr ? "Expression cron invalide." : "Invalid cron expression.",
+            );
             return;
           }
           btn.disabled = true;
-          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cron }),
-          });
+          const res = await fetch(
+            `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ cron }),
+            },
+          );
           if (res.ok) {
             await loadCronJobs();
           } else {

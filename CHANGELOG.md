@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### CI — kanban + Hub format (2026-05-01)
+- **`tests/test_memory_api.py`**: `test_quartz_static_serves_memory_projects_when_no_quartz_build` monkeypatch `kanban_api.core.active_brain_memory_root` (pas seulement `memory_api`) car `_fallback_projects_dir()` vit dans `core` et appelait le vrai `get_hub_settings()` → `PermissionError` sur `hub_settings.json` en CI.
+- **Hub**: `yarn --cwd hub prettier --write src/main.js` pour refaire passer `format:check`.
+
 ### Hub — Prettier (2026-05-01)
 - `yarn --cwd hub prettier --write src/main.js src/style.css` — aligne le gate `format:check` CI.
 

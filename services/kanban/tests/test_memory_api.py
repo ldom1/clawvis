@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from kanban_api import core as kanban_core
 from kanban_api import memory_api
 
 
@@ -65,12 +66,8 @@ def test_quartz_static_serves_memory_projects_when_no_quartz_build(
         encoding="utf-8",
     )
     monkeypatch.setattr(memory_api, "_CLAWVIS_ROOT", tmp_path)
-    monkeypatch.setattr(memory_api, "active_brain_memory_root", lambda _data=None: mem)
-    monkeypatch.setattr(
-        memory_api,
-        "get_hub_settings",
-        lambda: {"linked_instances": [], "projects_root": "", "instances_external_root": ""},
-    )
+    # _resolve_quartz_static_file calls core._fallback_projects_dir() → core.active_brain_memory_root
+    monkeypatch.setattr(kanban_core, "active_brain_memory_root", lambda _data=None: mem)
     r = client.get("/quartz-static/index.html")
     assert r.status_code == 200
     assert "ok" in r.text
