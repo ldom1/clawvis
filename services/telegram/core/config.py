@@ -16,6 +16,10 @@ class TelegramSettings(BaseModel):
     def stub_mode(self) -> bool:
         return not self.bot_token
 
+    @property
+    def has_chat_id(self) -> bool:
+        return self.chat_id != 0
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> TelegramSettings:

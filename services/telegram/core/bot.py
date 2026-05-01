@@ -131,6 +131,8 @@ async def _http_send(request: web.Request) -> web.Response:
     if settings.stub_mode:
         log.info("send.stub chars=%d (set TELEGRAM_BOT_TOKEN for real delivery)", len(text))
         return web.json_response({"ok": True, "stub": True})
+    if not settings.has_chat_id:
+        return web.json_response({"ok": False, "error": "missing chat_id"}, status=412)
     if _tg_app is None:
         return web.json_response({"ok": False, "error": "bot not ready"}, status=503)
     try:
@@ -142,9 +144,42 @@ async def _http_send(request: web.Request) -> web.Response:
     return web.json_response({"ok": True})
 
 
+async def _http_health(_: web.Request) -> web.Response:
+    settings = get_settings()
+    return web.json_response(
+        {
+            "ok": True,
+            "stub_mode": settings.stub_mode,
+            "token_configured": not settings.stub_mode,
+            "chat_id": settings.chat_id,
+            "chat_id_configured": settings.has_chat_id,
+        }
+    )
+
+
+async def _http_test(_: web.Request) -> web.Response:
+    settings = get_settings()
+    if settings.stub_mode:
+        log.info("test.stub (set TELEGRAM_BOT_TOKEN for real delivery)")
+        return web.json_response({"ok": True, "stub": True})
+    if not settings.has_chat_id:
+        return web.json_response({"ok": False, "error": "missing chat_id"}, status=412)
+    if _tg_app is None:
+        return web.json_response({"ok": False, "error": "bot not ready"}, status=503)
+    try:
+        await _tg_app.bot.send_message(chat_id=settings.chat_id, text="Clawvis Telegram test message.")
+    except Exception:
+        log.exception("test.telegram_error chat_id=%s", settings.chat_id)
+        return web.json_response({"ok": False, "error": "internal error"}, status=500)
+    log.info("test.ok")
+    return web.json_response({"ok": True, "stub": False})
+
+
 async def _start_http_server() -> None:
     settings = get_settings()
     http_app = web.Application()
+    http_app.router.add_get("/health", _http_health)
+    http_app.router.add_post("/test", _http_test)
     http_app.router.add_post("/send", _http_send)
     runner = web.AppRunner(http_app)
     await runner.setup()

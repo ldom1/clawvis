@@ -1957,6 +1957,18 @@ def _quartz_public_dir() -> Path | None:
     return None
 
 
+def _fallback_projects_dir() -> Path:
+    primary = active_brain_memory_root() / "projects"
+    if any(primary.glob("*.html")):
+        return primary
+    bp = os.environ.get("BRAIN_PATH", "").strip()
+    if bp:
+        external = Path(bp).expanduser() / "projects"
+        if external.is_dir() and any(external.glob("*.html")):
+            return external
+    return primary
+
+
 def list_memory_quartz_pages() -> dict:
     quartz_dir = _quartz_public_dir()
     if quartz_dir is not None:
@@ -1968,7 +1980,7 @@ def list_memory_quartz_pages() -> dict:
         )
         return {"files": files, "source": "quartz"}
     # Fallback: Python-generated HTML alongside .md files
-    projects_dir = active_brain_memory_root() / "projects"
+    projects_dir = _fallback_projects_dir()
     projects_dir.mkdir(parents=True, exist_ok=True)
     files = sorted(p.name for p in projects_dir.glob("*.html"))
     return {"files": files, "source": "fallback"}
@@ -1982,7 +1994,7 @@ def read_memory_quartz_page(filename: str) -> dict:
     if quartz_dir is not None:
         path = quartz_dir / safe
     else:
-        path = active_brain_memory_root() / "projects" / safe
+        path = _fallback_projects_dir() / safe
     if not path.exists():
         raise KeyError("Quartz page not found")
     return {

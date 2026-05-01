@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import json
 from pathlib import Path
 
 import httpx
@@ -32,6 +33,18 @@ log = logging.getLogger("scheduler")
 # Module-level state set in main()
 _scheduler: AsyncIOScheduler | None = None
 _skills_dir: Path | None = None
+
+
+def _jobs_dir(base_dir: Path) -> Path:
+    jobs_dir = base_dir / "jobs"
+    jobs_dir.mkdir(exist_ok=True)
+    return jobs_dir
+
+
+def _workflows_dir(base_dir: Path) -> Path:
+    workflows_dir = base_dir / "workflows"
+    workflows_dir.mkdir(exist_ok=True)
+    return workflows_dir
 
 
 async def _run_skill(skill_data: dict) -> str:
@@ -87,14 +100,24 @@ async def _run_skill(skill_data: dict) -> str:
         async with httpx.AsyncClient(timeout=15) as client:
             trace_event("scheduler.job", "telegram.notify.start", trace_id=trace_id, name=skill.name)
             notify = f"[{skill.name}]\n{format_job_telegram_body(result)}"
-            await client.post(
+            notify_resp = await client.post(
                 f"{settings.telegram_url}/send",
                 json=TelegramSendRequest(text=notify).model_dump(),
             )
+            notify_resp.raise_for_status()
+            payload = notify_resp.json()
+            if not payload.get("ok", False):
+                raise RuntimeError(f"telegram send rejected: {payload}")
         log.info("job.notified name=%s", skill.name)
         trace_event("scheduler.job", "telegram.notify.ok", trace_id=trace_id, name=skill.name)
     except Exception as exc:
         log.error("job.notify_error name=%s error=%s", skill.name, exc)
+        extra = {}
+        if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
+            try:
+                extra["telegram_response"] = exc.response.json()
+            except json.JSONDecodeError:
+                extra["telegram_response"] = exc.response.text
         trace_event(
             "scheduler.job",
             "telegram.notify.error",
@@ -102,6 +125,7 @@ async def _run_skill(skill_data: dict) -> str:
             level="ERROR",
             name=skill.name,
             error=str(exc),
+            **extra,
         )
 
     return result
@@ -127,8 +151,9 @@ async def _run_workflow(workflow_data: dict) -> None:
     )
 
     sd = _skills_dir or settings.skills_dir
+    jobs_dir = _jobs_dir(sd)
     for job_name in workflow.jobs:
-        job_path = sd / f"{job_name}.yaml"
+        job_path = jobs_dir / f"{job_name}.yaml"
         if not job_path.exists():
             log.error("workflow.job_not_found workflow=%s job=%s", workflow.name, job_name)
             trace_event(
@@ -170,7 +195,7 @@ async def _run_workflow(workflow_data: dict) -> None:
 
 def _load_skills(skills_dir: Path) -> list[SkillDefinition]:
     skills: list[SkillDefinition] = []
-    for path in sorted(skills_dir.glob("*.yaml")):
+    for path in sorted(_jobs_dir(skills_dir).glob("*.yaml")):
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
             skill = SkillDefinition.model_validate(data)
@@ -276,26 +301,28 @@ def _register_workflow(scheduler: AsyncIOScheduler, wf: WorkflowDefinition) -> N
 
 async def _http_list_jobs(request: web.Request) -> web.Response:
     sd = _skills_dir or get_settings().skills_dir
+    jobs_dir = _jobs_dir(sd)
     jobs = []
-    for path in sorted(sd.glob("*.yaml")):
+    for path in sorted(jobs_dir.glob("*.yaml")):
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
             skill = SkillDefinition.model_validate(data)
             jobs.append(_skill_to_job_dict(skill))
         except Exception as exc:
             log.warning("jobs.list_skip path=%s error=%s", path.name, exc)
-    return web.json_response({"jobs": jobs, "path": str(sd)})
+    return web.json_response({"jobs": jobs, "path": str(jobs_dir)})
 
 
 async def _http_create_job(request: web.Request) -> web.Response:
     sd = _skills_dir or get_settings().skills_dir
+    jobs_dir = _jobs_dir(sd)
     try:
         data = await request.json()
         skill = SkillDefinition.model_validate(data)
     except (ValidationError, ValueError) as exc:
         return web.json_response({"ok": False, "error": str(exc)}, status=400)
 
-    path = sd / f"{skill.name}.yaml"
+    path = jobs_dir / f"{skill.name}.yaml"
     if path.exists():
         return web.json_response({"ok": False, "error": "job already exists"}, status=409)
 
@@ -313,8 +340,9 @@ async def _http_create_job(request: web.Request) -> web.Response:
 
 async def _http_delete_job(request: web.Request) -> web.Response:
     sd = _skills_dir or get_settings().skills_dir
+    jobs_dir = _jobs_dir(sd)
     name = request.match_info["name"]
-    path = sd / f"{name}.yaml"
+    path = jobs_dir / f"{name}.yaml"
 
     if not path.exists():
         return web.json_response({"ok": False, "error": "not found"}, status=404)
@@ -330,8 +358,9 @@ async def _http_delete_job(request: web.Request) -> web.Response:
 
 async def _http_patch_job(request: web.Request) -> web.Response:
     sd = _skills_dir or get_settings().skills_dir
+    jobs_dir = _jobs_dir(sd)
     name = request.match_info["name"]
-    path = sd / f"{name}.yaml"
+    path = jobs_dir / f"{name}.yaml"
 
     if not path.exists():
         return web.json_response({"ok": False, "error": "not found"}, status=404)
@@ -364,8 +393,9 @@ async def _http_patch_job(request: web.Request) -> web.Response:
 async def _http_trigger_job(request: web.Request) -> web.Response:
     """Fire a job immediately, outside its cron schedule."""
     sd = _skills_dir or get_settings().skills_dir
+    jobs_dir = _jobs_dir(sd)
     name = request.match_info["name"]
-    path = sd / f"{name}.yaml"
+    path = jobs_dir / f"{name}.yaml"
 
     if not path.exists():
         return web.json_response({"ok": False, "error": "not found"}, status=404)
@@ -383,8 +413,7 @@ async def _http_trigger_job(request: web.Request) -> web.Response:
 
 async def _http_list_workflows(request: web.Request) -> web.Response:
     sd = _skills_dir or get_settings().skills_dir
-    wf_dir = sd / "workflows"
-    wf_dir.mkdir(exist_ok=True)
+    wf_dir = _workflows_dir(sd)
     workflows = []
     for path in sorted(wf_dir.glob("*.yaml")):
         try:
@@ -398,8 +427,7 @@ async def _http_list_workflows(request: web.Request) -> web.Response:
 
 async def _http_create_workflow(request: web.Request) -> web.Response:
     sd = _skills_dir or get_settings().skills_dir
-    wf_dir = sd / "workflows"
-    wf_dir.mkdir(exist_ok=True)
+    wf_dir = _workflows_dir(sd)
     try:
         data = await request.json()
         wf = WorkflowDefinition.model_validate(data)
@@ -425,7 +453,7 @@ async def _http_create_workflow(request: web.Request) -> web.Response:
 async def _http_delete_workflow(request: web.Request) -> web.Response:
     sd = _skills_dir or get_settings().skills_dir
     name = request.match_info["name"]
-    path = (sd / "workflows") / f"{name}.yaml"
+    path = _workflows_dir(sd) / f"{name}.yaml"
 
     if not path.exists():
         return web.json_response({"ok": False, "error": "not found"}, status=404)
@@ -442,7 +470,7 @@ async def _http_delete_workflow(request: web.Request) -> web.Response:
 async def _http_patch_workflow(request: web.Request) -> web.Response:
     sd = _skills_dir or get_settings().skills_dir
     name = request.match_info["name"]
-    path = (sd / "workflows") / f"{name}.yaml"
+    path = _workflows_dir(sd) / f"{name}.yaml"
 
     if not path.exists():
         return web.json_response({"ok": False, "error": "not found"}, status=404)
@@ -476,7 +504,7 @@ async def _http_patch_workflow(request: web.Request) -> web.Response:
 async def _http_trigger_workflow(request: web.Request) -> web.Response:
     sd = _skills_dir or get_settings().skills_dir
     name = request.match_info["name"]
-    path = (sd / "workflows") / f"{name}.yaml"
+    path = _workflows_dir(sd) / f"{name}.yaml"
 
     if not path.exists():
         return web.json_response({"ok": False, "error": "not found"}, status=404)
@@ -542,8 +570,7 @@ async def main() -> None:
     for skill in skills:
         _register_skill(_scheduler, skill)
 
-    wf_dir = settings.skills_dir / "workflows"
-    wf_dir.mkdir(exist_ok=True)
+    wf_dir = _workflows_dir(settings.skills_dir)
     for wf_path in sorted(wf_dir.glob("*.yaml")):
         try:
             data = yaml.safe_load(wf_path.read_text(encoding="utf-8")) or {}

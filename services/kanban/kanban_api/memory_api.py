@@ -24,6 +24,7 @@ from kanban_api.core import (  # reuse implementation; separate service boundary
     link_instance,
     unlink_instance,
     read_memory_quartz_page,
+    _fallback_projects_dir,
 )
 from kanban_api.models import HubSettingsUpdate, InstanceLinkRequest, MemoryFileSave
 
@@ -122,7 +123,7 @@ def _resolve_quartz_static_file(safe: Path) -> tuple[Path | None, Path | None]:
         qroot = quartz_public.resolve()
         if str(t).startswith(str(qroot)) and t.is_file():
             return t, qroot
-    projects_root = active_brain_memory_root(get_hub_settings()) / "projects"
+    projects_root = _fallback_projects_dir()
     if not projects_root.is_dir():
         return None, None
     t2 = (projects_root / safe).resolve()

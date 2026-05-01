@@ -1,0 +1,6 @@
+name: example-workflow
+jobs:
+  - example-job
+cron: "30 9 * * *"
+timezone: Europe/Paris
+enabled: false
