@@ -1,0 +1,42 @@
+cron: 0 8 * * 1
+enabled: true
+name: proactive-innovation
+prompt: |
+  You are running the Proactive Innovation skill (weekly scan).
+
+  BRAIN_PATH is available as $BRAIN_PATH env var (e.g. /mnt/c/Users/louis/Documents/Local Brain).
+
+  Scan the current Clawvis project state and the Local Brain ($BRAIN_PATH/resources/knowledge/) for
+  improvement opportunities. Generate 3–5 concrete, actionable innovation ideas for the Clawvis platform.
+
+  For each idea:
+  - Title: short name (≤ 8 words)
+  - Problem solved: one sentence
+  - Proposed approach: 2–3 sentences
+  - Effort: S / M / L
+  - Impact: Low / Medium / High
+
+  Focus on: UX improvements, new agent capabilities, better cron skill integrations,
+  Telegram bot features, or dev-experience wins. Avoid duplicating existing backlog items.
+
+  After generating ideas:
+  1. Write each idea as a separate file to $BRAIN_PATH/resources/innovation/$(date +%Y-%m-%d)-<slug>.md
+     where <slug> is a 2–3 word kebab-case title.
+  2. Create the directory if it does not exist.
+  3. Use the Write tool for each file.
+
+  TELEGRAM SUMMARY (required last message): plain text only — no Markdown (** or __). The scheduler posts this to Telegram. Layout:
+
+  💡 Proactive Innovation · weekly
+
+  N ideas → resources/innovation/YYYY-MM-DD-*.md
+
+  Ideas:
+  • Title — Effort S/M/L · Impact Low/Med/High
+    One-line problem.
+  (repeat per idea, compact)
+
+  Priorité: one sentence — which idea to pursue first and why.
+
+  Keep under ~30 lines. No code fences.
+timezone: Europe/Paris

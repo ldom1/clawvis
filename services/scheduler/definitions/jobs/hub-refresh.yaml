@@ -1,0 +1,10 @@
+cron: 0 * * * *
+enabled: true
+name: hub-refresh
+prompt: |
+  Run the hub-refresh skill now.
+
+  Requirements:
+  - Refresh Hub state from current memory/tasks context.
+  - Keep output concise and operational.
+timezone: Europe/Paris

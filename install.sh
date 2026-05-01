@@ -543,6 +543,10 @@ upsert_env "KANBAN_API_PORT" "${KANBAN_API_PORT}"
 upsert_env "HUB_MEMORY_API_PORT" "${HUB_MEMORY_API_PORT}"
 upsert_env "HOST_UID" "$(id -u)"
 upsert_env "HOST_GID" "$(id -g)"
+# Local/dev and non-compose launches: default Claude CLI path for provider=cli.
+if [ -x "${HOME}/.local/bin/claude" ]; then
+  upsert_env "CLI_BIN" "${HOME}/.local/bin/claude"
+fi
 
 # Docker project name controls the container name prefix: clawvis-{instance}-{service}
 # (Fix 4: container_name in docker-compose.yml uses INSTANCE_NAME; COMPOSE_PROJECT_NAME
@@ -595,7 +599,7 @@ if [ "${NO_START}" -eq 1 ]; then
   step "Instance : ${INSTANCE_PATH}"
   step ".env     : ${ENV_FILE}"
   printf "\n"
-  step "To start : docker compose up -d hub kanban-api hub-memory-api agent-service"
+  step "To start : docker compose up -d hub kanban-api hub-memory-api agent-service telegram scheduler"
   step "       or : clawvis start"
   printf "\n"
   exit 0
@@ -612,7 +616,7 @@ elif [ "${RUN_MODE}" = "docker" ]; then
     exit 1
   fi
   # hub depends_on kanban-api + hub-memory-api + agent-service; list all explicitly.
-  run_quiet "Starting Docker services" docker compose up -d hub kanban-api hub-memory-api agent-service
+  run_quiet "Starting Docker services" docker compose up -d hub kanban-api hub-memory-api agent-service telegram scheduler
 
   # Wait for hub container to become healthy (up to 60s)
   info "Waiting for services"

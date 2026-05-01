@@ -121,6 +121,8 @@ clawvis restart     # stop + start
 
 When `clawvis` is installed globally (`~/.local/bin/clawvis`) and you run commands inside another Clawvis checkout, `start`/`restart` now use the current checkout so local updates are applied.
 
+**Cron + Telegram:** `docker compose up` (and `clawvis restart` in Docker mode) start `telegram` and `scheduler` with the rest of the stack. Without `TELEGRAM_BOT_TOKEN`, the telegram service runs in **stub mode** (HTTP `/send` only — logs deliveries, no Telegram API). Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env` for a real bot. `TELEGRAM_CHAT_ID` must be the target chat/channel id (not the bot id), otherwise `/test` and scheduler notifications are rejected. Cron definitions: `services/scheduler/definitions/jobs/*.yaml` and workflows in `services/scheduler/definitions/workflows/*.yaml`.
+
 ---
 
 ## AI Runtime
@@ -199,10 +201,13 @@ It works out of the box — no Quartz installation needed. A lightweight Python 
 |-----------|---------|
 | `hub/` | Vite SPA frontend + nginx Docker image |
 | `hub-core/` | Python lib — identity, RBAC, AI adapters |
-| `kanban/` | Task board FastAPI — tasks, projects, memory sync |
+| `services/kanban/` | Task board FastAPI — tasks, projects, memory sync |
+| `services/agent/` | AI agent service — streaming chat, runtime config |
+| `services/scheduler/` | Cron job runner |
+| `services/telegram/` | Telegram bot |
 | `skills/` | Pre-configured agent skills (kanban, logger, brain…) |
+| `skills/project-init/templates/` | Starter templates for new projects |
 | `instances/` | Your instance data — never overwritten by updates |
-| `project-templates/` | Starter templates for new projects |
 
 ---
 

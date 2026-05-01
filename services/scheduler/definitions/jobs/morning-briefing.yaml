@@ -1,0 +1,11 @@
+cron: 0 9 * * *
+enabled: true
+name: morning-briefing
+prompt: |
+  Run the morning-briefing skill now.
+
+  Requirements:
+  - Use only real, current data (no hallucinated headlines or events).
+  - Send the final briefing to Telegram.
+  - If a source is unavailable, skip it and continue.
+timezone: Europe/Paris

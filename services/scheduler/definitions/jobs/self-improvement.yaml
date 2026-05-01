@@ -1,0 +1,11 @@
+cron: 0 0 * * *
+enabled: true
+name: self-improvement
+prompt: |
+  Run the self-improvement skill now.
+
+  Requirements:
+  - Focus on concrete learnings from recent execution.
+  - Produce actionable improvements.
+  - Keep conclusions short and specific.
+timezone: Europe/Paris

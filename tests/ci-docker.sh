@@ -106,7 +106,7 @@ fi
 
 info "Starting services (docker compose up -d${BUILD_FLAG:+ --build})"
 # shellcheck disable=SC2086
-docker compose up -d ${BUILD_FLAG} hub kanban-api hub-memory-api agent-service
+docker compose up -d ${BUILD_FLAG} hub kanban-api hub-memory-api agent-service telegram scheduler
 
 trap teardown EXIT
 

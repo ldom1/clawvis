@@ -1,16 +1,16 @@
 """DomBot structured log bridge for hub-core.
 
-Writes to ~/.openclaw/logs/dombot.log (text) and dombot.jsonl (JSON),
-using the same format as the dombot-logger skill so all agents share one log.
+Writes to $DOMBOT_LOG_DIR/dombot.log (text) and dombot.jsonl (JSON),
+defaulting to <repo-root>/logs/. Override via DOMBOT_LOG_DIR env var.
 
 Usage:
     from hub_core.dombot_log import log, DomBotLog
 
     log("INFO", "hub-core:status", "system:refresh", "Hub state refreshed")
 
-    with DomBotLog("hub-core:cron", model="claude-haiku-4-5") as dbl:
-        dbl.info("task:start", "Starting provider fetch")
-        dbl.info("task:complete", "Done", credits_available=42.5)
+    dbl = DomBotLog("hub-core:cron", model="claude-haiku-4-5")
+    dbl.info("task:start", "Starting provider fetch")
+    dbl.info("task:complete", "Done", credits_available=42.5)
 """
 
 from __future__ import annotations
@@ -22,7 +22,20 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-LOG_DIR = Path.home() / ".openclaw" / "logs"
+def _repo_root() -> Path:
+    # hub-core/hub_core/dombot_log.py -> <repo>
+    return Path(__file__).resolve().parents[2]
+
+
+def _log_dir() -> Path:
+    raw = os.environ.get("DOMBOT_LOG_DIR", "").strip()
+    if raw:
+        return Path(raw).expanduser()
+    # Centralized default: project-local logs directory.
+    return _repo_root() / "logs"
+
+
+LOG_DIR = _log_dir()
 LOG_TEXT = LOG_DIR / "dombot.log"
 LOG_JSONL = LOG_DIR / "dombot.jsonl"
 DISCORD_SEND_SCRIPT = (

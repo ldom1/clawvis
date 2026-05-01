@@ -135,3 +135,45 @@ Résolution via `hub_core.brain_memory.active_brain_memory_root` :
 **Démarrage par profil (détail)** → `docs/ARCHITECTURE.md` § *Modes de démarrage*.
 
 ---
+
+## Agent — provider `cli` et skills (Claude Code)
+
+### Problème
+
+Quand `PRIMARY_AI_PROVIDER=cli`, l'agent-service spawne `claude --print --dangerously-skip-permissions` en subprocess. Sans CWD explicite, Claude ne trouve pas `.claude/settings.json` du projet → le hook SessionStart ne s'exécute pas → les skills clawvis ne sont pas injectés dans le contexte.
+
+Les skills ne sont **pas** globaux (`~/.claude`) — ils restent dans `skills/` du repo.
+
+### Solution
+
+Trois éléments qui travaillent ensemble :
+
+| Élément | Rôle |
+|---------|------|
+| `docker-compose.yml` volumes `.claude` + `skills` | Monte le projet à `/clawvis` dans le container |
+| `CLI_CWD=/clawvis` (env agent-service) | Indique à `CliRunner` le CWD du subprocess |
+| `CliRunner.cwd` (`cli_runner.py`) | Passe `cwd=` à `asyncio.create_subprocess_exec` |
+
+### Flux
+
+```
+agent-service spawns: claude --print --dangerously-skip-permissions
+  └─ cwd=/clawvis
+     └─ Claude finds /clawvis/.claude/settings.json
+        └─ SessionStart hook: .claude/hooks/session-start.sh
+           └─ Scans /clawvis/skills/*/SKILL.md
+              └─ Injects <clawvis-skills> block into Claude context
+```
+
+### Variables d'environnement (agent-service)
+
+| Var | Valeur | Description |
+|-----|--------|-------------|
+| `CLI_BIN` | `/home/<user>/.local/bin/claude` | Chemin du binaire claude |
+| `CLI_CWD` | `/clawvis` | CWD du subprocess claude |
+| `CLI_TOOL` | `claude` (défaut) | Outil CLI (`claude`/`opencode`/`codex`) |
+| `CLAWVIS_ROOT` | `/clawvis` | Racine repo dans le container |
+
+### Ajouter un skill
+
+Créer `skills/<nom>/SKILL.md` avec frontmatter `name:`. Le hook SessionStart le détecte automatiquement — aucune config à toucher.

@@ -57,27 +57,26 @@
       <div id="step-provider">
         <h1 class="setup-title">Setup — AI Runtime</h1>
         <p class="setup-subtitle">
-          Clawvis can use OpenClaw or Claude Code as your AI runtime.
-          Choose one to continue.
+          Choose a primary runtime: CLI (Claude Code / opencode / Codex) or an OpenRouter-compatible API.
         </p>
 
         <div class="provider-buttons">
           <label class="provider-option">
-            <input type="radio" name="provider" value="openclaw" id="provider-openclaw">
-            <label for="provider-openclaw" style="flex: 1; cursor: pointer;">
-              <strong>OpenClaw</strong>
+            <input type="radio" name="provider" value="cli" id="provider-cli" checked>
+            <label for="provider-cli" style="flex: 1; cursor: pointer;">
+              <strong>CLI tool</strong>
               <p style="font-size: 0.9rem; color: var(--color-text-secondary); margin: 0;">
-                Self-hosted agent runtime — best for advanced customization
+                Run Claude Code CLI, opencode, or Codex as a subprocess
               </p>
             </label>
           </label>
 
           <label class="provider-option">
-            <input type="radio" name="provider" value="claude" id="provider-claude" checked>
-            <label for="provider-claude" style="flex: 1; cursor: pointer;">
-              <strong>Claude Code</strong>
+            <input type="radio" name="provider" value="openrouter" id="provider-openrouter">
+            <label for="provider-openrouter" style="flex: 1; cursor: pointer;">
+              <strong>OpenRouter / API</strong>
               <p style="font-size: 0.9rem; color: var(--color-text-secondary); margin: 0;">
-                Anthropic's Claude via ~/.claude/claude.json — register Clawvis skills as MCP tools
+                Any OpenAI-compatible API — OpenRouter, Mammouth, Mistral…
               </p>
             </label>
           </label>
@@ -146,7 +145,7 @@
         <div class="summary-card">
           <div class="summary-item">
             <strong>Provider</strong>
-            <span>claude</span>
+            <span id="summary-provider-label">cli</span>
           </div>
           <div class="summary-item">
             <strong>Config file</strong>
@@ -204,7 +203,7 @@
     // STATE
     // ============================================
     let currentStep = 'provider';
-    let selectedProvider = 'claude';
+    let selectedProvider = 'cli';
     let syncState = {
       claudeCliDone: false,
       skillsReadDone: false,
@@ -310,12 +309,13 @@
       try {
         await setProvider(selectedProvider);
 
-        if (selectedProvider === 'claude') {
+        if (selectedProvider === 'cli') {
           showStep('claude-sync');
           const result = await syncClaudeCode();
           const nSkills = Array.isArray(result.skills_registered)
             ? result.skills_registered.length
             : (result.skills_count ?? result.skills_registered ?? 0);
+          document.getElementById('summary-provider-label').textContent = selectedProvider;
           document.getElementById('summary-skills-count').textContent = String(nSkills);
           document.getElementById('summary-config-path').textContent = result.mcp_config_path || '~/.claude/claude.json';
           document.getElementById('summary-mcp-js').textContent = result.mcp_server_js || result.mcp_server_path || '—';
@@ -337,7 +337,7 @@
           }
           showStep('success');
         } else {
-          // OpenClaw flow — defer to future work
+          document.getElementById('summary-provider-label').textContent = selectedProvider;
           showStep('success');
         }
       } catch (err) {

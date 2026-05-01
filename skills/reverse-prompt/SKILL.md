@@ -11,7 +11,7 @@ Reverse-engineer prompts from example outputs using Claude/Mistral.
 ## Installation
 
 ```bash
-~/.openclaw/skills/reverse-prompt/
+${CLAWVIS_ROOT}/skills/reverse-prompt/
 ├── SKILL.md (this file)
 ├── scripts/
 │   └── run.sh
@@ -27,7 +27,7 @@ Reverse-engineer prompts from example outputs using Claude/Mistral.
 
 ```bash
 # Run with example text
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT}/skills/reverse-prompt/scripts/run.sh \
   --example "Write a 300-word vision statement for AI. Tone: aspirational but grounded." \
   --model "claude-haiku" \
   --context "C-level executives skeptical of hype"
@@ -130,7 +130,7 @@ PERFECT_REPORT="# Hub Refresh Summary
 Hub refresh completed successfully. Session tokens updated from API."
 
 # Step 2: Reverse-engineer the prompt
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT}/skills/reverse-prompt/scripts/run.sh \
   --example "$PERFECT_REPORT" \
   --context "LabOS operational report"
 
@@ -171,7 +171,7 @@ PERFECT_PR="
 "
 
 # Reverse-engineer
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT}/skills/reverse-prompt/scripts/run.sh \
   --example "$PERFECT_PR" \
   --model "claude-haiku"
 
@@ -202,7 +202,7 @@ Solution:
 Reasoning: Email is primary lookup key, needs indexing..."
 
 # Reverse-engineer
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT}/skills/reverse-prompt/scripts/run.sh \
   --example "$PERFECT_AGENT_RESPONSE" \
   --iterations 5
 
@@ -220,7 +220,7 @@ done
 
 ## Configuration
 
-**File:** `~/.openclaw/skills/reverse-prompt/config.json` (optional)
+**File:** `${CLAWVIS_ROOT}/skills/reverse-prompt/config.json` (optional)
 
 ```json
 {

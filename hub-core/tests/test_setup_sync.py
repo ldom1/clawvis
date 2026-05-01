@@ -20,22 +20,6 @@ def test_expected_skill_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     assert dirs[0] == str((tmp_path / "skills").resolve())
 
 
-def test_sync_skills_openclaw_idempotent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    cfg = tmp_path / "openclaw.json"
-    cfg.write_text("{}", encoding="utf-8")
-    (tmp_path / "skills").mkdir()
-    monkeypatch.setenv("INSTANCE_NAME", "example")
-    r1 = setup_sync.sync_skills_openclaw(
-        tmp_path,
-        openclaw_config=cfg,
-    )
-    assert r1.get("ok") is True
-    assert r1.get("changed") is True
-    data = json.loads(cfg.read_text(encoding="utf-8"))
-    assert data["skills"]["load"]["extraDirs"]
-    r2 = setup_sync.sync_skills_openclaw(tmp_path, openclaw_config=cfg)
-    assert r2.get("changed") is False
-
 
 def test_sync_skills_claude_symlink(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("CLAWVIS_HOST_CLAUDE_DIR", raising=False)
@@ -47,15 +31,6 @@ def test_sync_skills_claude_symlink(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert link.is_symlink()
     assert link.resolve() == (tmp_path / "skills").resolve()
 
-
-def test_sync_memory_openclaw(tmp_path: Path) -> None:
-    ws = tmp_path / "ws"
-    mem = tmp_path / "mem"
-    mem.mkdir()
-    r = setup_sync.sync_memory_openclaw(mem, workspace=ws)
-    assert r["ok"] is True
-    assert (ws / "memory").is_symlink()
-    assert (ws / "MEMORY.md").exists()
 
 
 def test_apply_localbrain_substitutions(tmp_path: Path) -> None:
@@ -126,6 +101,31 @@ def test_sync_claude_code_mcp_respects_host_claude_dir(
     r = setup_sync.sync_claude_code_mcp(tmp_path)
     assert r["ok"] is True
     assert (host / "claude.json").is_file()
+
+
+def test_sync_claude_code_mcp_docker_host_mount_does_not_warn_about_cli(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    host_claude = tmp_path / "host_claude"
+    host_repo = tmp_path / "host_repo"
+    host_claude.mkdir()
+    (host_repo / "mcp" / "server.js").parent.mkdir(parents=True)
+    (host_repo / "mcp" / "server.js").write_text("//\n", encoding="utf-8")
+    (tmp_path / "skills" / "x").mkdir(parents=True)
+    (tmp_path / "mcp" / "server.js").parent.mkdir(parents=True)
+    (tmp_path / "mcp" / "server.js").write_text("//\n", encoding="utf-8")
+    monkeypatch.setenv("CLAWVIS_HOST_CLAUDE_DIR", str(host_claude))
+    monkeypatch.setenv("CLAWVIS_REPO_HOST_PATH", str(host_repo))
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    monkeypatch.delenv("CLAUDE_CLI_PATH", raising=False)
+    monkeypatch.delenv("CLAWVIS_HOST_CLAUDE_CLI", raising=False)
+    monkeypatch.delenv("CLAWVIS_MCP_SERVER_JS", raising=False)
+    monkeypatch.setattr(setup_sync, "find_claude_on_path", lambda: None)
+
+    r = setup_sync.sync_claude_code_mcp(tmp_path)
+
+    assert r["ok"] is True
+    assert "warning" not in r
 
 
 def test_sync_claude_code_mcp_uses_host_repo_for_mcp_js(

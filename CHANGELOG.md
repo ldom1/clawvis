@@ -2,6 +2,73 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### CI — kanban + Hub format (2026-05-01)
+- **`tests/test_memory_api.py`**: `test_quartz_static_serves_memory_projects_when_no_quartz_build` monkeypatch `kanban_api.core.active_brain_memory_root` (pas seulement `memory_api`) car `_fallback_projects_dir()` vit dans `core` et appelait le vrai `get_hub_settings()` → `PermissionError` sur `hub_settings.json` en CI.
+- **Hub**: `yarn --cwd hub prettier --write src/main.js` pour refaire passer `format:check`.
+
+### Hub — Prettier (2026-05-01)
+- `yarn --cwd hub prettier --write src/main.js src/style.css` — aligne le gate `format:check` CI.
+
+### Scheduler — notifications Telegram plus lisibles (2026-05-01)
+- **`services/scheduler/core/telegram_format.py`**: normalisation du texte agent avant envoi (retrait `**` / `__`, espaces).
+- **Prompts cron** (`knowledge-consolidator-collect`, `knowledge-consolidator-consolidate`, `proactive-innovation`): consigne explicite « plain text mobile », structure en blocs et puces • ; Phase 2 sans appel HTTP Telegram (déjà géré par le scheduler).
+
+### Agent — skills disponibles avec provider `cli` (Claude Code) sans sync global (2026-05-01)
+- **Root cause**: le subprocess `claude --print` hérité du CWD de l'agent-service ne trouvait pas `.claude/settings.json` du projet → hook SessionStart muet → aucun skill injecté dans le contexte Claude.
+- **docker-compose.yml**: deux nouveaux volumes sur `agent-service` — `./.claude:/clawvis/.claude:ro` et `./skills:/clawvis/skills:ro` — exposent la config projet et les skills à l'intérieur du container.
+- **docker-compose.yml**: nouvelles variables d'env `CLAWVIS_ROOT=/clawvis` et `CLI_CWD=/clawvis` sur `agent-service`.
+- **`services/agent/agent_service/cli_runner.py`**: `CliRunner` lit `CLI_CWD` et le passe comme `cwd=` à `asyncio.create_subprocess_exec` → Claude démarre depuis `/clawvis`, trouve `.claude/settings.json`, exécute le hook SessionStart qui scanne `skills/*/SKILL.md` et injecte la liste `<clawvis-skills>` dans le contexte.
+- Les skills restent **locaux au repo** (pas de sync global dans `~/.claude`).
+- Référence : `docs/CLAUDE-REFERENCE.md` § *Agent — provider cli et skills*.
+
+### Brain + Telegram — Quartz source alignment and strict notification checks (2026-04-28)
+- `hub-memory-api` now uses `MEMORY_ROOT=${BRAIN_PATH}` in Docker so the Brain/Quartz API tracks the same external Obsidian vault path as the rest of the stack.
+- `hub-memory-api` now mounts `BRAIN_PATH` as `rw` (not `ro`) because `hub_settings.json` is written under `MEMORY_ROOT/kanban`.
+- Quartz fallback page lookup now checks `BRAIN_PATH/projects` when local instance memory has no generated HTML pages.
+- Telegram `/send` and `/test` now reject real-mode delivery when `TELEGRAM_CHAT_ID` is missing (`412 missing chat_id`).
+- Scheduler now validates Telegram notify HTTP responses (`raise_for_status` + JSON `ok`) before logging `job.notified`, avoiding false “success” when delivery failed.
+
+### Docker — kanban-api startup permission fix (2026-04-28)
+- **Root cause**: `kanban-api` bind-mounted the full repo at `/clawvis`, reusing host `.venv` files owned by `nobody:nogroup`; `uv run` failed with `Permission denied` while replacing `bin/kanban-api`, so the container exited on boot.
+- **Fix**: `docker-compose.yml` now mounts an anonymous volume at `/clawvis/.venv` for `kanban-api`, keeping a container-local writable virtualenv while preserving the host repo bind mount.
+- **Result**: `kanban-api` reaches healthy state and full `docker compose up -d` stack starts successfully.
+
+### Hub UI — spacing between communication and automation cards (2026-04-28)
+- Added `.settings-page-body` vertical layout spacing in `hub/src/style.css` so cards no longer touch each other.
+- This fixes missing spacing between `Telegram` / `Discord` cards and between `Jobs` / `Workflows` cards.
+
+### Hub UI — edit cron schedule from Jobs table (2026-04-28)
+- Added an `Edit` action on each scheduled job row in Communication → Jobs.
+- The action prompts for a new cron expression and sends `PATCH /api/hub/agent/cron/jobs/{name}` with `{ cron }`.
+
+### Telegram service — health/test endpoints for Hub page (2026-04-28)
+- Added `GET /health` and `POST /test` routes in `services/telegram/core/bot.py`.
+- `/health` now returns JSON expected by Hub communication page (`stub_mode`, `token_configured`, `chat_id`).
+- `/test` sends a test message in real mode and returns `{ ok: true, stub: true }` in stub mode.
+
+### Scheduler — new jobs and knowledge workflow (2026-04-28)
+- Added cron job definitions in `services/scheduler/definitions/`:
+  - `morning-briefing` (`0 9 * * *`)
+  - `hub-refresh` (`0 * * * *`)
+  - `self-improvement` (`0 0 * * *`)
+  - `brain-maintenance` (`30 0 * * *`)
+- Added workflow `knowledge-and-innovation` in `services/scheduler/definitions/workflows/` chaining:
+  `knowledge-consolidator-collect` → `knowledge-consolidator-consolidate` → `proactive-innovation` → `self-improvement`.
+
+### Scheduler — definitions split into jobs/workflows folders (2026-04-28)
+- Moved job YAML files to `services/scheduler/definitions/jobs/`.
+- Kept workflow YAML files in `services/scheduler/definitions/workflows/`.
+- Updated scheduler loader and CRUD paths to read/write jobs from `jobs/` and workflows from `workflows/`.
+- Updated Hub/README references to the new folder layout.
+
+### Scheduler docs — job/workflow examples (2026-04-28)
+- Updated `services/scheduler/core/definitions/README.md` to reference the live `jobs/` and `workflows/` folders.
+- Replaced single `example.yaml` with:
+  - `example-job.yaml`
+  - `example-workflow.yaml`
+
 ## [v1.0.0] - 2026-04-17
 
 ### MCP server — auto-install deps from setup wizard (2026-04-12)

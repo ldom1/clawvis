@@ -5,7 +5,7 @@
     "tokens_used": "0",
     "tokens_limit": "0",
     "reset_time": "unknown",
-    "error": "OpenClaw status unavailable"
+    "error": "Agent status unavailable"
   },
   "mammouth": {
     "status": "not_configured",

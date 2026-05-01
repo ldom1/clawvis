@@ -1,0 +1,8 @@
+enabled: true
+name: knowledge-and-innovation
+jobs:
+  - knowledge-consolidator-collect
+  - knowledge-consolidator-consolidate
+  - proactive-innovation
+  - self-improvement
+timezone: Europe/Paris

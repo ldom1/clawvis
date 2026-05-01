@@ -25,6 +25,10 @@ services:
         condition: service_healthy
       agent-service:
         condition: service_healthy
+      telegram:
+        condition: service_started
+      scheduler:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
       interval: 15s
@@ -36,22 +40,23 @@ services:
     container_name: clawvis-${INSTANCE_NAME:-example}-kanban-api
     build:
       context: .
-      dockerfile: kanban/Dockerfile
+      dockerfile: services/kanban/Dockerfile
     ports:
       - "127.0.0.1:${KANBAN_API_PORT:-8090}:8090"
     env_file: .env
     volumes:
       # Full repo RW so setup API can sync skills/ and .claude/ (host checkout replaces /clawvis).
       - .:/clawvis:rw
+      # Keep a container-local virtualenv writable by the runtime user.
+      - /clawvis/.venv
+      - ./logs:/logs:rw
       # Kanban scans PROJECTS_ROOT from .env — bind the host folder at the same path.
       # RW: POST /hub/projects mkdir + git init + template files (RO mount → 500, Hub alert "Creation impossible").
       - "${PROJECTS_ROOT:?Set PROJECTS_ROOT in .env}:${PROJECTS_ROOT}:rw"
       # Claude Code on the host reads ~/.claude — mount it so MCP sync + skills symlink hit the host.
       - "${HOME}/.claude:/clawvis-host-claude:rw"
-      # Optional: mount host claude binary so the API can detect it (path rarely matches container libc).
-      # - "${HOME}/.local/bin/claude:/clawvis-host-claude-bin/claude:ro"
-      # Bind openclaw logs so DOMBOT_LOG_JSONL path is accessible inside the container.
-      - "${OPENCLAW_LOGS_HOST:-${HOME}/.openclaw/logs}:/openclaw-logs:ro"
+      # Local Brain (BRAIN_PATH) — rw so kanban tasks.json can be written back to the vault.
+      - "${BRAIN_PATH}:${BRAIN_PATH}:rw"
     environment:
       - CLAWVIS_ROOT=/clawvis
       - CLAWVIS_HOST_CLAUDE_DIR=/clawvis-host-claude
@@ -59,15 +64,8 @@ services:
       - CLAWVIS_REPO_HOST_PATH=${PWD}
       - UV_CACHE_DIR=/tmp/uv-cache
       - HOME=/home/${USER}
-      - MEMORY_ROOT=${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}
-      - DOMBOT_LOG_JSONL=${DOMBOT_LOG_JSONL:-/openclaw-logs/dombot.jsonl}
-      # OpenClaw: set OPENCLAW_BASE_URL to reach your OpenClaw instance.
-      # Same-host deployment (OpenClaw on the VPS alongside Clawvis):
-      #   OPENCLAW_BASE_URL=http://host.docker.internal:3333
-      # OpenClaw as a Docker service in this compose (see openclaw service below):
-      #   OPENCLAW_BASE_URL=http://openclaw:3333
-      - OPENCLAW_BASE_URL=${OPENCLAW_BASE_URL:-}
-      - OPENCLAW_API_KEY=${OPENCLAW_API_KEY:-}
+      - MEMORY_ROOT=${BRAIN_PATH}
+      - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
       - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
     # Allow reaching OpenClaw running on the Docker host (same VPS, different process)
     extra_hosts:
@@ -79,7 +77,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "uv run --directory /clawvis/kanban python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/openapi.json', timeout=5)\"",
+          "uv run --directory /clawvis/services/kanban python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/openapi.json', timeout=5)\"",
         ]
       interval: 15s
       timeout: 8s
@@ -90,25 +88,28 @@ services:
     container_name: clawvis-${INSTANCE_NAME:-example}-hub-memory-api
     build:
       context: .
-      dockerfile: kanban/Dockerfile
+      dockerfile: services/kanban/Dockerfile
     ports:
       - "127.0.0.1:${HUB_MEMORY_API_PORT:-8091}:8091"
     env_file: .env
     volumes:
       - ./instances:/clawvis/instances
       - ./quartz:/clawvis/quartz
+      - "${BRAIN_PATH}:${BRAIN_PATH}:rw"
     environment:
       - UV_CACHE_DIR=/tmp/uv-cache
-      - MEMORY_ROOT=${MEMORY_ROOT:-instances/${INSTANCE_NAME:-example}/memory}
+      - MEMORY_ROOT=${BRAIN_PATH}
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     labels:
       - "app=clawvis"
     command:
       [
-        "/clawvis/.venv/bin/python",
-        "-m",
+        "uv",
+        "run",
+        "--directory",
+        "/clawvis/services/kanban",
         "uvicorn",
-        "hub_core.memory_api:app",
+        "kanban_api.memory_api:app",
         "--host",
         "0.0.0.0",
         "--port",
@@ -118,7 +119,11 @@ services:
       test:
         [
           "CMD",
-          "/clawvis/.venv/bin/python",
+          "uv",
+          "run",
+          "--directory",
+          "/clawvis",
+          "python",
           "-c",
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/openapi.json', timeout=5)",
         ]
@@ -131,18 +136,43 @@ services:
     container_name: clawvis-${INSTANCE_NAME:-example}-agent-service
     build:
       context: .
-      dockerfile: agent/Dockerfile
+      dockerfile: services/agent/Dockerfile
     ports:
       - "127.0.0.1:${AGENT_PORT:-8092}:8092"
     env_file: .env
     volumes:
       - ./instances:/app/instances
+      - ./logs:/logs:rw
       # Live PRIMARY_AI_PROVIDER for /agent/config (setup wizard updates repo .env without container recreate)
       - ./.env:/clawvis/.env:ro
+      # Claude CLI runtime (for provider=cli): mount host binary tree + auth/config in matching HOME paths.
+      - "${HOME}/.local:/home/${USER}/.local:ro"
+      - "${HOME}/.claude:/home/${USER}/.claude:rw"
+      # Project-level Claude config + skills (for provider=cli): Claude subprocess runs from /clawvis so the
+      # SessionStart hook in .claude/hooks/session-start.sh fires and injects the skills list as context.
+      # Skills themselves are read-only — execution happens via uv on the host, not inside this container.
+      - "./.claude:/clawvis/.claude:ro"
+      - "./skills:/clawvis/skills:ro"
+      # Local Brain (BRAIN_PATH) — rw so cron skills can write curiosity/innovation notes.
+      - "${BRAIN_PATH}:${BRAIN_PATH}:rw"
     environment:
       - CLAWVIS_DOTENV_PATH=/clawvis/.env
+      - CLAWVIS_ROOT=/clawvis
       - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
+      - CLI_BIN=/home/${USER}/.local/bin/claude
+      # Working directory for the claude subprocess — must match the root where .claude/ is mounted.
+      - CLI_CWD=/clawvis
+      - HOME=/home/${USER}
+      - UV_CACHE_DIR=/tmp/uv-cache
       - OPENCLAW_AVAILABLE=${OPENCLAW_AVAILABLE:-false}
+      - SCHEDULER_URL=http://scheduler:8095
+      - KANBAN_URL=http://kanban-api:8090
+      - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
+      - BRAIN_PATH=${BRAIN_PATH}
+      - MEMORY_ROOT=${BRAIN_PATH}
+    depends_on:
+      kanban-api:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
@@ -167,6 +197,51 @@ services:
     ports:
       - "${HUB_VITE_PORT:-5173}:${HUB_VITE_PORT:-5173}"
     env_file: .env
+
+  telegram:
+    container_name: clawvis-${INSTANCE_NAME:-example}-telegram
+    build:
+      context: .
+      dockerfile: services/telegram/Dockerfile
+    volumes:
+      - ./logs:/logs:rw
+    ports:
+      - "127.0.0.1:${TELEGRAM_SEND_PORT:-8094}:8094"
+    env_file: .env
+    environment:
+      - AGENT_URL=http://agent-service:8092
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
+    depends_on:
+      agent-service:
+        condition: service_healthy
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    labels:
+      - "app=clawvis"
+
+  scheduler:
+    container_name: clawvis-${INSTANCE_NAME:-example}-scheduler
+    build:
+      context: .
+      dockerfile: services/scheduler/Dockerfile
+    env_file: .env
+    environment:
+      - AGENT_URL=http://agent-service:8092
+      - TELEGRAM_URL=http://telegram:8094
+      - SKILLS_DIR=/skills
+      - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
+    volumes:
+      - ./services/scheduler/definitions:/skills:rw
+      - ./logs:/logs:rw
+    depends_on:
+      agent-service:
+        condition: service_healthy
+      telegram:
+        condition: service_started
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    labels:
+      - "app=clawvis"
 
   # OpenClaw — optional: uncomment if you want to run OpenClaw alongside Clawvis
   # in the same compose stack. Set OPENCLAW_BASE_URL=http://openclaw:3333 above.

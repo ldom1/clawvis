@@ -1,14 +1,14 @@
-# UV workspace root: resolve hub-core ↔ kanban-api (Memory API imports kanban).
+# UV workspace root for shared package resolution.
 [project]
 name = "clawvis-workspace"
 version = "0.0.0"
-description = "Monorepo workspace for hub-core and kanban-api"
+description = "Workspace for Clawvis Python services and shared packages"
 requires-python = ">=3.11"
 dependencies = []
 
 [tool.uv.workspace]
-members = ["hub-core", "kanban"]
+members = ["hub-core", "services/kanban", "services/agent", "services/telegram", "services/scheduler"]
 
 [tool.uv.sources]
-dombot-hub-core = { workspace = true }
+hub-core = { workspace = true }
 kanban-api = { workspace = true }
