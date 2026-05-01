@@ -4,9 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Skills — self-improvement OpenRouter (2026-05-02)
+- **`self-improvement` / `call_llm`** : OpenRouter en **priorité** (`OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_BASE_URL`) — aligné avec l’agent-service ; Mammouth en repli.
+- **`config.py`** : chargement `.env` dans l’ordre skill → core → **racine Clawvis** (override) pour lire les mêmes clés que Docker/agent.
+- **`run-self-improvement.sh`** : source `${CLAWVIS_ROOT}/.env` avant les `.env` locaux du skill.
+
+### Skills — self-improvement paths (2026-05-02)
+- **`skills/self-improvement/scripts/`** : `_clawvis_env.sh` (résolution `CLAWVIS_ROOT` / `~/lab/clawvis` / `~/Lab/clawvis`), tous les shells utilisent `dombot_log_uv` et `${CLAWVIS_ROOT}/logs` au lieu de `~/.openclaw`.
+- **`scripts/run-self-improvement.sh`** : logs sous `${CLAWVIS_ROOT}/logs`, fallback `/tmp` ; fallback CLI `openclaw sessions_spawn` uniquement si la commande est dans `PATH`.
+- **`core/self_improvment/config.py`** : `LEARNINGS_DIR` = `skills/self-improvement/.learnings`, `WORKSPACE` = racine Clawvis si résolu, clés API uniquement via `.env` ; suppression de la lecture `~/.openclaw/openclaw.json`.
+- **`protocol_audit`** : scan skills sous `${CLAWVIS_ROOT}/skills`, projets sous `~/lab` et `~/Lab`, `PROTOCOL.md` idem.
+
 ### Skills — hub-refresh + self-improvement (2026-05-02)
 - **`skills/hub-refresh/SKILL.md`** : enregistrement du skill (description, run, troubleshooting) pour exposition dans l’index agent.
-- **`skills/hub-refresh/scripts/run.sh`** : résolution du dépôt via `CLAWVIS_ROOT` ou `$HOME/lab/clawvis` / `$HOME/Lab/clawvis` ; chemins `hub-core` et `skills/logger/core` relatifs à cette racine ; message si logger absent.
+- **`skills/hub-refresh/scripts/run.sh`** : résolution du dépôt via `CLAWVIS_ROOT` ou `$HOME/lab/clawvis` / `$HOME/Lab/clawvis` ; chemins `hub-core` et `skills/logger/core` relatifs à cette racine ; message si logger absent ; **plus de pin `UV_PYTHON=/usr/bin/python3.11`** — uv choisit l’interpréteur (`requires-python >=3.11` dans hub-core) ; `UV_PYTHON` non exécutable → ignoré.
 - **`skills/self-improvement/SKILL.md`** : skill documentaire aligné sur le job cron `services/scheduler/definitions/jobs/self-improvement.yaml` et la séparation avec `knowledge-consolidator`.
 
 ### Hub — Schedule view: React Flow workflow graph (2026-05-01)

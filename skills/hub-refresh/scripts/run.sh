@@ -3,13 +3,39 @@
 # Injects RBAC identity so hub_core logs the correct agent context.
 
 set -e
+export PATH="${HOME}/.local/bin:${PATH}"
+# hub-core requires Python >=3.11 — let uv pick/install via project metadata (no hardcoded interpreter).
+if [ -n "${UV_PYTHON:-}" ] && [ ! -x "$UV_PYTHON" ]; then
+  unset UV_PYTHON
+fi
+export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-$HOME/.venvs/hub-core}"
 
-HUB_CORE_DIR="$HOME/Lab/clawvis/hub-core"
-LOG_DIR="$HOME/.openclaw/logs"
+_resolve_clawvis_root() {
+  if [ -n "${CLAWVIS_ROOT:-}" ] && [ -d "${CLAWVIS_ROOT}/hub-core" ]; then
+    printf '%s\n' "${CLAWVIS_ROOT}"
+    return 0
+  fi
+  # Prefer lowercase lab (WSL / Linux convention)
+  for _p in "${HOME}/lab/clawvis" "${HOME}/Lab/clawvis"; do
+    if [ -d "${_p}/hub-core" ]; then
+      printf '%s\n' "${_p}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+CLAWVIS_ROOT="$(_resolve_clawvis_root)" || {
+  echo "hub-refresh: cannot find Clawvis repo (need hub-core/). Set CLAWVIS_ROOT." >&2
+  exit 1
+}
+
+HUB_CORE_DIR="${CLAWVIS_ROOT}/hub-core"
+LOGGER_CORE="${CLAWVIS_ROOT}/skills/logger/core"
+LOG_DIR="${CLAWVIS_ROOT}/logs"
 TIMESTAMP=$(date '+%Y-%m-%d-%H%M')
 LOG_FILE="$LOG_DIR/hub-refresh-$TIMESTAMP.log"
 
-# Ensure log directory exists
 mkdir -p "$LOG_DIR"
 
 export AGENT_ID="dombot"
@@ -18,12 +44,10 @@ export AGENT_MODEL="${AGENT_MODEL:-system}"
 export NETWORK_MODE="allowlist"
 export NETWORK_ALLOWLIST="api.mammouth.ai,api.anthropic.com,localhost"
 
-# Log start
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh START — AGENT_ID=$AGENT_ID AGENT_ROLE=$AGENT_ROLE" >> "$LOG_FILE"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh START — AGENT_ID=$AGENT_ID AGENT_ROLE=$AGENT_ROLE CLAWVIS_ROOT=$CLAWVIS_ROOT" >>"$LOG_FILE"
 
-# Run hub_core and capture exit code
 cd "$HUB_CORE_DIR"
-if uv run python -m hub_core.main "$@" >> "$LOG_FILE" 2>&1; then
+if timeout 300 uv run python -m hub_core.main "$@" >>"$LOG_FILE" 2>&1; then
   EXIT_CODE=0
   STATUS="SUCCESS"
 else
@@ -31,10 +55,12 @@ else
   STATUS="FAILED"
 fi
 
-# Log completion
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh END — STATUS=$STATUS EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh END — STATUS=$STATUS EXIT_CODE=$EXIT_CODE" >>"$LOG_FILE"
 
-# Send to dombot-logger
-uv run --directory "$HOME/.openclaw/skills/logger/core" dombot-log "INFO" "cron:hub-refresh" "system" "cron:complete" "Hub Refresh executed ($STATUS)" "{\"exit_code\": $EXIT_CODE, \"log_file\": \"$LOG_FILE\"}" || true
+if [ -d "$LOGGER_CORE" ]; then
+  uv run --directory "$LOGGER_CORE" dombot-log "INFO" "cron:hub-refresh" "system" "cron:complete" "Hub Refresh executed ($STATUS)" "{\"exit_code\": $EXIT_CODE, \"log_file\": \"$LOG_FILE\"}" || true
+else
+  echo "hub-refresh: logger core missing at $LOGGER_CORE — skip dombot-log" >>"$LOG_FILE"
+fi
 
 exit $EXIT_CODE

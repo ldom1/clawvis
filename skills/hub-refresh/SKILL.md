@@ -5,41 +5,37 @@ description: "Rafraîchit l'état du hub (métriques système, crédits Mammouth
 
 # Hub Refresh
 
-Exécute hub_core pour mettre à jour les JSON publics du dashboard et logger l'état système dans dombot.log.
+Exécute `hub_core` pour mettre à jour les JSON publics du dashboard et journaliser via le skill **logger** (`dombot-log`).
 
 ## Exécution
 
 ```bash
-~/.openclaw/skills/hub-refresh/scripts/run.sh
+${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/hub-refresh/scripts/run.sh
 ```
 
-Ce script :
-- Se positionne dans `~/Lab/dombot-labos/hub-core`
-- Injecte l'identité DomBot (`AGENT_ID=dombot`, `AGENT_ROLE=ORCHESTRATOR`)
-- Lance `uv run python -m hub_core.main` (écrit les JSON + logs dombot.log)
+Si le dépôt n’est pas à `~/lab/clawvis`, exporte **`CLAWVIS_ROOT`** (répertoire qui contient `hub-core/` et `skills/`). Le script essaie aussi `~/Lab/clawvis` en secours.
+
+Le script :
+
+- résout **`CLAWVIS_ROOT`** puis `cd` dans **`${CLAWVIS_ROOT}/hub-core`**
+- injecte `AGENT_ID=dombot`, `AGENT_ROLE=ORCHESTRATOR`
+- lance `timeout 300 uv run python -m hub_core.main` (**pas** de `UV_PYTHON` imposé : uv choisit un Python ≥3.11 selon `hub-core`; surcharge possible avec `UV_PYTHON=/chemin/python` si besoin)
+- écrit un log fichier sous **`${CLAWVIS_ROOT}/logs/hub-refresh-<timestamp>.log`**
+- appelle **`${CLAWVIS_ROOT}/skills/logger/core`** (`dombot-log`, `cron:hub-refresh`) si présent
+
+Aucun chemin **`~/.openclaw`** n’est utilisé.
 
 ## Résultat — mode cron (silencieux)
 
-Aucune réponse. Les fichiers JSON sont mis à jour dans `~/Lab/hub/public/api/`.
+Aucune réponse utilisateur. Les JSON du hub sont mis à jour dans **`${CLAWVIS_ROOT}/hub/public/api/`** (voir instance / build Vite selon déploiement).
 
 ## Résultat — mode on-demand (Telegram)
 
-Quand Ldom demande l'état du hub, exécuter le script puis formatter une réponse concise :
-
-```
-🖥️ Hub — <timestamp>
-CPU: <cpu>%  RAM: <ram>%  Disk: <disk>%
-MammouthAI: €<available> / €<limit>
-Claude: <usage>% utilisé
-```
-
-Lire `~/Lab/hub/public/api/system.json` et `providers.json` après le script pour obtenir les valeurs.
+Après le script, lire les JSON API du hub pour formater une réponse concise (ex. `system.json`, `providers.json` selon ce que publie `hub_core`).
 
 ## Identité & RBAC
 
-Le script injecte :
-- `AGENT_ID=dombot` → identity: `dombot@labos.local`
-- `AGENT_ROLE=ORCHESTRATOR` → capabilities: workflows.execute, kanban.*, files.*, …
-- `NETWORK_MODE=allowlist` → seuls `api.mammouth.ai`, `api.anthropic.com`, `localhost` autorisés
+- `AGENT_ID=dombot`, `AGENT_ROLE=ORCHESTRATOR`
+- `NETWORK_MODE=allowlist` — `api.mammouth.ai`, `api.anthropic.com`, `localhost`
 
-Ces valeurs sont loggées dans `~/.openclaw/logs/dombot.log` à chaque run.
+Les détails du run sont dans **`logs/hub-refresh-*.log`** sous la racine Clawvis.
