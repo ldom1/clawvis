@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Skills — self-improvement OpenRouter (2026-05-02)
-- **`self-improvement` / `call_llm`** : OpenRouter en **priorité** (`OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_BASE_URL`) — aligné avec l’agent-service ; Mammouth en repli.
+- **`self-improvement` / `call_llm`** : **OpenRouter uniquement** (`OPENROUTER_*`) ; retrait Mammouth / Mistral et fallback OpenClaw `sessions_spawn`.
 - **`config.py`** : chargement `.env` dans l’ordre skill → core → **racine Clawvis** (override) pour lire les mêmes clés que Docker/agent.
 - **`run-self-improvement.sh`** : source `${CLAWVIS_ROOT}/.env` avant les `.env` locaux du skill.
 
