@@ -1,37 +1,45 @@
 ---
 name: hub-refresh
-description: "Run hub_core.main as dombot ORCHESTRATOR with RBAC env (AGENT_ID, AGENT_ROLE). Use when cron hub-refresh or when Ldom asks to refresh Hub / orchestrator context via hub_core."
+description: "Rafraîchit l'état du hub (métriques système, crédits MammouthAI, usage Claude) via hub_core. Use when: cron toutes les 5min, ou quand Ldom demande 'état du hub', 'hub status', 'métriques', '/hub-status', 'crédits restants', 'usage Claude'."
 ---
 
 # Hub Refresh
 
-## When to use
+Exécute hub_core pour mettre à jour les JSON publics du dashboard et logger l'état système dans dombot.log.
 
-- Cron **hub-refresh** (or manual equivalent).
-- Request to execute a **Hub refresh** / `hub_core` orchestrator pass with dombot identity.
-
-## Run
+## Exécution
 
 ```bash
-${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/hub-refresh/scripts/run.sh
+~/.openclaw/skills/hub-refresh/scripts/run.sh
 ```
 
-Optional args are forwarded to `python -m hub_core.main` (see script).
+Ce script :
+- Se positionne dans `~/Lab/dombot-labos/hub-core`
+- Injecte l'identité DomBot (`AGENT_ID=dombot`, `AGENT_ROLE=ORCHESTRATOR`)
+- Lance `uv run python -m hub_core.main` (écrit les JSON + logs dombot.log)
 
-## What it does
+## Résultat — mode cron (silencieux)
 
-1. Resolves repo root via `CLAWVIS_ROOT`, or `$HOME/lab/clawvis`, or `$HOME/Lab/clawvis` (must contain `hub-core/`).
-2. Uses `UV_PROJECT_ENVIRONMENT` (default `$HOME/.venvs/hub-core`) and `UV_PYTHON` (default `/usr/bin/python3.11`) for a stable venv.
-3. `cd` into `hub-core` and runs `timeout 300 uv run python -m hub_core.main "$@"`.
-4. Appends logs to `~/.openclaw/logs/hub-refresh-<timestamp>.log` and `/tmp/hub-refresh.log`.
-5. Sets `AGENT_ID=dombot`, `AGENT_ROLE=ORCHESTRATOR`, `NETWORK_MODE=allowlist` (see script for allowlist).
-6. On exit, calls **dombot-log** via `skills/logger/core` (`cron:hub-refresh`).
+Aucune réponse. Les fichiers JSON sont mis à jour dans `~/Lab/hub/public/api/`.
 
-## Requirements
+## Résultat — mode on-demand (Telegram)
 
-- `uv`, `timeout`, `hub-core` install runnable with `uv run`.
-- Logger skill at `${CLAWVIS_ROOT}/skills/logger/core` for the completion line.
+Quand Ldom demande l'état du hub, exécuter le script puis formatter une réponse concise :
 
-## Troubleshooting
+```
+🖥️ Hub — <timestamp>
+CPU: <cpu>%  RAM: <ram>%  Disk: <disk>%
+MammouthAI: €<available> / €<limit>
+Claude: <usage>% utilisé
+```
 
-- **Wrong repo path:** export `CLAWVIS_ROOT=/path/to/clawvis` (the directory that contains `hub-core` and `skills/`).
+Lire `~/Lab/hub/public/api/system.json` et `providers.json` après le script pour obtenir les valeurs.
+
+## Identité & RBAC
+
+Le script injecte :
+- `AGENT_ID=dombot` → identity: `dombot@labos.local`
+- `AGENT_ROLE=ORCHESTRATOR` → capabilities: workflows.execute, kanban.*, files.*, …
+- `NETWORK_MODE=allowlist` → seuls `api.mammouth.ai`, `api.anthropic.com`, `localhost` autorisés
+
+Ces valeurs sont loggées dans `~/.openclaw/logs/dombot.log` à chaque run.
