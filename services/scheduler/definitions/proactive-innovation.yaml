@@ -10,11 +10,11 @@ prompt: |
   improvement opportunities. Generate 3–5 concrete, actionable innovation ideas for the Clawvis platform.
 
   For each idea:
-  - **Title**: short name (≤ 8 words)
-  - **Problem solved**: one sentence
-  - **Proposed approach**: 2–3 sentences
-  - **Effort**: S / M / L
-  - **Impact**: Low / Medium / High
+  - Title: short name (≤ 8 words)
+  - Problem solved: one sentence
+  - Proposed approach: 2–3 sentences
+  - Effort: S / M / L
+  - Impact: Low / Medium / High
 
   Focus on: UX improvements, new agent capabilities, better cron skill integrations,
   Telegram bot features, or dev-experience wins. Avoid duplicating existing backlog items.
@@ -25,5 +25,18 @@ prompt: |
   2. Create the directory if it does not exist.
   3. Use the Write tool for each file.
 
-  End with one sentence naming the highest-impact idea to pursue first.
+  TELEGRAM SUMMARY (required last message): plain text only — no Markdown (** or __). The scheduler posts this to Telegram. Layout:
+
+  💡 Proactive Innovation · weekly
+
+  N ideas → resources/innovation/YYYY-MM-DD-*.md
+
+  Ideas:
+  • Title — Effort S/M/L · Impact Low/Med/High
+    One-line problem.
+  (repeat per idea, compact)
+
+  Priorité: one sentence — which idea to pursue first and why.
+
+  Keep under ~30 lines. No code fences.
 timezone: Europe/Paris

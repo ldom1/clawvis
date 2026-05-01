@@ -4,9 +4,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-SCHEDULER_DIR = Path(__file__).parent
-if str(SCHEDULER_DIR) not in sys.path:
-    sys.path.insert(0, str(SCHEDULER_DIR))
+_CORE = Path(__file__).resolve().parent.parent / "core"
+if str(_CORE) not in sys.path:
+    sys.path.insert(0, str(_CORE))
 
 import scheduler as scheduler_module  # noqa: E402
 
@@ -165,6 +165,17 @@ class SchedulerTests(unittest.IsolatedAsyncioTestCase):
                 scheduler_module._skills_dir = None
 
         self.assertEqual(called, ["job-a", "job-b"])
+
+
+class TelegramFormatTests(unittest.TestCase):
+    def test_strips_bold_markdown(self) -> None:
+        import telegram_format as tf
+
+        raw = "**Phase 1** — ok\n\n• **tech** — 5 items"
+        self.assertEqual(
+            tf.format_job_telegram_body(raw),
+            "Phase 1 — ok\n\n• tech — 5 items",
+        )
 
 
 if __name__ == "__main__":

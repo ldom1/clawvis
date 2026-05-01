@@ -13,9 +13,25 @@ prompt: |
   4. Record key trends, discoveries and insights for that domain — concise, max 400 words per file.
 
   Rules:
-  - SILENT phase — do NOT send any Telegram message
   - Do NOT modify any MEMORY.md file (perennial index)
   - Write ONLY into $BRAIN_PATH/resources/knowledge/curiosity/<domain>/
   - One file per domain, named YYYY-MM-DD-knowledge_<domain>.md
   - Use the Write tool to create each file
+
+  TELEGRAM SUMMARY (required last message): the scheduler sends your final reply to Telegram as plain text (mobile). Do not use Markdown (** or __ or # headings). Use this shape — short lines, blank line between blocks, • for bullets:
+
+  ✅ Knowledge · Phase 1 · Collect OK
+
+  6 domains · N total discoveries
+
+  Domains:
+  • tech — 5 · short source hint
+  • geopolitics — 5 · …
+  (one bullet per domain)
+
+  Files: curiosity/<domain>/YYYY-MM-DD-knowledge_<domain>.md
+
+  Next: Phase 2 consolidate (scheduled after this job).
+
+  Keep the whole summary under ~25 lines. No code fences.
 timezone: Europe/Paris

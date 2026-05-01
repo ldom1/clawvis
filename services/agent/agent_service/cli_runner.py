@@ -18,6 +18,9 @@ class CliRunner:
         self.tool = os.environ.get("CLI_TOOL", "claude").strip().lower()
         self.timeout = timeout
         self._bin: str | None = self._resolve_bin()
+        # When set, the subprocess runs from this directory so Claude picks up the
+        # project-level .claude/settings.json (and its SessionStart hook that injects skills).
+        self.cwd: str | None = os.environ.get("CLI_CWD") or None
 
     def _resolve_bin(self) -> str | None:
         explicit = os.environ.get("CLI_BIN", "").strip()
@@ -47,6 +50,7 @@ class CliRunner:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env=env,
+            cwd=self.cwd,
         )
 
         try:

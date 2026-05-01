@@ -141,9 +141,15 @@ function ensureCronModal() {
     </div>`;
   document.body.appendChild(wrap);
   const closeModal = () => closeCronModal();
-  document.getElementById("cron-modal-close").addEventListener("click", closeModal);
-  document.getElementById("cron-modal-close-btn").addEventListener("click", closeModal);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) closeModal(); });
+  document
+    .getElementById("cron-modal-close")
+    .addEventListener("click", closeModal);
+  document
+    .getElementById("cron-modal-close-btn")
+    .addEventListener("click", closeModal);
+  wrap.addEventListener("click", (e) => {
+    if (e.target === wrap) closeModal();
+  });
 }
 
 function closeCronModal() {
@@ -163,7 +169,9 @@ function _cronEventLabel(event, entry, fr) {
       ? `Agent répondu (${entry.result_chars ?? "?"} car.)`
       : `Agent replied (${entry.result_chars ?? "?"} chars)`,
     "agent.request.error": `${fr ? "Erreur agent" : "Agent error"}: ${entry.error || ""}`,
-    "telegram.notify.start": fr ? "Notification Telegram…" : "Notifying Telegram…",
+    "telegram.notify.start": fr
+      ? "Notification Telegram…"
+      : "Notifying Telegram…",
     "telegram.notify.ok": fr ? "Telegram notifié ✓" : "Telegram notified ✓",
     "telegram.notify.error": `${fr ? "Erreur Telegram" : "Telegram error"}: ${entry.error || ""}`,
     "job.invalid_payload": `${fr ? "Payload invalide" : "Invalid payload"}: ${entry.error || ""}`,
@@ -172,8 +180,10 @@ function _cronEventLabel(event, entry, fr) {
 }
 
 function _cronEventDotClass(event) {
-  if (event === "agent.request.ok" || event === "telegram.notify.ok") return "ok";
-  if ((event || "").includes("error") || event === "job.invalid_payload") return "error";
+  if (event === "agent.request.ok" || event === "telegram.notify.ok")
+    return "ok";
+  if ((event || "").includes("error") || event === "job.invalid_payload")
+    return "error";
   return "";
 }
 
@@ -186,7 +196,8 @@ function openCronModal(jobName) {
   const timelineEl = document.getElementById("cron-modal-timeline");
   const logsLink = document.getElementById("cron-modal-logs-link");
   if (titleEl) titleEl.textContent = `▶ ${jobName}`;
-  if (statusEl) statusEl.innerHTML = `<span class="cron-spinner"></span> ${fr ? "En cours…" : "Running…"}`;
+  if (statusEl)
+    statusEl.innerHTML = `<span class="cron-spinner"></span> ${fr ? "En cours…" : "Running…"}`;
   if (timelineEl) timelineEl.innerHTML = "";
   if (logsLink) logsLink.href = `/logs/?search=${encodeURIComponent(jobName)}`;
   if (overlay) overlay.classList.add("open");
@@ -197,21 +208,30 @@ function _updateCronModal(events, done, timedOut) {
   const statusEl = document.getElementById("cron-modal-status");
   const timelineEl = document.getElementById("cron-modal-timeline");
   if (!timelineEl) return;
-  timelineEl.innerHTML = events.map((entry) => {
-    const event = entry.event || "";
-    const dotClass = _cronEventDotClass(event);
-    const label = _cronEventLabel(event, entry, fr);
-    const ts = entry.ts
-      ? new Date(entry.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-      : "";
-    return `<li class="cron-modal-event">
+  timelineEl.innerHTML = events
+    .map((entry) => {
+      const event = entry.event || "";
+      const dotClass = _cronEventDotClass(event);
+      const label = _cronEventLabel(event, entry, fr);
+      const ts = entry.ts
+        ? new Date(entry.ts).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })
+        : "";
+      return `<li class="cron-modal-event">
       <span class="cron-modal-event-ts">${escapeHtml(ts)}</span>
       <span class="cron-modal-event-dot ${dotClass}"></span>
       <span>${escapeHtml(label)}</span>
     </li>`;
-  }).join("");
+    })
+    .join("");
   if (!statusEl) return;
-  const hasError = events.some((e) => (e.event || "").includes("error") || e.event === "job.invalid_payload");
+  const hasError = events.some(
+    (e) =>
+      (e.event || "").includes("error") || e.event === "job.invalid_payload",
+  );
   const hasOk = events.some((e) => e.event === "agent.request.ok");
   if (timedOut) {
     statusEl.innerHTML = `<span style="color:var(--amber,#f59e0b)">${fr ? "Délai dépassé" : "Timed out"}</span>`;
@@ -247,7 +267,9 @@ async function startCronModalPolling(jobName, sinceIso) {
         .filter((e) => {
           const comp = e.component || "";
           const ts = e.ts ? new Date(e.ts).getTime() : 0;
-          return comp.includes("scheduler") && e.name === jobName && ts >= sinceMs;
+          return (
+            comp.includes("scheduler") && e.name === jobName && ts >= sinceMs
+          );
         })
         .reverse();
 
@@ -261,10 +283,14 @@ async function startCronModalPolling(jobName, sinceIso) {
         }
       }
 
-      const agentDone = collected.some((e) => e.event === "agent.request.ok" || e.event === "agent.request.error");
+      const agentDone = collected.some(
+        (e) =>
+          e.event === "agent.request.ok" || e.event === "agent.request.error",
+      );
       const timedOut = Date.now() > deadline;
       if (agentDone && !completionSeenAt) completionSeenAt = Date.now();
-      const telegramDone = completionSeenAt && (Date.now() - completionSeenAt > 4000);
+      const telegramDone =
+        completionSeenAt && Date.now() - completionSeenAt > 4000;
       const fullyDone = agentDone && telegramDone;
 
       if (changed || fullyDone || timedOut) {
@@ -2706,7 +2732,8 @@ async function wireLogs() {
   const urlSearch = urlParams.get("search") || "";
   const urlProcess = urlParams.get("process") || "";
 
-  if (searchEl) searchEl.value = urlSearch || localStorage.getItem(LS.search) || "";
+  if (searchEl)
+    searchEl.value = urlSearch || localStorage.getItem(LS.search) || "";
   if (levelEl) levelEl.value = localStorage.getItem(LS.level) || "";
   autoOn = localStorage.getItem(LS.auto) === "1";
 
@@ -2766,7 +2793,12 @@ async function wireLogs() {
       .map((entry) => {
         const level = (entry.level || "INFO").toUpperCase();
         const proc =
-          (entry.component || entry.process || entry.agent || "system").trim() || "system";
+          (
+            entry.component ||
+            entry.process ||
+            entry.agent ||
+            "system"
+          ).trim() || "system";
         const lvlCls = logLevelRowClass(level);
         const rawMsg = entry.message || entry.msg || "";
         const { primary, meta } = splitLogMessage(rawMsg);
@@ -2803,7 +2835,12 @@ async function wireLogs() {
           if (eRaw !== "ERROR" && eRaw !== "CRITICAL") return false;
         } else if (eRaw !== level) return false;
       }
-      const eProc = (entry.component || entry.process || entry.agent || "").trim();
+      const eProc = (
+        entry.component ||
+        entry.process ||
+        entry.agent ||
+        ""
+      ).trim();
       if (process && eProc !== process) return false;
       if (!search) return true;
       const rawTs = logEntryRawTimestamp(entry);
@@ -4224,9 +4261,14 @@ async function wireSchedulePage() {
     const status = document.getElementById("cron-status");
     if (!wrap) return;
     try {
-      const r = await fetch("/api/hub/agent/cron", { signal: AbortSignal.timeout(5000) });
+      const r = await fetch("/api/hub/agent/cron", {
+        signal: AbortSignal.timeout(5000),
+      });
       if (!r.ok) {
-        if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Indisponible" : "Unavailable"; }
+        if (status) {
+          status.className = "ai-runtime-status-badge warn";
+          status.textContent = fr ? "Indisponible" : "Unavailable";
+        }
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Agent service inaccessible" : "Agent service unreachable"}</p>`;
         return;
       }
@@ -4240,22 +4282,35 @@ async function wireSchedulePage() {
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Aucun job." : "No jobs."}</p>`;
         return;
       }
-      const rows = jobs.map((j) => {
-        const rawName = j.name || j.id || "";
-        const name = escapeHtml(rawName);
-        const isManual = j.schedule === "manual";
-        const schedule = isManual
-          ? `<span class="badge-manual">${fr ? "manuel" : "manual"}</span>`
-          : `<code>${escapeHtml(j.schedule || "—")}</code>`;
-        const enabled = j.enabled !== false;
-        const nextRun = (!isManual && j.nextRun) ? escapeHtml(new Date(j.nextRun).toLocaleString()) : "—";
-        const errors = j.consecutiveErrors || 0;
-        const errBadge = errors > 0 ? `<span class="ai-runtime-status-badge warn">${errors} err</span>` : "";
-        const statusBadge = enabled
-          ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
-          : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
-        const toggleLabel = enabled ? (fr ? "Désactiver" : "Disable") : (fr ? "Activer" : "Enable");
-        return `<tr data-cron-name="${name}">
+      const rows = jobs
+        .map((j) => {
+          const rawName = j.name || j.id || "";
+          const name = escapeHtml(rawName);
+          const isManual = j.schedule === "manual";
+          const schedule = isManual
+            ? `<span class="badge-manual">${fr ? "manuel" : "manual"}</span>`
+            : `<code>${escapeHtml(j.schedule || "—")}</code>`;
+          const enabled = j.enabled !== false;
+          const nextRun =
+            !isManual && j.nextRun
+              ? escapeHtml(new Date(j.nextRun).toLocaleString())
+              : "—";
+          const errors = j.consecutiveErrors || 0;
+          const errBadge =
+            errors > 0
+              ? `<span class="ai-runtime-status-badge warn">${errors} err</span>`
+              : "";
+          const statusBadge = enabled
+            ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
+            : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
+          const toggleLabel = enabled
+            ? fr
+              ? "Désactiver"
+              : "Disable"
+            : fr
+              ? "Activer"
+              : "Enable";
+          return `<tr data-cron-name="${name}">
           <td class="cron-td"><strong>${name}</strong></td>
           <td class="cron-td">${schedule}</td>
           <td class="cron-td">${statusBadge} ${errBadge}</td>
@@ -4266,7 +4321,8 @@ async function wireSchedulePage() {
             <button class="btn btn-compact cron-delete-btn" data-name="${name}" type="button" style="font-size:11px;color:#ef4444;border-color:#ef4444;margin-left:4px">${fr ? "Suppr." : "Delete"}</button>
           </td>
         </tr>`;
-      }).join("");
+        })
+        .join("");
       wrap.innerHTML = `
         <table class="cron-table">
           <thead><tr>
@@ -4285,27 +4341,41 @@ async function wireSchedulePage() {
           const sinceIso = new Date().toISOString();
           openCronModal(name);
           try {
-            const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}/run`, { method: "POST" });
+            const res = await fetch(
+              `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}/run`,
+              { method: "POST" },
+            );
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
               const statusEl = document.getElementById("cron-modal-status");
-              if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444">${fr ? "Erreur" : "Error"}: ${escapeHtml(data.error || "trigger failed")}</span>`;
+              if (statusEl)
+                statusEl.innerHTML = `<span style="color:#ef4444">${fr ? "Erreur" : "Error"}: ${escapeHtml(data.error || "trigger failed")}</span>`;
               return;
             }
             await startCronModalPolling(name, sinceIso);
           } catch (e) {
             const statusEl = document.getElementById("cron-modal-status");
-            if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444">Error: ${escapeHtml(String(e))}</span>`;
+            if (statusEl)
+              statusEl.innerHTML = `<span style="color:#ef4444">Error: ${escapeHtml(String(e))}</span>`;
           }
         });
       });
       wrap.querySelectorAll(".cron-delete-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const name = btn.getAttribute("data-name");
-          if (!confirm(`${fr ? "Supprimer le job" : "Delete job"} "${name}" ?`)) return;
+          if (!confirm(`${fr ? "Supprimer le job" : "Delete job"} "${name}" ?`))
+            return;
           btn.disabled = true;
-          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, { method: "DELETE" });
-          if (res.ok) { await loadCronJobs(); } else { btn.disabled = false; alert(fr ? "Erreur." : "Delete failed."); }
+          const res = await fetch(
+            `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`,
+            { method: "DELETE" },
+          );
+          if (res.ok) {
+            await loadCronJobs();
+          } else {
+            btn.disabled = false;
+            alert(fr ? "Erreur." : "Delete failed.");
+          }
         });
       });
       wrap.querySelectorAll(".cron-toggle-btn").forEach((btn) => {
@@ -4313,16 +4383,27 @@ async function wireSchedulePage() {
           const name = btn.getAttribute("data-name");
           const currentlyEnabled = btn.getAttribute("data-enabled") === "true";
           btn.disabled = true;
-          const res = await fetch(`/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ enabled: !currentlyEnabled }),
-          });
-          if (res.ok) { await loadCronJobs(); } else { btn.disabled = false; alert(fr ? "Erreur." : "Update failed."); }
+          const res = await fetch(
+            `/api/hub/agent/cron/jobs/${encodeURIComponent(name)}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ enabled: !currentlyEnabled }),
+            },
+          );
+          if (res.ok) {
+            await loadCronJobs();
+          } else {
+            btn.disabled = false;
+            alert(fr ? "Erreur." : "Update failed.");
+          }
         });
       });
     } catch (_) {
-      if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Erreur" : "Error"; }
+      if (status) {
+        status.className = "ai-runtime-status-badge warn";
+        status.textContent = fr ? "Erreur" : "Error";
+      }
       wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Erreur de chargement" : "Load error"}</p>`;
     }
   }
@@ -4334,9 +4415,14 @@ async function wireSchedulePage() {
     const status = document.getElementById("workflow-status");
     if (!wrap) return;
     try {
-      const r = await fetch("/api/hub/agent/cron/workflows", { signal: AbortSignal.timeout(5000) });
+      const r = await fetch("/api/hub/agent/cron/workflows", {
+        signal: AbortSignal.timeout(5000),
+      });
       if (!r.ok) {
-        if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Indisponible" : "Unavailable"; }
+        if (status) {
+          status.className = "ai-runtime-status-badge warn";
+          status.textContent = fr ? "Indisponible" : "Unavailable";
+        }
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Indisponible" : "Unavailable"}</p>`;
         return;
       }
@@ -4350,20 +4436,32 @@ async function wireSchedulePage() {
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Aucun workflow." : "No workflows."}</p>`;
         return;
       }
-      const rows = workflows.map((wf) => {
-        const name = escapeHtml(wf.name || "");
-        const isManual = wf.schedule === "manual";
-        const schedule = isManual
-          ? `<span class="badge-manual">${fr ? "manuel" : "manual"}</span>`
-          : `<code>${escapeHtml(wf.schedule || "—")}</code>`;
-        const enabled = wf.enabled !== false;
-        const nextRun = (!isManual && wf.nextRun) ? escapeHtml(new Date(wf.nextRun).toLocaleString()) : "—";
-        const statusBadge = enabled
-          ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
-          : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
-        const jobBadges = (wf.jobs || []).map((j) => `<span class="badge-job">${escapeHtml(j)}</span>`).join(" → ");
-        const toggleLabel = enabled ? (fr ? "Désactiver" : "Disable") : (fr ? "Activer" : "Enable");
-        return `<tr data-workflow-name="${name}">
+      const rows = workflows
+        .map((wf) => {
+          const name = escapeHtml(wf.name || "");
+          const isManual = wf.schedule === "manual";
+          const schedule = isManual
+            ? `<span class="badge-manual">${fr ? "manuel" : "manual"}</span>`
+            : `<code>${escapeHtml(wf.schedule || "—")}</code>`;
+          const enabled = wf.enabled !== false;
+          const nextRun =
+            !isManual && wf.nextRun
+              ? escapeHtml(new Date(wf.nextRun).toLocaleString())
+              : "—";
+          const statusBadge = enabled
+            ? `<span class="ai-runtime-status-badge ok">${fr ? "actif" : "active"}</span>`
+            : `<span class="ai-runtime-status-badge warn">${fr ? "désactivé" : "disabled"}</span>`;
+          const jobBadges = (wf.jobs || [])
+            .map((j) => `<span class="badge-job">${escapeHtml(j)}</span>`)
+            .join(" → ");
+          const toggleLabel = enabled
+            ? fr
+              ? "Désactiver"
+              : "Disable"
+            : fr
+              ? "Activer"
+              : "Enable";
+          return `<tr data-workflow-name="${name}">
           <td class="cron-td"><strong>${name}</strong></td>
           <td class="cron-td workflow-jobs-cell">${jobBadges}</td>
           <td class="cron-td">${schedule}</td>
@@ -4375,7 +4473,8 @@ async function wireSchedulePage() {
             <button class="btn btn-compact wf-delete-btn" data-name="${name}" type="button" style="font-size:11px;color:#ef4444;border-color:#ef4444;margin-left:4px">${fr ? "Suppr." : "Delete"}</button>
           </td>
         </tr>`;
-      }).join("");
+        })
+        .join("");
       wrap.innerHTML = `
         <table class="cron-table">
           <thead><tr>
@@ -4394,19 +4493,40 @@ async function wireSchedulePage() {
           const name = btn.getAttribute("data-name");
           btn.disabled = true;
           try {
-            const res = await fetch(`/api/hub/agent/cron/workflows/${encodeURIComponent(name)}/run`, { method: "POST" });
+            const res = await fetch(
+              `/api/hub/agent/cron/workflows/${encodeURIComponent(name)}/run`,
+              { method: "POST" },
+            );
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) alert(`${fr ? "Erreur" : "Error"}: ${data.error || "trigger failed"}`);
-          } finally { btn.disabled = false; }
+            if (!res.ok)
+              alert(
+                `${fr ? "Erreur" : "Error"}: ${data.error || "trigger failed"}`,
+              );
+          } finally {
+            btn.disabled = false;
+          }
         });
       });
       wrap.querySelectorAll(".wf-delete-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const name = btn.getAttribute("data-name");
-          if (!confirm(`${fr ? "Supprimer le workflow" : "Delete workflow"} "${name}" ?`)) return;
+          if (
+            !confirm(
+              `${fr ? "Supprimer le workflow" : "Delete workflow"} "${name}" ?`,
+            )
+          )
+            return;
           btn.disabled = true;
-          const res = await fetch(`/api/hub/agent/cron/workflows/${encodeURIComponent(name)}`, { method: "DELETE" });
-          if (res.ok) { await loadWorkflows(); } else { btn.disabled = false; alert(fr ? "Erreur." : "Delete failed."); }
+          const res = await fetch(
+            `/api/hub/agent/cron/workflows/${encodeURIComponent(name)}`,
+            { method: "DELETE" },
+          );
+          if (res.ok) {
+            await loadWorkflows();
+          } else {
+            btn.disabled = false;
+            alert(fr ? "Erreur." : "Delete failed.");
+          }
         });
       });
       wrap.querySelectorAll(".wf-toggle-btn").forEach((btn) => {
@@ -4414,28 +4534,44 @@ async function wireSchedulePage() {
           const name = btn.getAttribute("data-name");
           const currentlyEnabled = btn.getAttribute("data-enabled") === "true";
           btn.disabled = true;
-          const res = await fetch(`/api/hub/agent/cron/workflows/${encodeURIComponent(name)}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ enabled: !currentlyEnabled }),
-          });
-          if (res.ok) { await loadWorkflows(); } else { btn.disabled = false; alert(fr ? "Erreur." : "Update failed."); }
+          const res = await fetch(
+            `/api/hub/agent/cron/workflows/${encodeURIComponent(name)}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ enabled: !currentlyEnabled }),
+            },
+          );
+          if (res.ok) {
+            await loadWorkflows();
+          } else {
+            btn.disabled = false;
+            alert(fr ? "Erreur." : "Update failed.");
+          }
         });
       });
     } catch (_) {
-      if (status) { status.className = "ai-runtime-status-badge warn"; status.textContent = fr ? "Erreur" : "Error"; }
+      if (status) {
+        status.className = "ai-runtime-status-badge warn";
+        status.textContent = fr ? "Erreur" : "Error";
+      }
       wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Erreur de chargement" : "Load error"}</p>`;
     }
   }
 
   // ── Event wiring ──────────────────────────────────────────────────────────
 
-  document.getElementById("refresh-cron")?.addEventListener("click", loadCronJobs);
-  document.getElementById("refresh-workflows")?.addEventListener("click", loadWorkflows);
+  document
+    .getElementById("refresh-cron")
+    ?.addEventListener("click", loadCronJobs);
+  document
+    .getElementById("refresh-workflows")
+    ?.addEventListener("click", loadWorkflows);
 
   document.getElementById("add-cron-job")?.addEventListener("click", () => {
     const form = document.getElementById("cron-add-form");
-    if (form) form.style.display = form.style.display === "none" ? "block" : "none";
+    if (form)
+      form.style.display = form.style.display === "none" ? "block" : "none";
   });
   document.getElementById("cron-cancel")?.addEventListener("click", () => {
     const form = document.getElementById("cron-add-form");
@@ -4446,7 +4582,8 @@ async function wireSchedulePage() {
     const exprInput = document.getElementById("cron-expr");
     const indicator = document.getElementById("cron-manual-indicator");
     if (exprInput) exprInput.disabled = e.target.checked;
-    if (indicator) indicator.style.display = e.target.checked ? "inline" : "none";
+    if (indicator)
+      indicator.style.display = e.target.checked ? "inline" : "none";
     if (e.target.checked && exprInput) exprInput.value = "";
   });
 
@@ -4455,16 +4592,24 @@ async function wireSchedulePage() {
     const statusEl = document.getElementById("cron-save-status");
     const name = document.getElementById("cron-name")?.value.trim();
     const isManual = document.getElementById("cron-manual")?.checked ?? false;
-    const cron = isManual ? null : document.getElementById("cron-expr")?.value.trim();
+    const cron = isManual
+      ? null
+      : document.getElementById("cron-expr")?.value.trim();
     const prompt = document.getElementById("cron-prompt")?.value.trim();
     const tz = document.getElementById("cron-tz")?.value.trim() || "UTC";
     const enabled = document.getElementById("cron-enabled")?.checked ?? true;
     if (!name || !prompt) {
-      if (statusEl) statusEl.textContent = fr ? "Nom et prompt requis." : "Name and prompt are required.";
+      if (statusEl)
+        statusEl.textContent = fr
+          ? "Nom et prompt requis."
+          : "Name and prompt are required.";
       return;
     }
     if (!isManual && !cron) {
-      if (statusEl) statusEl.textContent = fr ? "Cron requis (ou cochez Manuel)." : "Cron required (or check Manual).";
+      if (statusEl)
+        statusEl.textContent = fr
+          ? "Cron requis (ou cochez Manuel)."
+          : "Cron required (or check Manual).";
       return;
     }
     if (saveBtn) saveBtn.disabled = true;
@@ -4480,10 +4625,14 @@ async function wireSchedulePage() {
         if (statusEl) statusEl.textContent = "";
         const form = document.getElementById("cron-add-form");
         if (form) form.style.display = "none";
-        ["cron-name", "cron-expr", "cron-prompt"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
+        ["cron-name", "cron-expr", "cron-prompt"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+        });
         await loadCronJobs();
       } else {
-        if (statusEl) statusEl.textContent = data.error || (fr ? "Erreur." : "Error.");
+        if (statusEl)
+          statusEl.textContent = data.error || (fr ? "Erreur." : "Error.");
       }
     } catch (err) {
       if (statusEl) statusEl.textContent = String(err);
@@ -4492,15 +4641,19 @@ async function wireSchedulePage() {
     }
   });
 
-  document.getElementById("add-workflow")?.addEventListener("click", async () => {
-    try {
-      const r = await fetch("/api/hub/agent/cron", { signal: AbortSignal.timeout(5000) });
-      const data = r.ok ? await r.json() : { jobs: [] };
-      openWorkflowModal(data.jobs || [], fr, loadWorkflows);
-    } catch (_) {
-      openWorkflowModal([], fr, loadWorkflows);
-    }
-  });
+  document
+    .getElementById("add-workflow")
+    ?.addEventListener("click", async () => {
+      try {
+        const r = await fetch("/api/hub/agent/cron", {
+          signal: AbortSignal.timeout(5000),
+        });
+        const data = r.ok ? await r.json() : { jobs: [] };
+        openWorkflowModal(data.jobs || [], fr, loadWorkflows);
+      } catch (_) {
+        openWorkflowModal([], fr, loadWorkflows);
+      }
+    });
 
   await Promise.all([loadCronJobs(), loadWorkflows()]);
 }

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Hub — Prettier (2026-05-01)
+- `yarn --cwd hub prettier --write src/main.js src/style.css` — aligne le gate `format:check` CI.
+
+### Scheduler — notifications Telegram plus lisibles (2026-05-01)
+- **`services/scheduler/core/telegram_format.py`**: normalisation du texte agent avant envoi (retrait `**` / `__`, espaces).
+- **Prompts cron** (`knowledge-consolidator-collect`, `knowledge-consolidator-consolidate`, `proactive-innovation`): consigne explicite « plain text mobile », structure en blocs et puces • ; Phase 2 sans appel HTTP Telegram (déjà géré par le scheduler).
+
+### Agent — skills disponibles avec provider `cli` (Claude Code) sans sync global (2026-05-01)
+- **Root cause**: le subprocess `claude --print` hérité du CWD de l'agent-service ne trouvait pas `.claude/settings.json` du projet → hook SessionStart muet → aucun skill injecté dans le contexte Claude.
+- **docker-compose.yml**: deux nouveaux volumes sur `agent-service` — `./.claude:/clawvis/.claude:ro` et `./skills:/clawvis/skills:ro` — exposent la config projet et les skills à l'intérieur du container.
+- **docker-compose.yml**: nouvelles variables d'env `CLAWVIS_ROOT=/clawvis` et `CLI_CWD=/clawvis` sur `agent-service`.
+- **`services/agent/agent_service/cli_runner.py`**: `CliRunner` lit `CLI_CWD` et le passe comme `cwd=` à `asyncio.create_subprocess_exec` → Claude démarre depuis `/clawvis`, trouve `.claude/settings.json`, exécute le hook SessionStart qui scanne `skills/*/SKILL.md` et injecte la liste `<clawvis-skills>` dans le contexte.
+- Les skills restent **locaux au repo** (pas de sync global dans `~/.claude`).
+- Référence : `docs/CLAUDE-REFERENCE.md` § *Agent — provider cli et skills*.
+
 ## [v1.0.0] - 2026-04-17
 
 ### MCP server — auto-install deps from setup wizard (2026-04-12)

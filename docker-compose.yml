@@ -146,12 +146,20 @@ services:
       # Claude CLI runtime (for provider=cli): mount host binary tree + auth/config in matching HOME paths.
       - "${HOME}/.local:/home/${USER}/.local:ro"
       - "${HOME}/.claude:/home/${USER}/.claude:rw"
+      # Project-level Claude config + skills (for provider=cli): Claude subprocess runs from /clawvis so the
+      # SessionStart hook in .claude/hooks/session-start.sh fires and injects the skills list as context.
+      # Skills themselves are read-only — execution happens via uv on the host, not inside this container.
+      - "./.claude:/clawvis/.claude:ro"
+      - "./skills:/clawvis/skills:ro"
       # Local Brain (BRAIN_PATH) — rw so cron skills can write curiosity/innovation notes.
       - "${BRAIN_PATH}:${BRAIN_PATH}:rw"
     environment:
       - CLAWVIS_DOTENV_PATH=/clawvis/.env
+      - CLAWVIS_ROOT=/clawvis
       - PRIMARY_AI_PROVIDER=${PRIMARY_AI_PROVIDER:-}
       - CLI_BIN=/home/${USER}/.local/bin/claude
+      # Working directory for the claude subprocess — must match the root where .claude/ is mounted.
+      - CLI_CWD=/clawvis
       - HOME=/home/${USER}
       - UV_CACHE_DIR=/tmp/uv-cache
       - OPENCLAW_AVAILABLE=${OPENCLAW_AVAILABLE:-false}

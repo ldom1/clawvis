@@ -21,6 +21,7 @@ from pydantic import ValidationError
 
 from config import SchedulerSettings, get_settings
 from models import AgentChatRequest, RunSkillInput, SkillDefinition, TelegramSendRequest, WorkflowDefinition
+from telegram_format import format_job_telegram_body
 
 logging.basicConfig(
     level=logging.INFO,
@@ -85,9 +86,10 @@ async def _run_skill(skill_data: dict) -> str:
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             trace_event("scheduler.job", "telegram.notify.start", trace_id=trace_id, name=skill.name)
+            notify = f"[{skill.name}]\n{format_job_telegram_body(result)}"
             await client.post(
                 f"{settings.telegram_url}/send",
-                json=TelegramSendRequest(text=f"[{skill.name}]\n{result}").model_dump(),
+                json=TelegramSendRequest(text=notify).model_dump(),
             )
         log.info("job.notified name=%s", skill.name)
         trace_event("scheduler.job", "telegram.notify.ok", trace_id=trace_id, name=skill.name)

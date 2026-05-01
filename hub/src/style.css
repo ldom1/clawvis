@@ -1983,8 +1983,12 @@ select {
   flex-shrink: 0;
   margin-top: 2px;
 }
-.cron-modal-event-dot.ok { background: #22c55e; }
-.cron-modal-event-dot.error { background: #ef4444; }
+.cron-modal-event-dot.ok {
+  background: #22c55e;
+}
+.cron-modal-event-dot.error {
+  background: #ef4444;
+}
 .cron-modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -2002,7 +2006,11 @@ select {
   animation: cron-spin 0.75s linear infinite;
   flex-shrink: 0;
 }
-@keyframes cron-spin { to { transform: rotate(360deg); } }
+@keyframes cron-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .detail-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
