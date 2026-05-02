@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
-from pathlib import Path
 
 from brain_maintenance.clawvis_paths import agent_workspace
 from brain_maintenance.logging import log_info, log_warning

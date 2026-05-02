@@ -6,11 +6,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from brain_maintenance.clawvis_paths import agent_workspace, memory_root
 from brain_maintenance.logging import log_info
 
-from brain_maintenance.clawvis_paths import memory_root
-
 MEMORY_DIR = memory_root()
+WORKSPACE = agent_workspace()
 DAILY_DIR = MEMORY_DIR / "daily"
 
 

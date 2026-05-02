@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### CI — brain-maintenance ruff (2026-05-02)
+- **`skills/brain-maintenance/core`** : retrait imports `Path` inutiles (`recalibrate.py`, `trim.py`) ; **`recover.py`** — `WORKSPACE = agent_workspace()` pour `relative_to` et `.logs` (corrige F821 sous `ci-skills.sh`).
+
 ### CI — scheduler gate (2026-05-02)
 - **`tests/ci-scheduler.sh`** : `pytest -q services/scheduler/tests` ; invoqué depuis **`tests/ci-all.sh`** après hub-core ; **`bash -n`** dans `.github/workflows/ci.yml`.
 - **`docs/testing.md`** / **`docs/ARCHITECTURE.md`** : orchestrateur documenté (`kanban → hub-core → scheduler → …`).
