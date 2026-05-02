@@ -78,14 +78,18 @@ import subprocess
 import json
 
 def search_memory(query, max_results=5):
-    """Search DomBot's memory via QMD"""
+    """Search memory via QMD (MEMORY_ROOT or BRAIN_PATH)."""
+    import os
+    from pathlib import Path
+    base = os.environ.get("MEMORY_ROOT") or os.environ.get("BRAIN_PATH") or ""
+    mem = Path(base).expanduser() if base else Path.home() / "lab" / "clawvis" / "instances" / "example" / "memory"
     result = subprocess.run([
         'qmd', 'search', query,
-        '--path', str(Path.home() / '.openclaw' / 'workspace' / 'memory'),
+        '--path', str(mem),
         '--json',
         '-n', str(max_results)
     ], capture_output=True, text=True)
-    
+
     return json.loads(result.stdout)
 
 # Usage in morning-briefing.py:
@@ -96,29 +100,19 @@ for item in recent:
 
 ---
 
-## Integration with OpenClaw
+## Integration with Clawvis
 
-OpenClaw natively supports QMD for memory search:
+Point QMD at instance memory or the Local Brain vault:
 
 ```bash
-# In ${CLAWVIS_ROOT}/config.json:
-{
-  "memory": {
-    "backend": "qmd",
-    "paths": [
-      "$BRAIN_PATH/MEMORY.md",
-      "$BRAIN_PATH/"
-    ]
-  }
-}
+# In ${CLAWVIS_ROOT}/config.json (documentation / tooling), or export in cron:
+export MEMORY_ROOT=${CLAWVIS_ROOT}/instances/example/memory
+# or
+export BRAIN_PATH=/path/to/vault
+qmd update --path "$BRAIN_PATH"
 ```
 
-Restart OpenClaw:
-```bash
-openclaw gateway restart
-```
-
-Now `memory_search()` tool uses QMD backend automatically.
+Hub / agent tools that expose `memory_search` can shell out to `qmd` the same way.
 
 ---
 

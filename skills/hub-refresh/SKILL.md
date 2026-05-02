@@ -13,6 +13,8 @@ Exécute `hub_core` pour mettre à jour les JSON publics du dashboard et journal
 ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/hub-refresh/scripts/run.sh
 ```
 
+**Docker / devbox** : le service **`scheduler`** exécute ce script via le champ YAML `command` (voir `services/scheduler/definitions/jobs/hub-refresh.yaml`) — ce n’est **pas** une skill invocable par le nom dans Claude Code ; l’agent ne doit pas recevoir « Run the hub-refresh skill ».
+
 Si le dépôt n’est pas à `~/lab/clawvis`, exporte **`CLAWVIS_ROOT`** (répertoire qui contient `hub-core/` et `skills/`). Le script essaie aussi `~/Lab/clawvis` en secours.
 
 Le script :
@@ -23,7 +25,7 @@ Le script :
 - écrit un log fichier sous **`${CLAWVIS_ROOT}/logs/hub-refresh-<timestamp>.log`**
 - appelle **`${CLAWVIS_ROOT}/skills/logger/core`** (`dombot-log`, `cron:hub-refresh`) si présent
 
-Aucun chemin **`~/.openclaw`** n’est utilisé.
+Aucun chemin hors dépôt : tout passe par **`CLAWVIS_ROOT`**.
 
 ## Résultat — mode cron (silencieux)
 

@@ -6,9 +6,10 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from brain_maintenance.clawvis_paths import agent_workspace, memory_root
 from brain_maintenance.logging import log_info, log_warning
 
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
+WORKSPACE = agent_workspace()
 L1_NAMES = [
     "SOUL.md", "AGENTS.md", "MEMORY.md", "USER.md", "TOOLS.md", "IDENTITY.md", "HEARTBEAT.md"
 ]
@@ -25,7 +26,7 @@ def read_l1_files() -> dict[str, str | None]:
 def get_recent_behavior() -> str:
     """Read last 24h daily notes from workspace memory as behavior signal."""
     from datetime import date, timedelta
-    memory_daily = WORKSPACE / "memory" / "daily"
+    memory_daily = memory_root() / "daily"
     today = date.today()
     lines: list[str] = []
     for delta in (0, 1):

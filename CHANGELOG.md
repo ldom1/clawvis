@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### CI — scheduler gate (2026-05-02)
+- **`tests/ci-scheduler.sh`** : `pytest -q services/scheduler/tests` ; invoqué depuis **`tests/ci-all.sh`** après hub-core ; **`bash -n`** dans `.github/workflows/ci.yml`.
+- **`docs/testing.md`** / **`docs/ARCHITECTURE.md`** : orchestrateur documenté (`kanban → hub-core → scheduler → …`).
+
+### Scheduler — shell cron jobs (2026-05-02)
+- **Job YAML** : champ optionnel `command` — si présent, le scheduler exécute un shell dans `CLAWVIS_ROOT` au lieu d’appeler l’agent avec « Run the X skill » (incompatible avec les skills Claude Code).
+- **`hub-refresh` / `morning-briefing`** : passent en `command: bash "/clawvis/skills/…/scripts/run.sh"`.
+- **Docker** : volume `./:/clawvis:ro` + env `CLAWVIS_ROOT`, `BRAIN_PATH`, `MEMORY_ROOT`, `INSTANCE_NAME` sur le service `scheduler`.
+- **Tests** : correction des chemins `jobs/` dans les tests workflow ; nouveau test shell vs agent ; tests `_run_shell_command` avec deux racines temporaires + smoke layout sur le checkout courant (`CLAWVIS_ROOT`).
+
+### Skills — CLAWVIS_ROOT sweep (2026-05-02)
+- **`skills/_clawvis_env.sh`** : résolution partagée de `CLAWVIS_ROOT`, `LOGGER_CORE`, `LOG_DIR` ; les scripts cron source ce fichier au lieu de `~/.openclaw/skills/logger/core`.
+- **Nettoyage OpenClaw** : suppression des références `~/.openclaw` / CLI dans `skills/` ; Telegram via `TELEGRAM_URL` + `POST /send` ; git-sync → miroir `.claude` / templates (`clawvis-config-mirror`) ; docs reverse-prompt / qmd / SKILLS alignées.
+- **Python** : `memory_root()` / `clawvis_paths` dans les skills concernés ; logger écrit sous `${CLAWVIS_ROOT}/logs` (ou `CLAWVIS_LOG_DIR`).
+- **Hooks** : `self-improvement/hooks/agent-bootstrap/` (remplace `openclaw`) ; `references/clawvis-skills.md`.
+
 ### Skills — self-improvement OpenRouter (2026-05-02)
 - **`self-improvement` / `call_llm`** : **OpenRouter uniquement** (`OPENROUTER_*`) ; retrait Mammouth / Mistral et fallback OpenClaw `sessions_spawn`.
 - **`config.py`** : chargement `.env` dans l’ordre skill → core → **racine Clawvis** (override) pour lire les mêmes clés que Docker/agent.
@@ -14,6 +30,12 @@ All notable changes to this project will be documented in this file.
 - **`scripts/run-self-improvement.sh`** : logs sous `${CLAWVIS_ROOT}/logs`, fallback `/tmp` ; fallback CLI `openclaw sessions_spawn` uniquement si la commande est dans `PATH`.
 - **`core/self_improvment/config.py`** : `LEARNINGS_DIR` = `skills/self-improvement/.learnings`, `WORKSPACE` = racine Clawvis si résolu, clés API uniquement via `.env` ; suppression de la lecture `~/.openclaw/openclaw.json`.
 - **`protocol_audit`** : scan skills sous `${CLAWVIS_ROOT}/skills`, projets sous `~/lab` et `~/Lab`, `PROTOCOL.md` idem.
+
+### Skills — dombot-mail (2026-05-02)
+- **`scripts/dombot-mail.sh`** : source `skills/_clawvis_env.sh` (`clawvis_env_load`) ; `.env` skill → core → `${CLAWVIS_ROOT}/.env`.
+- **`core/dombot_mail/service.py`** : logger sous `${CLAWVIS_ROOT}/skills/logger/core` (fallback `~/lab/clawvis` / `~/Lab/clawvis`).
+- **`core/dombot_mail/config.py`** : chargement `.env` aligné (skill → core → racine repo).
+- **`SKILL.md`** : retrait métadonnées OpenClaw et chemins `~/.openclaw` ; documentation `CLAWVIS_ROOT`.
 
 ### Skills — hub-refresh + self-improvement (2026-05-02)
 - **`skills/hub-refresh/SKILL.md`** : enregistrement du skill (description, run, troubleshooting) pour exposition dans l’index agent.

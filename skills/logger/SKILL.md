@@ -23,7 +23,7 @@ Launch from anywhere; no need to `cd` into core.
 |--------|--------|
 | `dombot-log.sh` | Write log entry (dombot.log + jsonl) and route to Discord if pattern matches |
 | `discord-send.sh` | Send a message to Discord only (no log file) |
-| `discord-check.sh` | Diagnose config (env + openclaw.json); use `--test` to send a test message |
+| `discord-check.sh` | Diagnose config (env + optional `${CLAWVIS_ROOT}/config.json`); use `--test` to send a test message |
 
 **dombot-log (log + optional Discord):**
 ```bash

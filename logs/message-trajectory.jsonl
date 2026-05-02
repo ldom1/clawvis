@@ -406,3 +406,105 @@
 {"ts": "2026-05-01T22:11:53.621120Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "390261aac8654de2a5052e5f46abc2de", "name": "self-improvement", "level": "INFO"}
 {"ts": "2026-05-01T22:11:53.621533Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "3141ec5d345c4b9483fba0df7e898a94", "workflow": "knowledge-and-innovation", "job": "self-improvement", "level": "INFO"}
 {"ts": "2026-05-01T22:11:53.621774Z", "component": "scheduler.workflow", "event": "workflow.complete", "trace_id": "3141ec5d345c4b9483fba0df7e898a94", "name": "knowledge-and-innovation", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.517169Z", "component": "scheduler.job", "event": "job.invalid_payload", "trace_id": "d96a23ce55c84b94a8b343e531129317", "payload": {"name": "daily"}, "error": "1 validation error for RunSkillInput\n  Value error, prompt is required when command is empty [type=value_error, input_value={'name': 'daily'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error", "level": "ERROR"}
+{"ts": "2026-05-02T07:17:13.529521Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "c1f986b9cbf64451bbb9aea5ce27b392", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.530499Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "c1f986b9cbf64451bbb9aea5ce27b392", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.532568Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "c1f986b9cbf64451bbb9aea5ce27b392", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.533190Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "c1f986b9cbf64451bbb9aea5ce27b392", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.533577Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "c1f986b9cbf64451bbb9aea5ce27b392", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.540550Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "eb1d7b30e3c143438d6c68922b620b9e", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.541666Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "eb1d7b30e3c143438d6c68922b620b9e", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.542777Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "eb1d7b30e3c143438d6c68922b620b9e", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.549703Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "3df859d4292748569c5cf491c351bed9", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.550164Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "3df859d4292748569c5cf491c351bed9", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.550454Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "3df859d4292748569c5cf491c351bed9", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.550696Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "3df859d4292748569c5cf491c351bed9", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.550928Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "3df859d4292748569c5cf491c351bed9", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.558448Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "b58033c19bd34a2398d1127d9ebb9364", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.560726Z", "component": "scheduler.workflow", "event": "workflow.job_not_found", "trace_id": "b58033c19bd34a2398d1127d9ebb9364", "workflow": "my-workflow", "job": "job-a", "level": "ERROR"}
+{"ts": "2026-05-02T07:17:13.576031Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "f68191fa472e4c7baf8c9184e3decb44", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-05-02T07:17:13.576916Z", "component": "scheduler.workflow", "event": "workflow.job_not_found", "trace_id": "f68191fa472e4c7baf8c9184e3decb44", "workflow": "my-workflow", "job": "job-a", "level": "ERROR"}
+{"ts": "2026-05-02T07:17:37.493507Z", "component": "scheduler.job", "event": "job.invalid_payload", "trace_id": "07bcea39df904d44b9486b9b77dd896c", "payload": {"name": "daily"}, "error": "1 validation error for RunSkillInput\n  Value error, prompt is required when command is empty [type=value_error, input_value={'name': 'daily'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error", "level": "ERROR"}
+{"ts": "2026-05-02T07:17:37.509259Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "e0731fdbb20d4c53aa7dc7cdc76354b1", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.512381Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "e0731fdbb20d4c53aa7dc7cdc76354b1", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.514680Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "e0731fdbb20d4c53aa7dc7cdc76354b1", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.515669Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "e0731fdbb20d4c53aa7dc7cdc76354b1", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.517453Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "e0731fdbb20d4c53aa7dc7cdc76354b1", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.522989Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "d4c3dd2074624dd7a63a99f932cbbeea", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.523838Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "d4c3dd2074624dd7a63a99f932cbbeea", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.530003Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "d4c3dd2074624dd7a63a99f932cbbeea", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.536611Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "b133a73600fe478bab4599322ada16fb", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.537409Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "b133a73600fe478bab4599322ada16fb", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.538697Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "b133a73600fe478bab4599322ada16fb", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.540094Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "b133a73600fe478bab4599322ada16fb", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.540892Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "b133a73600fe478bab4599322ada16fb", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.551854Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "c8ff5134bf8d49e9a7fd235af6cd1186", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.553929Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "c8ff5134bf8d49e9a7fd235af6cd1186", "workflow": "my-workflow", "job": "job-a", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.556209Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "c8ff5134bf8d49e9a7fd235af6cd1186", "workflow": "my-workflow", "job": "job-b", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.558236Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "c8ff5134bf8d49e9a7fd235af6cd1186", "workflow": "my-workflow", "job": "job-c", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.561734Z", "component": "scheduler.workflow", "event": "workflow.complete", "trace_id": "c8ff5134bf8d49e9a7fd235af6cd1186", "name": "my-workflow", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.568838Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "12b7029564254a17821c1f11e55aa576", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.571122Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "12b7029564254a17821c1f11e55aa576", "workflow": "my-workflow", "job": "job-a", "level": "INFO"}
+{"ts": "2026-05-02T07:17:37.572865Z", "component": "scheduler.workflow", "event": "workflow.stopped", "trace_id": "12b7029564254a17821c1f11e55aa576", "workflow": "my-workflow", "failed_job": "job-b", "level": "ERROR"}
+{"ts": "2026-05-02T07:19:06.392403Z", "component": "scheduler.job", "event": "shell.start", "trace_id": "t", "name": "probe", "level": "INFO"}
+{"ts": "2026-05-02T07:19:06.432577Z", "component": "scheduler.job", "event": "shell.ok", "trace_id": "t", "name": "probe", "result_chars": 57, "level": "INFO"}
+{"ts": "2026-05-02T07:19:06.435647Z", "component": "scheduler.job", "event": "shell.start", "trace_id": "t", "name": "probe", "level": "INFO"}
+{"ts": "2026-05-02T07:19:06.442753Z", "component": "scheduler.job", "event": "shell.ok", "trace_id": "t", "name": "probe", "result_chars": 58, "level": "INFO"}
+{"ts": "2026-05-02T07:19:06.450795Z", "component": "scheduler.job", "event": "shell.start", "trace_id": "t", "name": "layout-check", "level": "INFO"}
+{"ts": "2026-05-02T07:19:06.457643Z", "component": "scheduler.job", "event": "shell.ok", "trace_id": "t", "name": "layout-check", "result_chars": 9, "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.583207Z", "component": "scheduler.job", "event": "shell.start", "trace_id": "t", "name": "layout-check", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.598468Z", "component": "scheduler.job", "event": "shell.ok", "trace_id": "t", "name": "layout-check", "result_chars": 9, "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.601850Z", "component": "scheduler.job", "event": "shell.start", "trace_id": "t", "name": "probe", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.610063Z", "component": "scheduler.job", "event": "shell.ok", "trace_id": "t", "name": "probe", "result_chars": 57, "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.612301Z", "component": "scheduler.job", "event": "shell.start", "trace_id": "t", "name": "probe", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.617327Z", "component": "scheduler.job", "event": "shell.ok", "trace_id": "t", "name": "probe", "result_chars": 58, "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.620529Z", "component": "scheduler.job", "event": "job.invalid_payload", "trace_id": "281c36c5678e4e4085f115ccc32a9ba1", "payload": {"name": "daily"}, "error": "1 validation error for RunSkillInput\n  Value error, prompt is required when command is empty [type=value_error, input_value={'name': 'daily'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error", "level": "ERROR"}
+{"ts": "2026-05-02T07:19:13.627555Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "f73235c564a24aeb83c2131a0d1e87ab", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.629478Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "f73235c564a24aeb83c2131a0d1e87ab", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.630427Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "f73235c564a24aeb83c2131a0d1e87ab", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.630970Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "f73235c564a24aeb83c2131a0d1e87ab", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.631259Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "f73235c564a24aeb83c2131a0d1e87ab", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.637913Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "ecfef41033194ef8be1555d55be42da4", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.638549Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "ecfef41033194ef8be1555d55be42da4", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.638884Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "ecfef41033194ef8be1555d55be42da4", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.646446Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "e4274a1a037448e7b7a95d62c13c3b6f", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.647214Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "e4274a1a037448e7b7a95d62c13c3b6f", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.648732Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "e4274a1a037448e7b7a95d62c13c3b6f", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.649495Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "e4274a1a037448e7b7a95d62c13c3b6f", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.651030Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "e4274a1a037448e7b7a95d62c13c3b6f", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.662418Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "068c01f698fb4441b88578048be5663d", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.664766Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "068c01f698fb4441b88578048be5663d", "workflow": "my-workflow", "job": "job-a", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.666362Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "068c01f698fb4441b88578048be5663d", "workflow": "my-workflow", "job": "job-b", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.667408Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "068c01f698fb4441b88578048be5663d", "workflow": "my-workflow", "job": "job-c", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.668068Z", "component": "scheduler.workflow", "event": "workflow.complete", "trace_id": "068c01f698fb4441b88578048be5663d", "name": "my-workflow", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.674326Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "ceb0665062074d52b42ede7542911f8d", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.675299Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "ceb0665062074d52b42ede7542911f8d", "workflow": "my-workflow", "job": "job-a", "level": "INFO"}
+{"ts": "2026-05-02T07:19:13.677582Z", "component": "scheduler.workflow", "event": "workflow.stopped", "trace_id": "ceb0665062074d52b42ede7542911f8d", "workflow": "my-workflow", "failed_job": "job-b", "level": "ERROR"}
+{"ts": "2026-05-02T09:43:36.555299Z", "component": "scheduler.job", "event": "shell.start", "trace_id": "t", "name": "layout-check", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.602322Z", "component": "scheduler.job", "event": "shell.ok", "trace_id": "t", "name": "layout-check", "result_chars": 9, "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.616000Z", "component": "scheduler.job", "event": "shell.start", "trace_id": "t", "name": "probe", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.623266Z", "component": "scheduler.job", "event": "shell.ok", "trace_id": "t", "name": "probe", "result_chars": 57, "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.630596Z", "component": "scheduler.job", "event": "shell.start", "trace_id": "t", "name": "probe", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.644716Z", "component": "scheduler.job", "event": "shell.ok", "trace_id": "t", "name": "probe", "result_chars": 58, "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.654637Z", "component": "scheduler.job", "event": "job.invalid_payload", "trace_id": "5824784643f34bbd8f5ef3406298befa", "payload": {"name": "daily"}, "error": "1 validation error for RunSkillInput\n  Value error, prompt is required when command is empty [type=value_error, input_value={'name': 'daily'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error", "level": "ERROR"}
+{"ts": "2026-05-02T09:43:36.660947Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "8088720ea6e541bab0761faa36d47b52", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.661798Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "8088720ea6e541bab0761faa36d47b52", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.678248Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "8088720ea6e541bab0761faa36d47b52", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.679476Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "8088720ea6e541bab0761faa36d47b52", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.680769Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "8088720ea6e541bab0761faa36d47b52", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.689705Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "3471c55154e14f448f5945d28b44d9ba", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.690827Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "3471c55154e14f448f5945d28b44d9ba", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.697875Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "3471c55154e14f448f5945d28b44d9ba", "name": "hub-refresh", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.705503Z", "component": "scheduler.job", "event": "job.trigger", "trace_id": "f8a41613df4b4aaeb357e07d7ac096d1", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.706434Z", "component": "scheduler.job", "event": "agent.request.start", "trace_id": "f8a41613df4b4aaeb357e07d7ac096d1", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.707839Z", "component": "scheduler.job", "event": "agent.request.ok", "trace_id": "f8a41613df4b4aaeb357e07d7ac096d1", "name": "daily", "result_chars": 12, "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.709073Z", "component": "scheduler.job", "event": "telegram.notify.start", "trace_id": "f8a41613df4b4aaeb357e07d7ac096d1", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.713544Z", "component": "scheduler.job", "event": "telegram.notify.ok", "trace_id": "f8a41613df4b4aaeb357e07d7ac096d1", "name": "daily", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.724389Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "5ef0ee1d43ed41758d91020458524cf2", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.725891Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "5ef0ee1d43ed41758d91020458524cf2", "workflow": "my-workflow", "job": "job-a", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.728073Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "5ef0ee1d43ed41758d91020458524cf2", "workflow": "my-workflow", "job": "job-b", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.729894Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "5ef0ee1d43ed41758d91020458524cf2", "workflow": "my-workflow", "job": "job-c", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.731026Z", "component": "scheduler.workflow", "event": "workflow.complete", "trace_id": "5ef0ee1d43ed41758d91020458524cf2", "name": "my-workflow", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.740485Z", "component": "scheduler.workflow", "event": "workflow.trigger", "trace_id": "63918b2bfa4349099e5488b8df16eaa0", "name": "my-workflow", "jobs": ["job-a", "job-b", "job-c"], "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.743770Z", "component": "scheduler.workflow", "event": "workflow.job_done", "trace_id": "63918b2bfa4349099e5488b8df16eaa0", "workflow": "my-workflow", "job": "job-a", "level": "INFO"}
+{"ts": "2026-05-02T09:43:36.754853Z", "component": "scheduler.workflow", "event": "workflow.stopped", "trace_id": "63918b2bfa4349099e5488b8df16eaa0", "workflow": "my-workflow", "failed_job": "job-b", "level": "ERROR"}

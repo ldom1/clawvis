@@ -1,4 +1,4 @@
-"""Entry point: run phases, print ONE report to stdout. No Telegram/OpenClaw calls."""
+"""Entry point: run phases, print ONE report to stdout. Shell sends Telegram if configured."""
 
 from __future__ import annotations
 

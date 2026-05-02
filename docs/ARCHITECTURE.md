@@ -251,7 +251,7 @@ clawvis/
     example/              # Instance template (copied on install)
     <instance_name>/      # Real instance data (gitignored except structure)
   docs/                   # Technical documentation
-  tests/                  # CI — ci-all.sh, ci-skills.sh
+  tests/                  # CI — ci-all.sh, ci-scheduler.sh, ci-skills.sh
   .github/workflows/      # CI/CD GitHub Actions
 ```
 

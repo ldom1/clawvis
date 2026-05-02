@@ -80,15 +80,17 @@ class SchedulerTests(unittest.IsolatedAsyncioTestCase):
     def test_load_skills_validates_yaml(self) -> None:
         with TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            (tmp_path / "valid.yaml").write_text(
+            jobs = tmp_path / "jobs"
+            jobs.mkdir(parents=True)
+            (jobs / "valid.yaml").write_text(
                 "name: morning\ncron: '0 9 * * *'\nprompt: ping\n",
                 encoding="utf-8",
             )
-            (tmp_path / "disabled.yaml").write_text(
+            (jobs / "disabled.yaml").write_text(
                 "name: off\ncron: '0 10 * * *'\nprompt: ignore\nenabled: false\n",
                 encoding="utf-8",
             )
-            (tmp_path / "invalid.yaml").write_text("name: bad\n", encoding="utf-8")
+            (jobs / "invalid.yaml").write_text("name: bad\n", encoding="utf-8")
 
             skills = scheduler_module._load_skills(tmp_path)
 
@@ -106,6 +108,29 @@ class SchedulerTests(unittest.IsolatedAsyncioTestCase):
             scheduler_module.httpx.AsyncClient = original_client
         self.assertEqual(result, "agent-result")
 
+    async def test_run_skill_shell_skips_agent_chat(self) -> None:
+        original_client = scheduler_module.httpx.AsyncClient
+        original_shell = scheduler_module._run_shell_command
+
+        async def fake_shell(cmd: str, *, trace_id: str, job_name: str) -> str:
+            return f"shell:{job_name}:{cmd}"
+
+        _FakeAsyncClient.calls = []
+        scheduler_module.httpx.AsyncClient = _FakeAsyncClient
+        scheduler_module._run_shell_command = fake_shell
+        try:
+            result = await scheduler_module._run_skill(
+                {"name": "hub-refresh", "prompt": "ignored", "command": "bash /x.sh"},
+            )
+        finally:
+            scheduler_module.httpx.AsyncClient = original_client
+            scheduler_module._run_shell_command = original_shell
+
+        self.assertIn("shell:hub-refresh", result)
+        chat_urls = [c[0] for c in _FakeAsyncClient.calls if c[0].endswith("/chat")]
+        self.assertEqual(chat_urls, [])
+        self.assertTrue(any(c[0].endswith("/send") for c in _FakeAsyncClient.calls))
+
     async def test_run_workflow_sequential(self) -> None:
         import tempfile
         import yaml as _yaml
@@ -121,8 +146,10 @@ class SchedulerTests(unittest.IsolatedAsyncioTestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
+            jobs = tmp_path / "jobs"
+            jobs.mkdir(parents=True)
             for job_name in ("job-a", "job-b", "job-c"):
-                (tmp_path / f"{job_name}.yaml").write_text(
+                (jobs / f"{job_name}.yaml").write_text(
                     _yaml.dump({"name": job_name, "prompt": f"run {job_name}", "enabled": True}),
                     encoding="utf-8",
                 )
@@ -155,8 +182,10 @@ class SchedulerTests(unittest.IsolatedAsyncioTestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
+            jobs = tmp_path / "jobs"
+            jobs.mkdir(parents=True)
             for job_name in ("job-a", "job-b", "job-c"):
-                (tmp_path / f"{job_name}.yaml").write_text(
+                (jobs / f"{job_name}.yaml").write_text(
                     _yaml.dump({"name": job_name, "prompt": f"run {job_name}", "enabled": True}),
                     encoding="utf-8",
                 )
@@ -171,6 +200,52 @@ class SchedulerTests(unittest.IsolatedAsyncioTestCase):
                 scheduler_module._skills_dir = None
 
         self.assertEqual(called, ["job-a", "job-b"])
+
+    async def test_run_shell_command_respects_clawvis_root_alternate_paths(self) -> None:
+        """Shell cwd + CLAWVIS_ROOT env must follow any absolute checkout path (not hardcoded /clawvis)."""
+        for label, suffix in (("alpha", "nest-a"), ("beta", "other/b")):
+            with self.subTest(label=label):
+                with TemporaryDirectory() as tmp:
+                    root = Path(tmp).resolve() / suffix
+                    root.mkdir(parents=True)
+                    (root / ".probe").write_text(label, encoding="utf-8")
+                    old = os.environ.get("CLAWVIS_ROOT")
+                    os.environ["CLAWVIS_ROOT"] = str(root)
+                    try:
+                        out = await scheduler_module._run_shell_command(
+                            'pwd; echo "ENV=$CLAWVIS_ROOT"; cat .probe',
+                            trace_id="t",
+                            job_name="probe",
+                        )
+                    finally:
+                        if old is None:
+                            os.environ.pop("CLAWVIS_ROOT", None)
+                        else:
+                            os.environ["CLAWVIS_ROOT"] = old
+                lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
+                self.assertEqual(lines[0], str(root), msg="pwd should match CLAWVIS_ROOT cwd")
+                self.assertIn(f"ENV={root}", out)
+                self.assertIn(label, out)
+
+    async def test_run_shell_command_real_repo_layout(self) -> None:
+        """Smoke: current checkout path sees hub-core + skills (same as Docker mount /clawvis)."""
+        repo = Path(__file__).resolve().parents[3]
+        if not (repo / "hub-core").is_dir() or not (repo / "skills" / "hub-refresh").is_dir():
+            self.skipTest("not a full clawvis repo root")
+        old = os.environ.get("CLAWVIS_ROOT")
+        os.environ["CLAWVIS_ROOT"] = str(repo)
+        try:
+            out = await scheduler_module._run_shell_command(
+                "test -d hub-core && test -d skills/hub-refresh && echo LAYOUT_OK",
+                trace_id="t",
+                job_name="layout-check",
+            )
+        finally:
+            if old is None:
+                os.environ.pop("CLAWVIS_ROOT", None)
+            else:
+                os.environ["CLAWVIS_ROOT"] = old
+        self.assertEqual(out.strip(), "LAYOUT_OK")
 
 
 class TelegramFormatTests(unittest.TestCase):

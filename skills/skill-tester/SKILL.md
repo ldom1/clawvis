@@ -1,20 +1,18 @@
 ---
 name: skill-tester
-description: "Run all Python unit tests for OpenClaw skills and check Discord logger config. Use when: validating skills after changes, debugging a failing skill, or running a health check. Outputs a pass/fail report."
+description: "Run all Python unit tests for Clawvis skills and check Discord logger config. Use when: validating skills after changes, debugging a failing skill, or running a health check. Outputs a pass/fail report."
 ---
 
 # Skill Tester
 
-Lance les tests unitaires Python de tous les skills OpenClaw et un contrôle optionnel du logger Discord.
+Lance les tests unitaires Python des skills sous **`CLAWVIS_ROOT`** et un contrôle optionnel du logger Discord.
 
 ## ⚡ Exécution rapide
 
 ```bash
-# Depuis le dépôt Clawvis (recommandé si ~/.openclaw/skills est vide — extraDirs)
-export CLAWVIS_ROOT="$HOME/Lab/clawvis" INSTANCE_NAME=dombot
+export CLAWVIS_ROOT="$HOME/lab/clawvis" INSTANCE_NAME=dombot
 bash "$CLAWVIS_ROOT/skills/skill-tester/scripts/test-all.sh"
 
-# Ancien mode : symlinks sous ~/.openclaw/skills
 ${CLAWVIS_ROOT}/skills/skill-tester/scripts/test-all.sh
 
 # Un skill / liste
@@ -76,9 +74,8 @@ Pour les skills sans Python core (git-sync, brain-pulse) :
 # Vérifier la syntaxe bash (si shellcheck installé)
 shellcheck ${CLAWVIS_ROOT}/skills/git-sync/scripts/sync.sh
 
-# Dry run : lire le SKILL.md et vérifier les chemins référencés
-grep -r "~/.openclaw/skills" ${CLAWVIS_ROOT}/skills/git-sync/SKILL.md | \
-  while read path; do [ -f "$path" ] && echo "✅ $path" || echo "❌ MISSING: $path"; done
+# Dry run : lire le SKILL.md git-sync et vérifier qu'il cite CLAWVIS_ROOT
+grep -n "CLAWVIS_ROOT" "${CLAWVIS_ROOT}/skills/git-sync/SKILL.md"
 ```
 
 ---

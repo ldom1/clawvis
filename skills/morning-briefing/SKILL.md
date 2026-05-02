@@ -15,9 +15,11 @@ python3 ~/Lab/clawvis/skills/morning-briefing/morning-briefing.py
 ```
 
 - Ce script construit le briefing à partir de sources réelles (curiosity files, Wikipedia API, system.json).
-- Il envoie le résultat à Telegram via `openclaw message send`.
+- Il envoie le résultat à Telegram via **`TELEGRAM_URL`** (`POST /send`, JSON `{"text":"…"}`) lorsque le service `telegram` Clawvis tourne.
 - **Répondre uniquement** : `Morning briefing envoyé ✅` (ou afficher le briefing généré).
 - **NE PAS générer de contenu manuellement** si le script fonctionne.
+
+**Cron Docker** : `services/scheduler/definitions/jobs/morning-briefing.yaml` appelle `bash "/clawvis/skills/morning-briefing/scripts/run.sh"` via le champ `command` — pas d’invocation « skill » côté agent.
 
 Si le script échoue (ImportError, fichier manquant), suivre les étapes manuelles ci-dessous **avec sources réelles uniquement**.
 

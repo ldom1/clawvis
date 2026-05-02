@@ -1,34 +1,29 @@
 ---
 name: git-sync
-description: "Sync OpenClaw workspace + skills into ONE repo (openclaw-dombot). Never commits API keys, tokens, or openclaw.json."
+description: "Mirror Clawvis .claude + templates into one git repo (GIT_SYNC_REPO). Never commits .env or secrets."
 metadata:
 ---
 
 # Git Sync
 
-## ⚡ Exécution rapide
+## Exécution rapide
 
 ```bash
 ${CLAWVIS_ROOT}/skills/git-sync/scripts/sync.sh
 ```
 
-Synchronise la configuration essentielle OpenClaw dans **un seul dépôt** : **openclaw-dombot**. Contenu : `workspace/` (AGENTS, SOUL, memory, etc.) et `skills/`. Aucune clé API ni fichier sensible.
+Copie un **sous-ensemble** du dépôt Clawvis (fichiers `.claude/`, `.env.example`, etc.) vers **`~/clawvis-config-mirror/`** (ou `GIT_SYNC_REPO`). Puis enchaîne sur **`~/Lab/git-sync.sh`** si présent.
 
-## Repo unique
+## Paramètres
 
-- **Nom :** `openclaw-dombot` (ou `GIT_SYNC_REPO` si défini).
-- **Structure :** à la racine du repo : `workspace/`, `skills/`, et `cron/jobs.json` (pas de `runs/`).
-- **Emplacement local :** `~/openclaw-dombot/` (dans le home, miroir pour git, pas les répertoires de travail réels).
+- **`GIT_SYNC_REPO`** — nom du dossier sous `$HOME` (défaut : `clawvis-config-mirror`).
+- **`CLAWVIS_ROOT`** — racine du dépôt Clawvis (détection `~/lab/clawvis`, `~/Lab/clawvis` si absent).
 
-## Règle de sécurité
+## Sécurité
 
-- **Jamais** commiter : `openclaw.json`, `auth*.json`, `*.key`, `.env`, tokens. Les `.git` imbriqués dans skills sont supprimés pour éviter les sous-modules.
+Ne committe pas : `.env`, tokens, clés. Le script exclut les motifs usuels en rsync.
 
 ## Invocation
 
-1. Exécuter : `${CLAWVIS_ROOT}/skills/git-sync/scripts/sync.sh`
-2. Rapporter : succès/échec, push OK ou erreur.
-
-## GitHub CLI (gh)
-
-Si `gh` est connecté (`gh auth login`), le script peut créer le repo (privé) s’il n’existe pas et pousser. Variable optionnelle : `GIT_SYNC_REPO=mon-repo` pour un autre nom de dépôt.
+1. `${CLAWVIS_ROOT}/skills/git-sync/scripts/sync.sh`
+2. Rapporter : succès push ou erreur git.

@@ -111,7 +111,7 @@ uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanb
 - [ ] Au moins 1 test (`uv run pytest tests/ -v`)
 - [ ] `uv run ruff check .` sans erreur bloquante
 - [ ] `.env.example` cohérent avec les variables utilisées
-- [ ] Logs via `dombot-logger` si le code touche DomBot/OpenClaw
+- [ ] Logs via `dombot-logger` si le code touche l’agent ou les cron skills
 - [ ] Hub mis à jour si app exposée (tuile + nginx.conf)
 
 **Git :**
@@ -162,7 +162,10 @@ uv run --directory ${CLAWVIS_ROOT}/skills/kanban-implementer/core python -m kanb
 ```bash
 msg=$'🔧 Kanban — PR prête pour review\n\n📋 [TASK_ID] Titre de la tâche\n📁 Projet : project-name\n⏱️ Effort réel : Xh\n\n🔗 PR : https://github.com/ldom1/<repo>/pull/<N>\n🧪 Tests : OK\n📎 Branch : feat/TASK_ID-slug\n\nKanban mis à jour → Review ⏳'
 
-openclaw message send --channel telegram --target 5689694685 --message "$msg"
+# Exemple : même effet qu'une alerte — JSON {"text":"…"} vers le service telegram Clawvis
+curl -sS -X POST "${TELEGRAM_URL:-http://127.0.0.1:8094}/send" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg m "$msg" '{text:$m}')"
 
 uv run --directory ${CLAWVIS_ROOT}/skills/logger/core \
   dombot-log "INFO" "cron:kanban-implementer" "system" "impl:complete" "Task TASK_ID implemented + PR opened"

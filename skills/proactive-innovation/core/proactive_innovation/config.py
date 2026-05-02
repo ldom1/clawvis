@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 
-# Load .env from skill root then core/ (core wins). override=True so .env beats openclaw.json.
+# Load .env from skill root then core/ (core wins).
 try:
     from dotenv import load_dotenv
     _core_dir = Path(__file__).resolve().parent.parent
@@ -15,9 +14,10 @@ try:
 except ImportError:
     pass
 
+from proactive_innovation.clawvis_paths import memory_root
+
 HOME = Path.home()
-WORKSPACE = HOME / ".openclaw" / "workspace"
-MEMORY = WORKSPACE / "memory"
+MEMORY = memory_root()
 PROJECTS_DIR = MEMORY / "projects"
 KNOWLEDGE_DIR = MEMORY / "resources" / "knowledge"
 CURIOSITY_DIR = MEMORY / "resources" / "curiosity"
@@ -39,24 +39,7 @@ def _s(x: str | None) -> str | None:
 
 
 def load_openrouter_key() -> str | None:
-    k = _s(os.getenv("OPENROUTER_API_KEY"))
-    if k:
-        return k
-    try:
-        path = HOME / ".openclaw" / "openclaw.json"
-        if not path.exists():
-            return None
-        with open(path, encoding="utf-8") as f:
-            cfg = json.load(f)
-        entries = cfg.get("skills", {}).get("entries", {})
-        for name in ("proactive-innovation", "self-improving-agent", "self-improvement"):
-            env = (entries.get(name) or {}).get("env") or {}
-            k = _s(env.get("OPENROUTER_API_KEY"))
-            if k:
-                return k
-        return _s(cfg.get("env", {}).get("OPENROUTER_API_KEY"))
-    except (json.JSONDecodeError, OSError, TypeError):
-        return None
+    return _s(os.getenv("OPENROUTER_API_KEY"))
 
 
 def load_openrouter_model() -> str:

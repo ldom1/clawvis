@@ -2,7 +2,7 @@
 name = "reverse-prompt"
 version = "0.1.0"
 description = "Reverse-engineer prompts from example outputs using Claude"
-authors = [{name = "DomBot", email = "dombot@openclaw.local"}]
+authors = [{name = "DomBot", email = "dombot@clawvis.local"}]
 requires-python = ">=3.10"
 dependencies = [
     "anthropic>=0.35.0",

@@ -8,4 +8,4 @@ uv run python -m brain_maintenance recalibrate
 uv run python -m brain_maintenance recover
 ```
 
-Logging: dombot_logger (~/.openclaw/skills/logger/core).
+Logging: dombot_logger (`${CLAWVIS_ROOT}/skills/logger/core`).

@@ -8,8 +8,9 @@ from pathlib import Path
 
 from brain_maintenance.logging import log_info
 
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
-MEMORY_DIR = WORKSPACE / "memory"
+from brain_maintenance.clawvis_paths import memory_root
+
+MEMORY_DIR = memory_root()
 DAILY_DIR = MEMORY_DIR / "daily"
 
 

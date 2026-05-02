@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 Morning Briefing — Compact version with Curiosity integration.
-Core: 6 lines. Optional: +3-5 top discoveries from Curiosity.
-Sends to Telegram via OpenClaw gateway.
+Sends to Telegram via Clawvis telegram service HTTP (/send).
 """
 
 import json
@@ -17,13 +16,45 @@ from pathlib import Path
 
 from wikipedia_on_this_day import fetch_on_this_day
 
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
-MEMORY_DIR = WORKSPACE / "memory" / "resources" / "curiosity"
-_HUB_ROOT = Path(os.environ.get("HUB_ROOT", str(Path.home() / "Lab" / "hub-ldom" / "instances" / "ldom")))
+
+def _clawvis_root() -> Path | None:
+    raw = os.environ.get("CLAWVIS_ROOT", "").strip()
+    if raw:
+        return Path(raw).expanduser().resolve()
+    for p in (Path.home() / "lab" / "clawvis", Path.home() / "Lab" / "clawvis"):
+        if (p / "hub-core").is_dir():
+            return p.resolve()
+    return None
+
+
+def _memory_root() -> Path:
+    m = os.environ.get("MEMORY_ROOT", "").strip()
+    cr = _clawvis_root()
+    if m:
+        p = Path(m).expanduser()
+        if cr is not None and not p.is_absolute():
+            p = cr / p
+        return p.resolve()
+    inst = os.environ.get("INSTANCE_NAME", "example").strip() or "example"
+    if cr is not None:
+        return (cr / "instances" / inst / "memory").resolve()
+    return (Path.home() / "lab" / "clawvis" / "instances" / inst / "memory").resolve()
+
+
+def _hub_root() -> Path:
+    h = os.environ.get("HUB_ROOT", "").strip()
+    if h:
+        return Path(h).expanduser().resolve()
+    cr = _clawvis_root()
+    if cr is not None and (cr / "hub" / "public" / "api" / "system.json").is_file():
+        return cr / "hub"
+    return Path.home() / "Lab" / "hub-ldom" / "instances" / "ldom"
+
+
+MEMORY_DIR = _memory_root() / "resources" / "curiosity"
+_HUB_ROOT = _hub_root()
 SYSTEM_JSON = _HUB_ROOT / "public" / "api" / "system.json"
-KANBAN_JSON = WORKSPACE / "memory" / "kanban" / "tasks.json"
 CF_URL_FILE = _HUB_ROOT / "DOMBOT_TECH_URL.txt"
-TELEGRAM_TARGET_ID = os.environ.get("TELEGRAM_TARGET_ID", "")
 
 
 def get_hub_url():
@@ -316,44 +347,57 @@ def build_briefing():
     return "\n".join(lines)
 
 
+def _logger_core() -> Path | None:
+    cr = _clawvis_root()
+    for base in ([cr] if cr else []) + [Path.home() / "lab" / "clawvis", Path.home() / "Lab" / "clawvis"]:
+        if base is None:
+            continue
+        c = base / "skills" / "logger" / "core"
+        if c.is_dir():
+            return c
+    return None
+
+
 def send_telegram(text: str) -> bool:
-    """Send briefing to Telegram via OpenClaw CLI (fire-and-forget in background)."""
+    """POST briefing to Clawvis telegram /send (TELEGRAM_URL, default http://127.0.0.1:8094)."""
+    url = os.environ.get("TELEGRAM_URL", "http://127.0.0.1:8094").rstrip("/") + "/send"
+    body = json.dumps({"text": text}).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=body, headers={"Content-Type": "application/json"}, method="POST"
+    )
     try:
-        import subprocess
-        
-        # Fire-and-forget: send to Telegram in background without waiting
-        # This avoids timeout issues with the gateway
-        # Only send the BRIEFING (important output), not process start/end messages
-        if not TELEGRAM_TARGET_ID:
-            print("⚠️ TELEGRAM_TARGET_ID not set. Briefing generated (local only).", file=sys.stderr)
-            return True
-        process = subprocess.Popen([
-            'openclaw', 'message', 'send',
-            '--channel', 'telegram',
-            '--target', TELEGRAM_TARGET_ID,
-            '--message', text
-        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
-        # Don't wait for response; assume it will deliver asynchronously
-        # Log to dombot-logger + Slack instead of printing
-        import subprocess as sp
-        sp.run([
-            'uv', 'run', '--directory', os.path.expanduser('~/.openclaw/skills/logger/core'),
-            'dombot-log', 'INFO', 'cron:morning-briefing', 'system', 'message:sent',
-            'Morning briefing sent to Telegram'
-        ], capture_output=True, timeout=5)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            if resp.status != 200:
+                print(f"⚠️ Telegram /send HTTP {resp.status}. Briefing printed locally.", file=sys.stderr)
+                return True
+    except (urllib.error.URLError, OSError) as e:
+        print(f"⚠️ Telegram send failed ({e}). Briefing generated locally.", file=sys.stderr)
         return True
-    except FileNotFoundError:
-        # openclaw command not found; fallback to just printing
-        print("⚠️ openclaw CLI not found. Briefing generated (local only).", file=sys.stderr)
-        return True  # Don't fail; briefing is still useful locally
-    except Exception as e:
-        print(f"⚠️ Telegram send error: {e}. Briefing generated.", file=sys.stderr)
-        return True  # Don't fail; briefing is still useful
+    lc = _logger_core()
+    if lc:
+        subprocess.run(
+            [
+                "uv",
+                "run",
+                "--directory",
+                str(lc),
+                "dombot-log",
+                "INFO",
+                "cron:morning-briefing",
+                "system",
+                "message:sent",
+                "Morning briefing sent to Telegram",
+            ],
+            capture_output=True,
+            timeout=10,
+        )
+    return True
 
 
 def main():
-    os.chdir(WORKSPACE)
+    cr = _clawvis_root()
+    if cr is not None:
+        os.chdir(cr)
     briefing = build_briefing()
     
     # Always print briefing (for inspection + logging)

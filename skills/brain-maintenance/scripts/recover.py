@@ -17,13 +17,44 @@ Flow:
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 from datetime import datetime, timedelta
 from collections import Counter
 
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
-MEMORY_DIR = WORKSPACE / "memory"
+def _memory_root() -> Path:
+    m = (os.environ.get("MEMORY_ROOT") or "").strip()
+    r = (os.environ.get("CLAWVIS_ROOT") or "").strip()
+    cr = Path(r).expanduser().resolve() if r else None
+    if cr is None:
+        for p in (Path.home() / "lab" / "clawvis", Path.home() / "Lab" / "clawvis"):
+            if (p / "hub-core").is_dir():
+                cr = p.resolve()
+                break
+    if m:
+        p = Path(m).expanduser()
+        if cr is not None and not p.is_absolute():
+            p = cr / p
+        return p.resolve()
+    inst = (os.environ.get("INSTANCE_NAME") or "example").strip() or "example"
+    if cr is not None:
+        return (cr / "instances" / inst / "memory").resolve()
+    return Path.home() / "lab" / "clawvis" / "instances" / inst / "memory"
+
+
+def _workspace() -> Path:
+    r = (os.environ.get("CLAWVIS_ROOT") or "").strip()
+    if r:
+        return Path(r).expanduser().resolve()
+    for p in (Path.home() / "lab" / "clawvis", Path.home() / "Lab" / "clawvis"):
+        if (p / "hub-core").is_dir():
+            return p.resolve()
+    return Path.home() / "lab" / "clawvis"
+
+
+WORKSPACE = _workspace()
+MEMORY_DIR = _memory_root()
 DAILY_DIR = MEMORY_DIR / "daily"
 
 def find_recent_context():
@@ -96,7 +127,7 @@ def search_memory(signals: dict) -> list:
             for signal in signals.get("topics", []) + signals.get("projects", []):
                 if signal.lower() in content.lower():
                     results.append({
-                        "file": str(daily_file.relative_to(WORKSPACE)),
+                        "file": str(daily_file.relative_to(MEMORY_DIR)),
                         "relevance": "medium",
                         "snippet": f"Matches signal: {signal}"
                     })
@@ -162,7 +193,7 @@ def main():
     print(context)
     
     # Log recovery
-    log_file = WORKSPACE / ".logs" / f"recover-{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.log"
+    log_file = WORKSPACE / "logs" / f"recover-{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.log"
     log_file.parent.mkdir(parents=True, exist_ok=True)
     with open(log_file, 'w') as f:
         f.write(context)
