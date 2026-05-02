@@ -25,5 +25,5 @@ prompt: |
   Statut MEMORY.md — ok | en cours | skip
   Insight du jour — one sentence.
 
-  Memory root: use $MEMORY_ROOT env var, fallback to ~/.openclaw/workspace/memory
+  Memory root: use $MEMORY_ROOT env var, fallback to ${CLAWVIS_ROOT}/instances/${INSTANCE_NAME:-example}/memory
 timezone: Europe/Paris

@@ -6,6 +6,21 @@ import os
 from pathlib import Path
 
 
+def clawvis_root() -> Path | None:
+    raw = os.environ.get("CLAWVIS_ROOT", "").strip()
+    if raw:
+        return Path(raw).expanduser().resolve()
+    for p in (Path.home() / "lab" / "clawvis", Path.home() / "Lab" / "clawvis"):
+        if (p / "hub-core").is_dir():
+            return p.resolve()
+    return None
+
+
+def agent_workspace() -> Path:
+    cr = clawvis_root()
+    return cr if cr is not None else Path.home() / "lab" / "clawvis"
+
+
 def memory_root() -> Path:
     m = os.environ.get("MEMORY_ROOT", "").strip()
     raw = os.environ.get("CLAWVIS_ROOT", "").strip()

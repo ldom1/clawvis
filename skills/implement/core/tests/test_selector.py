@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from kanban_implementer.selector import Task, load_tasks, select_task
+from implement.selector import Task, load_tasks, select_task
 
 
 SAMPLE_TASKS = {
@@ -89,18 +89,18 @@ def tasks_json(tmp_path: Path) -> Path:
 
 
 def test_load_tasks_returns_all(tasks_json: Path) -> None:
-    with patch("kanban_implementer.selector.TASKS_JSON", tasks_json):
+    with patch("implement.selector.TASKS_JSON", tasks_json):
         tasks = load_tasks()
     assert len(tasks) == 5
 
 
 def test_eligible_filters_correctly(tasks_json: Path) -> None:
-    with patch("kanban_implementer.selector.TASKS_JSON", tasks_json):
+    with patch("implement.selector.TASKS_JSON", tasks_json):
         tasks = load_tasks()
     eligible = [t for t in tasks if t.is_eligible]
     ids = {t.id for t in eligible}
-    assert "task-aaa" in ids  # High, DomBot, To Start, 1h <= 2h
-    assert "task-bbb" in ids  # Medium, DomBot, Backlog, 0.5h
+    assert "task-aaa" in ids
+    assert "task-bbb" in ids
     assert "task-ccc" not in ids  # Ldom (not DomBot)
     assert "task-ddd" not in ids  # Done
     assert "task-eee" not in ids  # 10h > 2h
@@ -108,37 +108,35 @@ def test_eligible_filters_correctly(tasks_json: Path) -> None:
 
 def test_select_task_picks_high_priority(tasks_json: Path) -> None:
     with (
-        patch("kanban_implementer.selector.TASKS_JSON", tasks_json),
-        patch("kanban_implementer.selector.PRIORITY_PROJECT", None),
-        patch("kanban_implementer.selector.MAX_EFFORT", 2.0),
+        patch("implement.selector.TASKS_JSON", tasks_json),
+        patch("implement.selector.PRIORITY_PROJECT", None),
+        patch("implement.selector.MAX_EFFORT", 2.0),
     ):
         task = select_task()
     assert task is not None
-    assert task.id == "task-aaa"  # High priority
+    assert task.id == "task-aaa"
 
 
 def test_select_task_respects_priority_project(tasks_json: Path) -> None:
     with (
-        patch("kanban_implementer.selector.TASKS_JSON", tasks_json),
-        patch("kanban_implementer.selector.PRIORITY_PROJECT", None),
-        patch("kanban_implementer.selector.MAX_EFFORT", 2.0),
+        patch("implement.selector.TASKS_JSON", tasks_json),
+        patch("implement.selector.PRIORITY_PROJECT", None),
+        patch("implement.selector.MAX_EFFORT", 2.0),
     ):
         task = select_task(priority_project="other")
     assert task is not None
-    assert task.id == "task-bbb"  # "other" project prioritized
+    assert task.id == "task-bbb"
 
 
 def test_select_task_no_eligible(tmp_path: Path) -> None:
     p = tmp_path / "tasks.json"
     p.write_text(json.dumps({"tasks": []}))
-    with patch("kanban_implementer.selector.TASKS_JSON", p):
+    with patch("implement.selector.TASKS_JSON", p):
         task = select_task()
     assert task is None
 
 
-def test_task_with_low_confidence_not_eligible():
-    """Task with confidence below threshold is not eligible."""
-    from kanban_implementer.selector import Task
+def test_task_with_low_confidence_not_eligible() -> None:
     t = Task(
         id="t1", title="Test", project="hub", status="To Start",
         priority="Medium", effort_hours=1.0, assignee="DomBot",
@@ -147,9 +145,7 @@ def test_task_with_low_confidence_not_eligible():
     assert not t.is_eligible
 
 
-def test_task_with_null_confidence_uses_default():
-    """Null confidence treated as 0.5 → eligible if threshold ≤ 0.5."""
-    from kanban_implementer.selector import Task
+def test_task_with_null_confidence_uses_default() -> None:
     t = Task(
         id="t2", title="Test", project="hub", status="To Start",
         priority="Medium", effort_hours=1.0, assignee="DomBot",
@@ -158,9 +154,7 @@ def test_task_with_null_confidence_uses_default():
     assert t.is_eligible  # 0.5 >= 0.4 (default threshold)
 
 
-def test_human_assignee_confidence_effective_is_one():
-    """Human assignee → confidence_effective = 1.0 (never blocked by confidence filter)."""
-    from kanban_implementer.selector import Task
+def test_human_assignee_confidence_effective_is_one() -> None:
     t = Task(
         id="t3", title="Test", project="hub", status="To Start",
         priority="Medium", effort_hours=1.0, assignee="lgiron",
@@ -169,7 +163,7 @@ def test_human_assignee_confidence_effective_is_one():
     assert t.confidence_effective == 1.0
 
 
-def test_is_ambiguous_vague_word():
+def test_is_ambiguous_vague_word() -> None:
     t = Task(
         id="a1", title="Cleanup old routes", project="hub", status="To Start",
         priority="High", effort_hours=1.0, assignee="DomBot", source_file="",
@@ -177,7 +171,7 @@ def test_is_ambiguous_vague_word():
     assert t.is_ambiguous
 
 
-def test_is_ambiguous_french():
+def test_is_ambiguous_french() -> None:
     t = Task(
         id="a2", title="Refonte module X", project="hub", status="To Start",
         priority="High", effort_hours=1.0, assignee="DomBot", source_file="",
@@ -185,7 +179,7 @@ def test_is_ambiguous_french():
     assert t.is_ambiguous
 
 
-def test_is_ambiguous_clear_title():
+def test_is_ambiguous_clear_title() -> None:
     t = Task(
         id="a3", title="Add retry to POST /tasks", project="hub", status="To Start",
         priority="High", effort_hours=1.0, assignee="DomBot", source_file="",

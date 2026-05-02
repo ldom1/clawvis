@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from kanban_implementer.config import TASKS_JSON, PRIORITY_PROJECT, MAX_EFFORT, WORKSPACE, MIN_CONFIDENCE
+from implement.config import TASKS_JSON, PRIORITY_PROJECT, MAX_EFFORT, WORKSPACE, MIN_CONFIDENCE
 
 
 PRIORITY_ORDER = {"High": 0, "Medium": 1, "Low": 2}
@@ -40,7 +40,6 @@ class Task:
 
     @property
     def confidence_effective(self) -> float:
-        """1.0 for humans, task.confidence ?? 0.5 for agents."""
         if self.assignee not in AGENT_ASSIGNEES:
             return 1.0
         return self.confidence if self.confidence is not None else 0.5
@@ -92,20 +91,10 @@ def load_tasks() -> list[Task]:
 
 
 def select_task(priority_project: str | None = None) -> Task | None:
-    """
-    Select the best task to implement.
-
-    Selection rules (in order):
-    1. Eligible: status in {To Start, Backlog}, assignee = DomBot, effort <= MAX_EFFORT
-    2. If priority_project set → tasks from that project first
-    3. Sort by priority rank (High=0 < Medium=1 < Low=2), then effort_hours asc
-    """
     tasks = load_tasks()
     eligible = [t for t in tasks if t.is_eligible]
-
     if not eligible:
         return None
-
     proj = priority_project or PRIORITY_PROJECT
 
     def sort_key(t: Task) -> tuple:
@@ -117,7 +106,6 @@ def select_task(priority_project: str | None = None) -> Task | None:
 
 
 def format_task_context(task: Task) -> str:
-    """Return a markdown summary of the task for DomBot."""
     lines = [
         f"## Tâche sélectionnée : {task.id}",
         f"- **Titre** : {task.title}",
@@ -135,11 +123,9 @@ def format_task_context(task: Task) -> str:
     if task.source_file:
         lines.append(f"- **Fichier projet** : {task.source_file}")
 
-    # Load source context
     src = task.source_path
     if src:
         content = src.read_text(encoding="utf-8")
-        # Truncate to ~2000 chars for context
         if len(content) > 2000:
             content = content[:2000] + "\n[... tronqué ...]"
         lines += ["", "### Contexte projet (source_file)", "```markdown", content, "```"]

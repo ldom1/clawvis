@@ -1,19 +1,15 @@
-"""Update task status in tasks.json."""
+"""Update task status directly in tasks.json."""
 from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
 
-from kanban_implementer.config import TASKS_JSON
+from implement.config import TASKS_JSON
 
 VALID_STATUSES = {"Backlog", "To Start", "In Progress", "Blocked", "Review", "Done"}
 
 
 def update_task_status(task_id: str, new_status: str) -> bool:
-    """
-    Update a task's status in tasks.json.
-    Returns True if found and updated, False otherwise.
-    """
     if new_status not in VALID_STATUSES:
         print(f"❌ Invalid status: {new_status}. Valid: {', '.join(sorted(VALID_STATUSES))}")
         return False
@@ -43,3 +39,13 @@ def update_task_status(task_id: str, new_status: str) -> bool:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     return True
+
+
+def _cli_update() -> None:
+    import sys
+    args = sys.argv[1:]
+    if len(args) < 2:
+        print("Usage: kanban-update <task-id> <status>")
+        print("Status: " + " | ".join(sorted(VALID_STATUSES)))
+        sys.exit(1)
+    sys.exit(0 if update_task_status(args[0], args[1]) else 1)

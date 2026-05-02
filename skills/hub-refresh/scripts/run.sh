@@ -32,11 +32,15 @@ CLAWVIS_ROOT="$(_resolve_clawvis_root)" || {
 
 HUB_CORE_DIR="${CLAWVIS_ROOT}/hub-core"
 LOGGER_CORE="${CLAWVIS_ROOT}/skills/logger/core"
-LOG_DIR="${CLAWVIS_ROOT}/logs"
+LOG_DIR="${CLAWVIS_LOG_DIR:-${CLAWVIS_ROOT}/logs}"
 TIMESTAMP=$(date '+%Y-%m-%d-%H%M')
 LOG_FILE="$LOG_DIR/hub-refresh-$TIMESTAMP.log"
 
-mkdir -p "$LOG_DIR"
+if ! mkdir -p "$LOG_DIR" 2>/dev/null; then
+  LOG_DIR="${TMPDIR:-/tmp}/clawvis-logs"
+  LOG_FILE="$LOG_DIR/hub-refresh-$TIMESTAMP.log"
+  mkdir -p "$LOG_DIR"
+fi
 
 export AGENT_ID="dombot"
 export AGENT_ROLE="ORCHESTRATOR"
