@@ -20,10 +20,21 @@ This is how you keep agents aligned over months of continuous operation.
 """
 
 import json
+import os
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
+def _workspace() -> Path:
+    r = (os.environ.get("CLAWVIS_ROOT") or "").strip()
+    if r:
+        return Path(r).expanduser().resolve()
+    for p in (Path.home() / "lab" / "clawvis", Path.home() / "Lab" / "clawvis"):
+        if (p / "hub-core").is_dir():
+            return p.resolve()
+    return Path.home() / "lab" / "clawvis"
+
+
+WORKSPACE = _workspace()
 
 def read_l1_files() -> dict:
     """Read all L1 Brain files."""

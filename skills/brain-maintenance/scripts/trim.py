@@ -21,10 +21,21 @@ Budget: 500-1000 tokens per file, 7000 total L1
 """
 
 import json
+import os
 from pathlib import Path
 from datetime import datetime, timezone
 
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
+def _workspace() -> Path:
+    r = (os.environ.get("CLAWVIS_ROOT") or "").strip()
+    if r:
+        return Path(r).expanduser().resolve()
+    for p in (Path.home() / "lab" / "clawvis", Path.home() / "Lab" / "clawvis"):
+        if (p / "hub-core").is_dir():
+            return p.resolve()
+    return Path.home() / "lab" / "clawvis"
+
+
+WORKSPACE = _workspace()
 L1_FILES = {
     "SOUL.md": 1000,           # Personality - stable, can grow
     "AGENTS.md": 1000,         # Rules - prune outdated

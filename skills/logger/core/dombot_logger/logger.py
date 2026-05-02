@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import os
 from pathlib import Path
 from typing import Any, cast
 
@@ -11,7 +12,21 @@ from loguru import logger as _loguru
 
 from .models import LogEntry, LogLevel
 
-LOG_DIR = Path.home() / ".openclaw" / "logs"
+
+def _log_dir() -> Path:
+    raw = os.environ.get("CLAWVIS_LOG_DIR", "").strip()
+    if raw:
+        return Path(raw).expanduser().resolve()
+    cr = os.environ.get("CLAWVIS_ROOT", "").strip()
+    if cr:
+        return (Path(cr).expanduser().resolve() / "logs")
+    for p in (Path.home() / "lab" / "clawvis", Path.home() / "Lab" / "clawvis"):
+        if (p / "hub-core").is_dir():
+            return (p / "logs").resolve()
+    return Path.home() / "lab" / "clawvis" / "logs"
+
+
+LOG_DIR = _log_dir()
 LOG_TEXT = LOG_DIR / "dombot.log"
 LOG_JSONL = LOG_DIR / "dombot.jsonl"
 DISCORD_SEND_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "discord-send.sh"

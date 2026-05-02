@@ -22,20 +22,14 @@ Context reconstruction from last daily note + L2 breadcrumbs.
 uv run --directory ${CLAWVIS_ROOT}/skills/brain-maintenance/core python -m brain_maintenance recover
 ```
 
-## Security Audit (Integrated)
+## Security audit (optional)
 
-OpenClaw security checks are integrated into **system_audit.sh** (nightly via cron):
-- SSH port validation (should be 42022, not 22)
-- Firewall status (UFW active?)
-- OpenAI API key validity
-- Exposed ports detection
-
-Runs nightly at 04:00 CET as part of system health check.
+If you use **`system_audit.sh`** on a host, it can cover SSH port, firewall, API keys, and exposed ports. Wire it in your own cron — not part of the Clawvis repo by default.
 
 ## Schedule
 
-| Trigger | Frequency | Cron (openclaw `${CLAWVIS_ROOT}/cron/jobs.json`) |
-|---------|-----------|------|
+| Trigger | Frequency | Cron (exemple) |
+|---------|-----------|----------------|
 | trim | Weekly Sunday 22:00 | `0 22 * * 0` (Brain Maintenance — Trim) |
 | recalibrate | Weekly Wednesday 22:00 | `0 22 * * 3` (Brain Maintenance — Recalibrate) |
 | system-audit | Nightly 04:00 CET | Night Security Audit |

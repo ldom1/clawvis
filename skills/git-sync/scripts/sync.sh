@@ -1,24 +1,26 @@
 #!/usr/bin/env bash
-# Sync OpenClaw config (openclaw.json, cron/jobs.json, agents/) → openclaw-dombot repo.
-# Skills → clawvis/hub-ldom (not backed up here).
-# Memory → hub-ldom/instances/ldom/memory (not backed up here).
+# Backup Clawvis project config (.claude, env templates) → GIT_SYNC_REPO under $HOME.
+# Lab multi-repo sync stays optional (~/Lab/git-sync.sh).
 set -euo pipefail
-trap 'e=$?; [ $e -ne 0 ] && uv run --directory ~/.openclaw/skills/logger/core dombot-log "ERROR" "cron:git-sync" "system" "sync:fail" "Script failed (exit $e)" 2>/dev/null || true; exit $e' EXIT
 
-OPENCLAW="$HOME/.openclaw"
-WORKSPACE="$OPENCLAW/workspace"
-SKILLS="$OPENCLAW/skills"
-REPO_NAME="${GIT_SYNC_REPO:-openclaw-dombot}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$(cd "$SCRIPT_DIR/../.." && pwd)/_clawvis_env.sh"
+
+trap 'e=$?; [ $e -ne 0 ] && dombot_log_uv dombot-log "ERROR" "cron:git-sync" "system" "sync:fail" "Script failed (exit $e)" 2>/dev/null || true; exit $e' EXIT
+
+if ! clawvis_env_load; then
+  echo "git-sync: set CLAWVIS_ROOT or checkout clawvis under ~/lab/clawvis" >&2
+  exit 1
+fi
+
+REPO_NAME="${GIT_SYNC_REPO:-clawvis-config-mirror}"
 REPO_DIR="$HOME/$REPO_NAME"
 LAB="$HOME/Lab"
 
 log() { echo "[git-sync] $*"; }
 
-# ═══════════════════════════════════════════════════════════════
-# PART 1: OpenClaw workspace + skills → openclaw-dombot repo
-# ═══════════════════════════════════════════════════════════════
-
-RSYNC_OPTS=(--delete-excluded --exclude='.git' --exclude='.openclaw/' --exclude='.pi/' --exclude='.venv/' --exclude='venv/' --exclude='node_modules/' --exclude='__pycache__/' --exclude='*.pyc' --exclude='.env' --exclude='.env.*' --exclude='*.key' --exclude='auth*.json' --exclude='**/secrets/' --exclude='**/credentials/')
+RSYNC_OPTS=(--delete-excluded --exclude='.git' --exclude='.pi/' --exclude='.venv/' --exclude='venv/' --exclude='node_modules/' --exclude='__pycache__/' --exclude='*.pyc' --exclude='.env' --exclude='.env.*' --exclude='*.key' --exclude='auth*.json' --exclude='**/secrets/' --exclude='**/credentials/')
 
 ensure_repo() {
   mkdir -p "$REPO_DIR"
@@ -31,58 +33,32 @@ GITIGNORE
   fi
 }
 
-sync_into_repo() {
-  # Only sync OpenClaw runtime config — NOT skills (→ clawvis/hub-ldom) NOR memory (→ hub-ldom)
-  log "Copying OpenClaw config into $REPO_NAME..."
-
-  if [[ -f "$OPENCLAW/openclaw.json" ]]; then
-    cp "$OPENCLAW/openclaw.json" "$REPO_DIR/openclaw.json"
-  fi
-
-  if [[ -f "$OPENCLAW/cron/jobs.json" ]]; then
-    mkdir -p "$REPO_DIR/cron"
-    cp "$OPENCLAW/cron/jobs.json" "$REPO_DIR/cron/jobs.json"
-  fi
-
-  if [[ -d "$OPENCLAW/agents" ]]; then
-    mkdir -p "$REPO_DIR/agents"
-    if command -v rsync >/dev/null 2>&1; then
-      rsync -a --delete "${RSYNC_OPTS[@]}" "$OPENCLAW/agents/" "$REPO_DIR/agents/"
-    else
-      rm -rf "$REPO_DIR/agents"
-      cp -r "$OPENCLAW/agents" "$REPO_DIR/agents"
-    fi
-  fi
-
-  if [[ -f "$SKILLS/git-sync/assets/README-dombot-backup.md" ]]; then
-    cp "$SKILLS/git-sync/assets/README-dombot-backup.md" "$REPO_DIR/README.md"
-  fi
-}
-
-do_push() {
-  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    git push -u origin HEAD 2>/dev/null || git push || log "push failed"
-  else
-    git push || log "push failed"
-  fi
-}
-
-ensure_gh_remote() {
-  cd "$REPO_DIR"
-  git remote -v | grep -q . && return 0
-  command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 || { log "No remote, no gh"; return 1; }
-  gh repo create "$REPO_NAME" --private --source=. --remote=origin 2>/dev/null || { log "Repo may exist, link manually"; return 1; }
-  log "Created GitHub repo $REPO_NAME (private)"
-}
-
-sync_openclaw() {
-  log "=== OpenClaw config sync (skills/memory excluded — in clawvis/hub-ldom) ==="
+sync_clawvis_mirror() {
+  log "=== Clawvis tree → $REPO_NAME (subset, no secrets) ==="
   ensure_repo
-  sync_into_repo
+  mkdir -p "$REPO_DIR/clawvis-claude"
+  if [[ -d "$CLAWVIS_ROOT/.claude" ]]; then
+    if command -v rsync >/dev/null 2>&1; then
+      rsync -a "${RSYNC_OPTS[@]}" "$CLAWVIS_ROOT/.claude/" "$REPO_DIR/clawvis-claude/"
+    else
+      rm -rf "${REPO_DIR:?}/clawvis-claude"
+      cp -r "$CLAWVIS_ROOT/.claude" "$REPO_DIR/clawvis-claude"
+    fi
+  else
+    log "No .claude at CLAWVIS_ROOT — skip"
+  fi
+  for f in .env.example .clawvis-project.json; do
+    if [[ -f "$CLAWVIS_ROOT/$f" ]]; then
+      cp "$CLAWVIS_ROOT/$f" "$REPO_DIR/$f"
+    fi
+  done
+  if [[ -f "$SCRIPT_DIR/../assets/README-clawvis-backup.md" ]]; then
+    cp "$SCRIPT_DIR/../assets/README-clawvis-backup.md" "$REPO_DIR/README.md"
+  fi
 
   cd "$REPO_DIR"
   [[ -d .git ]] || { git init -b main; log "Initialized $REPO_DIR"; }
-  git remote -v | grep -q . || ensure_gh_remote || true
+  git remote -v | grep -q . || true
 
   git add -A
   if git diff --staged --quiet 2>/dev/null; then
@@ -91,12 +67,15 @@ sync_openclaw() {
     git commit -m "sync $(date '+%Y-%m-%d %H:%M')"
     log "Committed"
   fi
-  git remote -v | grep -q . && { do_push; log "Pushed"; }
+  if git remote -v | grep -q .; then
+    if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+      git push -u origin HEAD 2>/dev/null || git push || log "push failed"
+    else
+      git push || log "push failed"
+    fi
+    log "Pushed"
+  fi
 }
-
-# ═══════════════════════════════════════════════════════════════
-# PART 2: Lab repos (hub, projects, pocs, quartz)
-# ═══════════════════════════════════════════════════════════════
 
 sync_lab() {
   log "=== Lab repos sync ==="
@@ -107,13 +86,7 @@ sync_lab() {
   fi
 }
 
-# ═══════════════════════════════════════════════════════════════
-# MAIN
-# ═══════════════════════════════════════════════════════════════
-
-sync_openclaw
-# Lab sync may exit 1 when optional repos fail fetch (private/network); OpenClaw backup already succeeded.
-sync_lab || log "Lab git-sync finished with errors (see /tmp/lab-git-sync.log) — non-fatal"
+sync_clawvis_mirror
+sync_lab || log "Lab git-sync finished with errors (non-fatal)"
 log "All done."
-uv run --directory ~/.openclaw/skills/logger/core \
-  dombot-log "INFO" "cron:git-sync" "system" "sync:complete" "Git sync finished" 2>/dev/null || true
+dombot_log_uv dombot-log "INFO" "cron:git-sync" "system" "sync:complete" "Git sync finished" 2>/dev/null || true

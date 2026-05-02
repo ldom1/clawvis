@@ -1,4 +1,4 @@
-"""Log entry model for OpenClaw unified logging."""
+"""Log entry model for Clawvis unified logging."""
 
 from __future__ import annotations
 

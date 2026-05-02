@@ -24,7 +24,7 @@ LABOS_REPORT=$(cat << 'EOF'
 - Disk: 34.0%
 
 ### Result
-Session tokens updated from API. OpenClaw status check timed out (non-blocking).
+Session tokens updated from API. Health check check timed out (non-blocking).
 EOF
 )
 

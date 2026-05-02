@@ -231,9 +231,15 @@ services:
       - TELEGRAM_URL=http://telegram:8094
       - SKILLS_DIR=/skills
       - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
+      - CLAWVIS_ROOT=/clawvis
+      - BRAIN_PATH=${BRAIN_PATH}
+      - MEMORY_ROOT=${BRAIN_PATH}
+      - INSTANCE_NAME=${INSTANCE_NAME:-example}
     volumes:
       - ./services/scheduler/definitions:/skills:rw
       - ./logs:/logs:rw
+      # Cron shell jobs (hub-refresh, morning-briefing, …) execute scripts under skills/ + hub-core/.
+      - .:/clawvis:ro
     depends_on:
       agent-service:
         condition: service_healthy

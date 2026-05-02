@@ -1,14 +1,25 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class SkillDefinition(BaseModel):
     name: str
     cron: str | None = None  # None = manual only
-    prompt: str
+    prompt: str = ""
+    """Sent to agent-service /chat when ``command`` is empty."""
+    command: str | None = None
+    """When set, scheduler runs this shell snippet on the Clawvis repo (``CLAWVIS_ROOT``) instead of calling the agent."""
     enabled: bool = True
     timezone: str = "UTC"
+
+    @model_validator(mode="after")
+    def _prompt_or_command(self) -> SkillDefinition:
+        if (self.command or "").strip():
+            return self
+        if not (self.prompt or "").strip():
+            raise ValueError("prompt is required when command is empty")
+        return self
 
 
 class WorkflowDefinition(BaseModel):
@@ -21,7 +32,16 @@ class WorkflowDefinition(BaseModel):
 
 class RunSkillInput(BaseModel):
     name: str
-    prompt: str
+    prompt: str = ""
+    command: str | None = None
+
+    @model_validator(mode="after")
+    def _prompt_or_command(self) -> RunSkillInput:
+        if (self.command or "").strip():
+            return self
+        if not (self.prompt or "").strip():
+            raise ValueError("prompt is required when command is empty")
+        return self
 
 
 class AgentChatRequest(BaseModel):

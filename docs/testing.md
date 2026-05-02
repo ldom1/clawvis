@@ -11,11 +11,12 @@
 | E2E Playwright (UI/personas) | 24 (22 pass, 2 skip) | Playwright / Chromium | `bash tests/ci-playwright.sh` |
 | Kanban API (Python) | ~40 | pytest | `bash tests/ci-kanban.sh` |
 | Hub-Core (Python) | ~60 | pytest | `bash tests/ci-hub-core.sh` |
+| Scheduler (Python) | ~10 | pytest | `bash tests/ci-scheduler.sh` |
 | Hub frontend (TS/Vite) | lint + build | Vitest / yarn | `bash tests/ci-hub.sh` |
 | Skills (Python multi-package) | ~35 | pytest | `bash tests/ci-skills.sh` |
 | CLI (Node) | lint + smoke | node --check | `bash tests/ci-cli.sh` |
 | Docker smoke (curl + E2E) | 13 curl + 22 E2E | bash + Playwright | `bash tests/ci-docker.sh` |
-| **Total orchestrated** | **~170** | | `bash tests/ci-all.sh` |
+| **Total orchestrated** | **~180** | | `bash tests/ci-all.sh` |
 
 ### What the tests cover
 
@@ -331,9 +332,10 @@ Run via `bash tests/ci-skills.sh` (auto-discover pyproject.toml).
 
 | Script | Steps |
 |--------|-------|
-| `ci-all.sh` | Sequential orchestrator: kanban → hub-core → hub → playwright → skills → cli |
+| `ci-all.sh` | Sequential orchestrator: kanban → hub-core → scheduler → hub → playwright → skills → cli |
 | `ci-kanban.sh` | ruff + pylint (E,F) + pytest on `kanban/` |
 | `ci-hub-core.sh` | ruff + pylint + pytest on `hub-core/` (excluding real_providers) |
+| `ci-scheduler.sh` | pytest on `services/scheduler/tests/` (jobs, workflows, shell `CLAWVIS_ROOT`) |
 | `ci-hub.sh` | corepack + yarn install + format:check + test + build |
 | `ci-playwright.sh` | npm ci + playwright install chromium + playwright test --project=chromium |
 | `ci-skills.sh` | Auto-discover skills with pyproject.toml → ruff + pylint + pytest per skill |

@@ -100,7 +100,7 @@ Hub, Settings, Kanban, Logs, prompts install : clarté, ton pro, dense mais lisi
 
 | Workflow | Déclencheur | Rôle |
 |----------|-------------|------|
-| `ci.yml` | PR / push | Shell, hub format+tests+build, Python compile |
+| `ci.yml` | PR / push | `bash tests/ci-all.sh` — kanban, hub-core, **scheduler**, hub, playwright, skills, CLI + checks shell |
 | `license.yml` | PR | Fichier MIT |
 | `release-dry-run.yml` | PR | Format tag release |
 | `release.yml` | Tag `vYYYY-MM-dd` | GitHub Release |

@@ -1,10 +1,8 @@
 cron: 0 * * * *
 enabled: true
 name: hub-refresh
+# Repo shell job (not a Claude Code plugin skill). Scheduler runs `command` inside CLAWVIS_ROOT.
+command: bash "/clawvis/skills/hub-refresh/scripts/run.sh"
 prompt: |
-  Run the hub-refresh skill now.
-
-  Requirements:
-  - Refresh Hub state from current memory/tasks context.
-  - Keep output concise and operational.
+  (Reserved) Hub refresh runs via `command` — not sent to the agent.
 timezone: Europe/Paris

@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from knowledge_consolidator.clawvis_paths import clawvis_root, memory_root
 from knowledge_consolidator.logging import log_info, log_warning
 
 
@@ -19,22 +20,28 @@ def _resolve_dombot_mail_core() -> Path:
     env = (os.environ.get("DOMBOT_MAIL_CORE") or "").strip()
     if env:
         return Path(env).expanduser().resolve()
-    home = Path.home()
-    candidates = [
-        home / ".openclaw" / "skills" / "dombot-mail" / "core",
-        home / "Lab" / "clawvis" / "instances" / "dombot" / "skills" / "dombot-mail" / "core",
-    ]
+    cr = clawvis_root()
+    inst = (os.environ.get("INSTANCE_NAME") or "dombot").strip() or "dombot"
+    candidates: list[Path] = []
+    if cr is not None:
+        candidates.extend(
+            [
+                cr / "instances" / inst / "skills" / "dombot-mail" / "core",
+                cr / "skills" / "dombot-mail" / "core",
+            ]
+        )
+    candidates.append(Path.home() / "lab" / "clawvis" / "instances" / inst / "skills" / "dombot-mail" / "core")
     for c in candidates:
         if (c / "pyproject.toml").is_file():
             return c
-    return candidates[0]
+    return candidates[-1]
 
 
 DOMBOT_MAIL_CORE = _resolve_dombot_mail_core()
 
 UA = "Mozilla/5.0 (compatible; DomBot-Curiosity/1.0)"
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
-MEMORY_DIR = WORKSPACE / "memory" / "resources" / "curiosity"
+_MEMORY = memory_root()
+MEMORY_DIR = _MEMORY / "resources" / "curiosity"
 
 
 def _log(level: str, action: str, message: str) -> None:
@@ -443,7 +450,7 @@ class CuriosityAgent:
     def update_memory_md(self) -> None:
         if not self.discoveries:
             return
-        memory_file = WORKSPACE / "MEMORY.md"
+        memory_file = _MEMORY / "MEMORY.md"
         section = (
             f"\n## 🌟 Curiosity · {self.session_type.title()} · "
             f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"

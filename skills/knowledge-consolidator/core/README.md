@@ -6,4 +6,4 @@ Collect (curiosity) + consolidate. Run via scripts or:
 uv run python -m knowledge_consolidator [tech|geopolitics|culture|community|latest|tech_news]
 ```
 
-Logging: dombot_logger (~/.openclaw/skills/logger/core).
+Logging: dombot_logger (`${CLAWVIS_ROOT}/skills/logger/core`).

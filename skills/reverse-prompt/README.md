@@ -35,10 +35,10 @@ All agents: [use that prompt → consistent output]
 
 ```bash
 # Skill is at:
-~/.openclaw/skills/reverse-prompt/
+${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/
 
 # Install dependencies
-cd ~/.openclaw/skills/reverse-prompt
+cd ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt
 uv sync
 ```
 
@@ -47,7 +47,7 @@ uv sync
 ### 1. CLI Usage
 
 ```bash
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/scripts/run.sh \
   --example "Your perfect output here" \
   --model claude-haiku
 ```
@@ -79,7 +79,7 @@ PERFECT="## Hub Refresh
 - CPU: 7.8%"
 
 # Step 2: Get the prompt
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/scripts/run.sh \
   --example "$PERFECT"
 
 # Step 3: Use it everywhere

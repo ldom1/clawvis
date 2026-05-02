@@ -4,6 +4,7 @@ import { escapeHtml, projectInitials, projectAvatarHue } from "./utils.js";
 import { createRoot } from "react-dom/client";
 import React from "react";
 import WorkflowBuilder from "./WorkflowBuilder.jsx";
+import { WorkflowView, WorkflowRunModal } from "./workflow";
 
 marked.use({ gfm: true, breaks: true });
 
@@ -4141,6 +4142,70 @@ function formatClawvisChatAssistantText(full, fr) {
 
 // ─── Schedule page ────────────────────────────────────────────────────────────
 
+const SCHEDULE_VIEW_KEYS = {
+  jobs: "hub.schedule.jobsView",
+  workflows: "hub.schedule.workflowsView",
+};
+
+function getScheduleView(section) {
+  try {
+    const v = localStorage.getItem(SCHEDULE_VIEW_KEYS[section]);
+    return v === "workflow" ? "workflow" : "list";
+  } catch (_) {
+    return "list";
+  }
+}
+
+function setScheduleView(section, value) {
+  try {
+    localStorage.setItem(SCHEDULE_VIEW_KEYS[section], value);
+  } catch (_) {}
+}
+
+const _wfReactRoots = new WeakMap();
+
+function getOrCreateReactRoot(el) {
+  if (!el) return null;
+  let root = _wfReactRoots.get(el);
+  if (!root) {
+    root = createRoot(el);
+    _wfReactRoots.set(el, root);
+  }
+  return root;
+}
+
+function unmountReactRoot(el) {
+  const root = _wfReactRoots.get(el);
+  if (root) {
+    root.unmount();
+    _wfReactRoots.delete(el);
+  }
+  if (el) el.innerHTML = "";
+}
+
+function openWorkflowRunModal(workflowName, orderedJobs, sinceIso) {
+  const fr = settingsLocale() === "fr";
+  const overlay = document.createElement("div");
+  overlay.className = "wf-run-overlay";
+  document.body.appendChild(overlay);
+  const root = createRoot(overlay);
+  const close = () => {
+    try {
+      root.unmount();
+    } catch (_) {}
+    overlay.remove();
+  };
+  root.render(
+    React.createElement(WorkflowRunModal, {
+      workflowName,
+      orderedJobs,
+      sinceIso,
+      fr,
+      onClose: close,
+    }),
+  );
+}
+
 function openWorkflowModal(jobs, fr, onSaved) {
   if (document.getElementById("workflow-modal-overlay")) return;
   const overlay = document.createElement("div");
@@ -4198,7 +4263,11 @@ function renderSchedulePage() {
           <div class="settings-heading-row">
             <h2 class="card-title settings-section-title">Jobs</h2>
             <span id="cron-status" class="ai-runtime-status-badge warn">${fr ? "Chargement…" : "Loading…"}</span>
-            <button id="add-cron-job" class="btn btn-compact btn-primary" type="button">${fr ? "+ Ajouter job" : "+ Add job"}</button>
+            <div class="wf-view-toggle" role="tablist" data-section="jobs" style="margin-left:8px">
+              <button type="button" data-view="list" role="tab">${fr ? "Liste" : "List"}</button>
+              <button type="button" data-view="workflow" role="tab">${fr ? "Workflow" : "Workflow"}</button>
+            </div>
+            <button id="add-cron-job" class="btn btn-compact btn-primary" type="button" style="margin-left:8px">${fr ? "+ Ajouter job" : "+ Add job"}</button>
             <button id="refresh-cron" class="btn btn-compact" type="button" style="margin-left:8px">${fr ? "Actualiser" : "Refresh"}</button>
             <a href="/logs/?search=scheduler" class="btn btn-compact" style="margin-left:auto">${fr ? "Logs →" : "Logs →"}</a>
           </div>
@@ -4208,6 +4277,7 @@ function renderSchedulePage() {
               : "Scheduled jobs. YAML definitions in <code>services/scheduler/definitions/jobs/</code>. Each job sends the prompt to the agent and posts the result to Telegram."
           }</div>
           <div id="cron-table-wrap"></div>
+          <div id="cron-workflow-wrap" style="display:none"></div>
           <div id="cron-add-form" class="cron-add-form" style="display:none">
             <h3 style="margin:0 0 10px;font-size:14px">${fr ? "Nouveau job" : "New job"}</h3>
             <div class="cron-form-grid">
@@ -4235,7 +4305,11 @@ function renderSchedulePage() {
           <div class="settings-heading-row">
             <h2 class="card-title settings-section-title">Workflows</h2>
             <span id="workflow-status" class="ai-runtime-status-badge warn">${fr ? "Chargement…" : "Loading…"}</span>
-            <button id="add-workflow" class="btn btn-compact btn-primary" type="button">${fr ? "+ Ajouter workflow" : "+ Add workflow"}</button>
+            <div class="wf-view-toggle" role="tablist" data-section="workflows" style="margin-left:8px">
+              <button type="button" data-view="list" role="tab">${fr ? "Liste" : "List"}</button>
+              <button type="button" data-view="workflow" role="tab">${fr ? "Workflow" : "Workflow"}</button>
+            </div>
+            <button id="add-workflow" class="btn btn-compact btn-primary" type="button" style="margin-left:8px">${fr ? "+ Ajouter workflow" : "+ Add workflow"}</button>
             <button id="refresh-workflows" class="btn btn-compact" type="button" style="margin-left:8px">${fr ? "Actualiser" : "Refresh"}</button>
           </div>
           <div class="card-desc">${
@@ -4244,6 +4318,7 @@ function renderSchedulePage() {
               : "Pipelines of jobs executed sequentially. Stops on first failure. Each job notifies Telegram independently."
           }</div>
           <div id="workflow-table-wrap"></div>
+          <div id="workflow-graph-wrap" style="display:none"></div>
         </section>
 
       </div>
@@ -4253,6 +4328,172 @@ function renderSchedulePage() {
 
 async function wireSchedulePage() {
   const fr = settingsLocale() === "fr";
+
+  let _jobsCache = [];
+  let _workflowsCache = [];
+
+  function _setToggleActive(section, view) {
+    document
+      .querySelectorAll(
+        `.wf-view-toggle[data-section="${section}"] button[data-view]`,
+      )
+      .forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-view") === view);
+      });
+  }
+
+  function _renderJobsCurrentView() {
+    const view = getScheduleView("jobs");
+    const tableWrap = document.getElementById("cron-table-wrap");
+    const wfWrap = document.getElementById("cron-workflow-wrap");
+    _setToggleActive("jobs", view);
+    if (!tableWrap || !wfWrap) return;
+    if (view === "workflow") {
+      tableWrap.style.display = "none";
+      wfWrap.style.display = "block";
+      const root = getOrCreateReactRoot(wfWrap);
+      const jobs = _jobsCache || [];
+      if (!jobs.length) {
+        root.render(
+          React.createElement(
+            "p",
+            { className: "muted", style: { fontSize: 12, padding: "12px" } },
+            fr ? "Aucun job à afficher." : "No jobs to display.",
+          ),
+        );
+        return;
+      }
+      const nodeIds = jobs.map((j) => j.name || j.id || "");
+      const nodeData = {};
+      for (const j of jobs) {
+        const id = j.name || j.id || "";
+        nodeData[id] = {
+          label: id,
+          status: "idle",
+          schedule: j.schedule ?? null,
+          enabled: j.enabled !== false,
+          nextRun: j.nextRun ?? null,
+        };
+      }
+      root.render(
+        React.createElement(WorkflowView, {
+          nodeIds,
+          edges: [],
+          nodeData,
+          height: 380,
+          fr,
+          emptyLabel: fr ? "Aucun job." : "No jobs.",
+        }),
+      );
+    } else {
+      tableWrap.style.display = "";
+      wfWrap.style.display = "none";
+      unmountReactRoot(wfWrap);
+    }
+  }
+
+  function _renderWorkflowsCurrentView() {
+    const view = getScheduleView("workflows");
+    const tableWrap = document.getElementById("workflow-table-wrap");
+    const wfWrap = document.getElementById("workflow-graph-wrap");
+    _setToggleActive("workflows", view);
+    if (!tableWrap || !wfWrap) return;
+    if (view === "workflow") {
+      tableWrap.style.display = "none";
+      wfWrap.style.display = "block";
+      const root = getOrCreateReactRoot(wfWrap);
+      const workflows = _workflowsCache || [];
+      if (!workflows.length) {
+        root.render(
+          React.createElement(
+            "p",
+            { className: "muted", style: { fontSize: 12, padding: "12px" } },
+            fr ? "Aucun workflow à afficher." : "No workflows to display.",
+          ),
+        );
+        return;
+      }
+      root.render(
+        React.createElement(
+          "div",
+          { className: "wf-stacked" },
+          workflows.map((wf) => {
+            const orderedJobs = (wf.jobs || []).filter(Boolean);
+            const edges = orderedJobs.slice(0, -1).map((source, i) => ({
+              source,
+              target: orderedJobs[i + 1],
+            }));
+            const nodeData = {};
+            for (const id of orderedJobs) {
+              nodeData[id] = { label: id, status: "idle" };
+            }
+            const isManual = wf.schedule === "manual";
+            const scheduleLabel = isManual
+              ? fr
+                ? "manuel"
+                : "manual"
+              : wf.schedule || "—";
+            return React.createElement(
+              "div",
+              { key: wf.name, className: "wf-stacked-card" },
+              React.createElement(
+                "div",
+                { className: "wf-stacked-header" },
+                React.createElement(
+                  "div",
+                  { className: "wf-stacked-title" },
+                  React.createElement("strong", null, wf.name),
+                  React.createElement(
+                    "span",
+                    { className: "muted", style: { fontSize: 11 } },
+                    ` · ${scheduleLabel}`,
+                  ),
+                ),
+                React.createElement(
+                  "button",
+                  {
+                    className: "btn btn-compact",
+                    type: "button",
+                    onClick: async () => {
+                      const sinceIso = new Date().toISOString();
+                      try {
+                        const res = await fetch(
+                          `/api/hub/agent/cron/workflows/${encodeURIComponent(wf.name)}/run`,
+                          { method: "POST" },
+                        );
+                        if (!res.ok) {
+                          const data = await res.json().catch(() => ({}));
+                          alert(
+                            `${fr ? "Erreur" : "Error"}: ${data.error || "trigger failed"}`,
+                          );
+                          return;
+                        }
+                        openWorkflowRunModal(wf.name, orderedJobs, sinceIso);
+                      } catch (err) {
+                        alert(`${fr ? "Erreur" : "Error"}: ${String(err)}`);
+                      }
+                    },
+                  },
+                  "▶ Run",
+                ),
+              ),
+              React.createElement(WorkflowView, {
+                nodeIds: orderedJobs,
+                edges,
+                nodeData,
+                height: 200,
+                fr,
+              }),
+            );
+          }),
+        ),
+      );
+    } else {
+      tableWrap.style.display = "";
+      wfWrap.style.display = "none";
+      unmountReactRoot(wfWrap);
+    }
+  }
 
   // ── Jobs ──────────────────────────────────────────────────────────────────
 
@@ -4270,16 +4511,20 @@ async function wireSchedulePage() {
           status.textContent = fr ? "Indisponible" : "Unavailable";
         }
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Agent service inaccessible" : "Agent service unreachable"}</p>`;
+        _jobsCache = [];
+        _renderJobsCurrentView();
         return;
       }
       const data = await r.json();
       const jobs = data.jobs || [];
+      _jobsCache = jobs;
       if (status) {
         status.className = `ai-runtime-status-badge ${jobs.length ? "ok" : "warn"}`;
         status.textContent = `${jobs.length} job(s)`;
       }
       if (!jobs.length) {
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Aucun job." : "No jobs."}</p>`;
+        _renderJobsCurrentView();
         return;
       }
       const rows = jobs
@@ -4444,7 +4689,11 @@ async function wireSchedulePage() {
         status.textContent = fr ? "Erreur" : "Error";
       }
       wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Erreur de chargement" : "Load error"}</p>`;
+      _jobsCache = [];
+      _renderJobsCurrentView();
+      return;
     }
+    _renderJobsCurrentView();
   }
 
   // ── Workflows ─────────────────────────────────────────────────────────────
@@ -4463,16 +4712,20 @@ async function wireSchedulePage() {
           status.textContent = fr ? "Indisponible" : "Unavailable";
         }
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Indisponible" : "Unavailable"}</p>`;
+        _workflowsCache = [];
+        _renderWorkflowsCurrentView();
         return;
       }
       const data = await r.json();
       const workflows = data.workflows || [];
+      _workflowsCache = workflows;
       if (status) {
         status.className = `ai-runtime-status-badge ${workflows.length ? "ok" : "warn"}`;
         status.textContent = `${workflows.length} workflow(s)`;
       }
       if (!workflows.length) {
         wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Aucun workflow." : "No workflows."}</p>`;
+        _renderWorkflowsCurrentView();
         return;
       }
       const rows = workflows
@@ -4530,6 +4783,9 @@ async function wireSchedulePage() {
       wrap.querySelectorAll(".wf-run-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const name = btn.getAttribute("data-name");
+          const wf = (_workflowsCache || []).find((w) => w.name === name);
+          const orderedJobs = wf?.jobs || [];
+          const sinceIso = new Date().toISOString();
           btn.disabled = true;
           try {
             const res = await fetch(
@@ -4537,10 +4793,13 @@ async function wireSchedulePage() {
               { method: "POST" },
             );
             const data = await res.json().catch(() => ({}));
-            if (!res.ok)
+            if (!res.ok) {
               alert(
                 `${fr ? "Erreur" : "Error"}: ${data.error || "trigger failed"}`,
               );
+              return;
+            }
+            openWorkflowRunModal(name, orderedJobs, sinceIso);
           } finally {
             btn.disabled = false;
           }
@@ -4595,10 +4854,37 @@ async function wireSchedulePage() {
         status.textContent = fr ? "Erreur" : "Error";
       }
       wrap.innerHTML = `<p class="muted" style="font-size:12px">${fr ? "Erreur de chargement" : "Load error"}</p>`;
+      _workflowsCache = [];
+      _renderWorkflowsCurrentView();
+      return;
     }
+    _renderWorkflowsCurrentView();
   }
 
   // ── Event wiring ──────────────────────────────────────────────────────────
+
+  document
+    .querySelectorAll('.wf-view-toggle[data-section="jobs"] button[data-view]')
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const view = btn.getAttribute("data-view") || "list";
+        setScheduleView("jobs", view);
+        _renderJobsCurrentView();
+      });
+    });
+  document
+    .querySelectorAll(
+      '.wf-view-toggle[data-section="workflows"] button[data-view]',
+    )
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const view = btn.getAttribute("data-view") || "list";
+        setScheduleView("workflows", view);
+        _renderWorkflowsCurrentView();
+      });
+    });
+  _setToggleActive("jobs", getScheduleView("jobs"));
+  _setToggleActive("workflows", getScheduleView("workflows"));
 
   document
     .getElementById("refresh-cron")

@@ -13,13 +13,18 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
   },
   "devDependencies": {
+    "@types/dagre": "^0.7.54",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "4",
     "jest": "^29.7.0",
     "prettier": "^3.3.3",
+    "typescript": "^6.0.3",
     "vite": "^7.1.5"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.2",
+    "dagre": "^0.8.5",
     "marked": "^15.0.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"

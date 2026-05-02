@@ -6,7 +6,13 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CORE_DIR="$(cd "$SCRIPT_DIR/../core" && pwd)"
-OPENCLAW_JSON="${OPENCLAW_JSON:-$HOME/.openclaw/openclaw.json}"
+# shellcheck disable=SC1091
+source "$(cd "$SCRIPT_DIR/../.." && pwd)/_clawvis_env.sh"
+clawvis_env_load || true
+CONFIG_JSON="${CLAWVIS_CONFIG_JSON:-}"
+if [ -z "$CONFIG_JSON" ] && [ -n "${CLAWVIS_ROOT:-}" ] && [ -f "${CLAWVIS_ROOT}/config.json" ]; then
+  CONFIG_JSON="${CLAWVIS_ROOT}/config.json"
+fi
 
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] [discord-check] $*"
@@ -30,20 +36,20 @@ for k in DISCORD_BOT_TOKEN DISCORD_CHANNEL_ID_GENERAL DISCORD_CHANNEL_ID_LOGS DI
   [ -z "$v" ] && echo "   $k = (not set)" || echo "   $k = ${v:0:20}..."
 done
 echo ""
-echo "2. openclaw.json channels.discord (logger targets):"
-if [ -f "$OPENCLAW_JSON" ]; then
+echo "2. config.json channels.discord (optional mirror):"
+if [ -n "$CONFIG_JSON" ] && [ -f "$CONFIG_JSON" ]; then
   if command -v jq &>/dev/null; then
-    jq -r '.channels.discord | to_entries | map("   \(.key) = \(.value)") | .[]' "$OPENCLAW_JSON" 2>/dev/null || true
+    jq -r '.channels.discord | to_entries | map("   \(.key) = \(.value)") | .[]' "$CONFIG_JSON" 2>/dev/null || true
   else
-    grep -A 20 '"discord"' "$OPENCLAW_JSON" | head -15
+    grep -A 20 '"discord"' "$CONFIG_JSON" | head -15
   fi
 else
-  echo "   (file not found: $OPENCLAW_JSON)"
+  echo "   (no CLAWVIS_ROOT/config.json — set CLAWVIS_CONFIG_JSON or CLAWVIS_ROOT)"
 fi
 echo ""
 echo "3. Fix: set at least DISCORD_BOT_TOKEN and one DISCORD_CHANNEL_ID_* target in core/.env"
 echo "   Channel ID: enable Developer Mode in Discord → right-click channel → Copy Channel ID."
-echo "   Recommended OpenClaw config: channels.discord.token as env SecretRef (id=DISCORD_BOT_TOKEN)."
+echo "   Optional: mirror channel ids under channels.discord in repo config.json."
 echo ""
 
 if [ "${1:-}" = "--test" ]; then

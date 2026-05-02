@@ -20,7 +20,7 @@ REPORT="# Hub Refresh
 Session tokens updated."
 
 # Reverse-engineer the prompt
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/scripts/run.sh \
   --example "$REPORT" \
   --model claude-haiku
 
@@ -81,18 +81,18 @@ EOF
 )
 
 # Step 2: Reverse-engineer the style
-STYLE_PROMPT=$(bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+STYLE_PROMPT=$(bash ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/scripts/run.sh \
   --example "$PERFECT_REPORT" \
   --model claude-haiku \
   --mode json | jq -r '.reconstructed_prompt')
 
 # Step 3: Save as team standard
-mkdir -p ~/.openclaw/labos/standards
-echo "$STYLE_PROMPT" > ~/.openclaw/labos/standards/report-style.txt
+mkdir -p ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/.local/labos/standards
+echo "$STYLE_PROMPT" > ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/.local/labos/standards/report-style.txt
 
 # Step 4: Use everywhere
 # In LabOS agent router:
-AGENT_PROMPT=$(cat ~/.openclaw/labos/standards/report-style.txt)
+AGENT_PROMPT=$(cat ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/.local/labos/standards/report-style.txt)
 ALL_AGENTS_USE="$AGENT_PROMPT"
 ```
 
@@ -163,7 +163,7 @@ Create a normalized schema for user authentication.
 **Reasoning:** Email is primary lookup key. Sessions need fast token validation."
 
 # Step 2: Get the style prompt
-STYLE_PROMPT=$(bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+STYLE_PROMPT=$(bash ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/scripts/run.sh \
   --example "$PERFECT" \
   --mode json | jq -r '.reconstructed_prompt')
 
@@ -233,22 +233,22 @@ routed = router.route_task(task, "agent-hub-refresh")
 
 ```bash
 # Basic
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/scripts/run.sh \
   --example "Your text here"
 
 # With context
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/scripts/run.sh \
   --example "Your text" \
   --context "Target: CTOs, tone: technical"
 
 # Custom model
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/scripts/run.sh \
   --example "Your text" \
   --model claude-opus \
   --iterations 5
 
 # JSON output (for APIs)
-bash ~/.openclaw/skills/reverse-prompt/scripts/run.sh \
+bash ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/reverse-prompt/scripts/run.sh \
   --example "Your text" \
   --mode json
   
@@ -309,14 +309,14 @@ def test_context_aware():
 
 ```bash
 # Monitor reverse-prompt runs in real-time
-tail -f ~/.openclaw/logs/reverse-prompt*.log
+tail -f ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/logs/reverse-prompt*.log
 
 # Check recent results
-ls -lh ~/.openclaw/logs/reverse-prompt-* | tail -10
+ls -lh ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/logs/reverse-prompt-* | tail -10
 
 # Bulk analysis (how often is it used?)
-wc -l ~/.openclaw/logs/reverse-prompt-*.log
-grep "confidence" ~/.openclaw/logs/reverse-prompt-*.log | \
+wc -l ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/logs/reverse-prompt-*.log
+grep "confidence" ${CLAWVIS_ROOT:-$HOME/lab/clawvis}/logs/reverse-prompt-*.log | \
   awk '{print $NF}' | \
   sort -n | \
   tail -20
@@ -326,7 +326,7 @@ grep "confidence" ~/.openclaw/logs/reverse-prompt-*.log | \
 
 ## Integration Checklist for LabOS
 
-- [ ] Copy `reverse-prompt` to `~/.openclaw/skills/`
+- [ ] Copy `reverse-prompt` to `${CLAWVIS_ROOT:-$HOME/lab/clawvis}/skills/`
 - [ ] Run `uv sync` in skill directory
 - [ ] Create style guide example
 - [ ] Integrate into `labos/orchestration/agent_router.py`

@@ -12,8 +12,10 @@ for _envf in (_skill_root / ".env", _skill_root / "core" / ".env"):
     if _envf.exists():
         load_dotenv(_envf, override=True)
 
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
-TASKS_JSON = WORKSPACE / "memory" / "kanban" / "tasks.json"
+from kanban_implementer.clawvis_paths import agent_workspace, memory_root
+
+WORKSPACE = agent_workspace()
+TASKS_JSON = memory_root() / "kanban" / "tasks.json"
 LAB = Path.home() / "Lab"
 PROTOCOL_MD = LAB / "PROTOCOL.md"
 

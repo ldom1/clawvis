@@ -1,4 +1,4 @@
-"""Scheduler — reads YAML skill definitions, fires cron jobs against the agent, posts results to Telegram.
+"""Scheduler — YAML job definitions: agent prompts (`prompt` → agent-service /chat) or shell (`command` → bash in CLAWVIS_ROOT), then Telegram notify.
 
 HTTP management API (port 8095):
   GET  /jobs           → list all job definitions + runtime state
@@ -9,8 +9,9 @@ HTTP management API (port 8095):
 from __future__ import annotations
 
 import asyncio
-import logging
 import json
+import logging
+import os
 from pathlib import Path
 
 import httpx
@@ -47,6 +48,45 @@ def _workflows_dir(base_dir: Path) -> Path:
     return workflows_dir
 
 
+def _skill_run_payload(skill: SkillDefinition) -> dict:
+    return RunSkillInput(
+        name=skill.name,
+        prompt=skill.prompt,
+        command=skill.command,
+    ).model_dump()
+
+
+async def _run_shell_command(command: str, *, trace_id: str, job_name: str) -> str:
+    root = os.environ.get("CLAWVIS_ROOT", "/clawvis").strip() or "/clawvis"
+    env = os.environ.copy()
+    env.setdefault("CLAWVIS_ROOT", root)
+    env.setdefault("TELEGRAM_URL", os.environ.get("TELEGRAM_URL", "http://telegram:8094"))
+    log.info("job.shell_start name=%s cwd=%s", job_name, root)
+    trace_event("scheduler.job", "shell.start", trace_id=trace_id, name=job_name)
+    proc = await asyncio.create_subprocess_shell(
+        command,
+        cwd=root,
+        env=env,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
+    )
+    out, _ = await proc.communicate()
+    text = out.decode(errors="replace").strip()
+    if proc.returncode != 0:
+        log.error("job.shell_error name=%s exit=%s", job_name, proc.returncode)
+        trace_event(
+            "scheduler.job",
+            "shell.error",
+            trace_id=trace_id,
+            level="ERROR",
+            name=job_name,
+            exit_code=proc.returncode,
+        )
+        return f"[shell exit {proc.returncode}]\n{text}" if text else f"[shell exit {proc.returncode}]"
+    trace_event("scheduler.job", "shell.ok", trace_id=trace_id, name=job_name, result_chars=len(text))
+    return text if text else "[shell ok, no output]"
+
+
 async def _run_skill(skill_data: dict) -> str:
     trace_id = new_trace_id()
     try:
@@ -67,23 +107,28 @@ async def _run_skill(skill_data: dict) -> str:
     log.info("job.trigger name=%s", skill.name)
     trace_event("scheduler.job", "job.trigger", trace_id=trace_id, name=skill.name)
     result = "[agent error: unknown]"
+    shell_cmd = (skill.command or "").strip()
     try:
-        async with httpx.AsyncClient(timeout=120) as client:
-            trace_event("scheduler.job", "agent.request.start", trace_id=trace_id, name=skill.name)
-            resp = await client.post(
-                f"{settings.agent_url}/chat",
-                json=AgentChatRequest(message=skill.prompt).model_dump(),
+        if shell_cmd:
+            result = await _run_shell_command(shell_cmd, trace_id=trace_id, job_name=skill.name)
+            log.info("job.shell_done name=%s chars=%d", skill.name, len(result))
+        else:
+            async with httpx.AsyncClient(timeout=120) as client:
+                trace_event("scheduler.job", "agent.request.start", trace_id=trace_id, name=skill.name)
+                resp = await client.post(
+                    f"{settings.agent_url}/chat",
+                    json=AgentChatRequest(message=skill.prompt).model_dump(),
+                )
+                resp.raise_for_status()
+                result = resp.text
+            log.info("job.result name=%s chars=%d", skill.name, len(result))
+            trace_event(
+                "scheduler.job",
+                "agent.request.ok",
+                trace_id=trace_id,
+                name=skill.name,
+                result_chars=len(result),
             )
-            resp.raise_for_status()
-            result = resp.text
-        log.info("job.result name=%s chars=%d", skill.name, len(result))
-        trace_event(
-            "scheduler.job",
-            "agent.request.ok",
-            trace_id=trace_id,
-            name=skill.name,
-            result_chars=len(result),
-        )
     except Exception as exc:
         result = f"[agent error: {exc}]"
         log.error("job.agent_error name=%s error=%s", skill.name, exc)
@@ -173,7 +218,7 @@ async def _run_workflow(workflow_data: dict) -> None:
             )
             return
 
-        result = await _run_skill(RunSkillInput(name=skill.name, prompt=skill.prompt).model_dump())
+        result = await _run_skill(_skill_run_payload(skill))
 
         if result.startswith("[agent error:"):
             log.error("workflow.stopped workflow=%s failed_job=%s", workflow.name, job_name)
@@ -222,7 +267,7 @@ def _register_skill(scheduler: AsyncIOScheduler, skill: SkillDefinition) -> None
     scheduler.add_job(
         _run_skill,
         "cron",
-        args=[RunSkillInput(name=skill.name, prompt=skill.prompt).model_dump()],
+        args=[_skill_run_payload(skill)],
         minute=minute,
         hour=hour,
         day=day,
@@ -247,6 +292,7 @@ def _skill_to_job_dict(skill: SkillDefinition) -> dict:
         "name": skill.name,
         "schedule": skill.cron or "manual",
         "prompt": skill.prompt,
+        "command": skill.command,
         "enabled": skill.enabled,
         "timezone": skill.timezone,
         "nextRun": next_run,
@@ -406,7 +452,7 @@ async def _http_trigger_job(request: web.Request) -> web.Response:
     except (yaml.YAMLError, ValidationError, TypeError) as exc:
         return web.json_response({"ok": False, "error": str(exc)}, status=400)
 
-    asyncio.create_task(_run_skill(RunSkillInput(name=skill.name, prompt=skill.prompt).model_dump()))
+    asyncio.create_task(_run_skill(_skill_run_payload(skill)))
     log.info("job.manual_trigger name=%s", name)
     return web.json_response({"ok": True, "triggered": name})
 

@@ -3954,3 +3954,317 @@ body {
   border-bottom: 1px solid #333;
   flex-shrink: 0;
 }
+
+/* ─── Workflow read-only view ──────────────────────────────────────────── */
+
+.wf-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.wf-view-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+.wf-view-toggle button + button {
+  border-left: 1px solid var(--border);
+}
+.wf-view-toggle button:hover {
+  color: var(--text);
+}
+.wf-view-toggle button.active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.wf-canvas-wrap {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.wf-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+}
+
+.wf-warning {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: color-mix(in srgb, #f59e0b 22%, var(--surface));
+  color: #f59e0b;
+  border: 1px solid color-mix(in srgb, #f59e0b 45%, var(--border));
+}
+.wf-warning-error {
+  background: color-mix(in srgb, #ef4444 22%, var(--surface));
+  color: #ef4444;
+  border-color: color-mix(in srgb, #ef4444 50%, var(--border));
+}
+
+/* JobNode */
+.wf-job-node {
+  width: 200px;
+  min-height: 80px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+.wf-job-node-selected {
+  border-color: var(--accent);
+}
+.wf-job-node-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.wf-job-node-label {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.wf-job-node-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  min-width: 0;
+}
+.wf-job-node-status {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+  font-weight: 600;
+}
+.wf-job-node-sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, Menlo, monospace;
+}
+.wf-job-node-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.wf-dot-idle {
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+.wf-dot-pending {
+  background: #94a3b8;
+}
+.wf-dot-running {
+  background: #3b82f6;
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  animation: wf-pulse 1.4s ease-out infinite;
+}
+.wf-dot-success {
+  background: #22c55e;
+}
+.wf-dot-failed {
+  background: #ef4444;
+}
+.wf-dot-skipped {
+  background: #f59e0b;
+}
+
+.wf-job-node-running {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #3b82f6 50%, transparent);
+}
+.wf-job-node-success {
+  border-color: color-mix(in srgb, #22c55e 60%, var(--border));
+}
+.wf-job-node-failed {
+  border-color: #ef4444;
+  background: color-mix(in srgb, #ef4444 6%, var(--surface));
+}
+.wf-job-node-skipped {
+  border-color: color-mix(in srgb, #f59e0b 50%, var(--border));
+  opacity: 0.7;
+}
+.wf-job-node-current {
+  transform: scale(1.02);
+}
+
+@keyframes wf-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.wf-handle {
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--muted) !important;
+  border: 2px solid var(--surface) !important;
+}
+
+/* Edges */
+.react-flow__edge.wf-edge-pending .react-flow__edge-path {
+  stroke: color-mix(in srgb, var(--muted) 70%, transparent);
+  stroke-dasharray: 4 4;
+}
+.react-flow__edge.wf-edge-active .react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 2;
+}
+.react-flow__edge.wf-edge-done .react-flow__edge-path {
+  stroke: #22c55e;
+  stroke-width: 2;
+}
+.react-flow__edge.wf-edge-failed .react-flow__edge-path {
+  stroke: #ef4444;
+  stroke-width: 2;
+}
+
+/* Theme: react flow controls/minimap fit Hub vars */
+.wf-canvas-wrap .react-flow__controls,
+.wf-canvas-wrap .wf-minimap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.wf-canvas-wrap .react-flow__controls-button {
+  background: var(--surface);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.wf-canvas-wrap .react-flow__controls-button:hover {
+  background: var(--surface-2);
+}
+
+/* Workflow run modal */
+.wf-run-modal-panel {
+  width: min(960px, 92vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.wf-run-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.wf-run-modal-header .cron-modal-title {
+  margin: 0;
+  font-size: 16px;
+}
+.wf-run-modal-body {
+  flex: 1;
+  min-height: 320px;
+}
+.wf-run-modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.wf-modal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.wf-modal-badge.ok {
+  color: #22c55e;
+  border-color: color-mix(in srgb, #22c55e 50%, var(--border));
+}
+.wf-modal-badge.error {
+  color: #ef4444;
+  border-color: color-mix(in srgb, #ef4444 50%, var(--border));
+}
+.wf-modal-badge.warn {
+  color: #f59e0b;
+  border-color: color-mix(in srgb, #f59e0b 50%, var(--border));
+}
+.wf-modal-badge.running {
+  color: #3b82f6;
+  border-color: color-mix(in srgb, #3b82f6 50%, var(--border));
+}
+
+.wf-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wf-stacked-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wf-stacked-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.wf-stacked-title {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Resolve Clawvis repo root + logger paths (shared by skills/scripts).
+# shellcheck shell=bash
+
+clawvis_resolve_root() {
+  if [ -n "${CLAWVIS_ROOT:-}" ] && [ -d "${CLAWVIS_ROOT}/hub-core" ]; then
+    printf '%s\n' "${CLAWVIS_ROOT}"
+    return 0
+  fi
+  for _p in "${HOME}/lab/clawvis" "${HOME}/Lab/clawvis"; do
+    if [ -d "${_p}/hub-core" ]; then
+      printf '%s\n' "${_p}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Sets CLAWVIS_ROOT, LOGGER_CORE, LOG_DIR; returns 0 if repo found.
+clawvis_env_load() {
+  local root
+  root="$(clawvis_resolve_root)" || return 1
+  CLAWVIS_ROOT="$root"
+  export CLAWVIS_ROOT
+  LOGGER_CORE="${CLAWVIS_ROOT}/skills/logger/core"
+  LOG_DIR="${CLAWVIS_ROOT}/logs"
+  export LOGGER_CORE LOG_DIR
+  return 0
+}
+
+dombot_log_uv() {
+  [ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] || return 0
+  uv run --directory "$LOGGER_CORE" "$@"
+}

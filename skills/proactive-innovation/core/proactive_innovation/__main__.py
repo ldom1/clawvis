@@ -1,18 +1,15 @@
-"""Entry point: run phases, print ONE report to stdout. No Telegram/OpenClaw calls."""
+"""Entry point: run phases, print ONE report to stdout. Shell sends Telegram if configured."""
 
 from __future__ import annotations
 
-import os
 import sys
 
-from proactive_innovation.config import WORKSPACE
 from proactive_innovation.ideas import run_phase3
 from proactive_innovation.logging import log_error, log_info
 from proactive_innovation.projects import run_phase1
 
 
 def main() -> None:
-    os.chdir(WORKSPACE)
     log_info("cron:start", "proactive-innovation run")
     report_lines: list[str] = []
 

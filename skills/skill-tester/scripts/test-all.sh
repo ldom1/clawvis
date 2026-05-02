@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# skill-tester — run all Python unit tests for OpenClaw skills
+# skill-tester — run all Python unit tests under Clawvis skills/
 # Usage:
 #   test-all.sh              # test all skills with core/tests/
 #   test-all.sh logger       # test a single skill
 #   test-all.sh --list       # list testable skills
 #
-# Roots (first match wins defaults):
+# Roots (defaults):
 #   SKILL_TEST_ROOTS="path1 path2"  — explicit list of dirs containing skill subfolders
 #   CLAWVIS_ROOT + INSTANCE_NAME    — adds .../skills and .../instances/$INSTANCE/skills
-#   Else: ~/.openclaw/skills if non-empty, else ~/Lab/clawvis/skills (+ instances/dombot/skills)
+#   Else: ~/lab/clawvis/skills and ~/Lab/clawvis/skills (+ instances/dombot/skills when present)
 #
-# Logger (dombot-log): LOGGER_CORE_OVERRIDE or first existing .../logger/core under roots / Lab / .openclaw
+# Logger (dombot-log): LOGGER_CORE_OVERRIDE or first .../logger/core under those roots
 set -uo pipefail
 
 export PATH="${HOME}/.local/bin:${HOME}/.cargo/bin:${HOME}/bin:${HOME}/.npm-global/bin:${PATH}"
@@ -37,8 +37,8 @@ resolve_logger_core() {
     [[ -d "$c" ]] && { printf '%s' "$c"; return 0; }
   done
   for c in \
-    "${HOME}/Lab/clawvis/skills/logger/core" \
-    "${HOME}/.openclaw/skills/logger/core"
+    "${HOME}/lab/clawvis/skills/logger/core" \
+    "${HOME}/Lab/clawvis/skills/logger/core"
   do
     [[ -d "$c" ]] && { printf '%s' "$c"; return 0; }
   done
@@ -58,13 +58,10 @@ build_skill_roots() {
     [[ -n "${IN}" && -d "${CR}/instances/${IN}/skills" ]] && SKILL_ROOTS_ARR+=("${CR}/instances/${IN}/skills")
     [[ ${#SKILL_ROOTS_ARR[@]} -gt 0 ]] && return 0
   fi
-  if compgen -G "${HOME}/.openclaw/skills/*/" &>/dev/null; then
-    SKILL_ROOTS_ARR+=("${HOME}/.openclaw/skills")
-    return 0
-  fi
-  LC="${HOME}/Lab/clawvis"
-  [[ -d "${LC}/skills" ]] && SKILL_ROOTS_ARR+=("${LC}/skills")
-  [[ -d "${LC}/instances/dombot/skills" ]] && SKILL_ROOTS_ARR+=("${LC}/instances/dombot/skills")
+  for LC in "${HOME}/lab/clawvis" "${HOME}/Lab/clawvis"; do
+    [[ -d "${LC}/skills" ]] && SKILL_ROOTS_ARR+=("${LC}/skills")
+    [[ -d "${LC}/instances/dombot/skills" ]] && SKILL_ROOTS_ARR+=("${LC}/instances/dombot/skills")
+  done
 }
 
 LOGGER_CORE=""
@@ -96,12 +93,12 @@ fi
 # ── test runner ──────────────────────────────────────────────────────────────
 
 bold "═══════════════════════════════════════"
-bold " OpenClaw Skill Test Runner"
+bold " Clawvis skill test runner"
 bold " $(date '+%Y-%m-%d %H:%M')"
 bold "═══════════════════════════════════════"
 echo
 if [[ ${#SKILL_ROOTS_ARR[@]} -eq 0 ]]; then
-  yellow "No skill roots found. Set CLAWVIS_ROOT, SKILL_TEST_ROOTS, or symlink ~/.openclaw/skills"
+  yellow "No skill roots found. Set CLAWVIS_ROOT or SKILL_TEST_ROOTS"
   exit 1
 fi
 echo "Roots: ${SKILL_ROOTS_ARR[*]}"

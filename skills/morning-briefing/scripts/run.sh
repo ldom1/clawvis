@@ -2,21 +2,24 @@
 # Morning Briefing — cron entrypoint with central logging
 set -euo pipefail
 
-OPENCLAW_LOGS="${OPENCLAW_LOGS:-$HOME/.openclaw/logs}"
-mkdir -p "$OPENCLAW_LOGS"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILL_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MB_DIR="$SKILL_ROOT"
+# shellcheck disable=SC1091
+source "$(cd "$SKILL_ROOT/.." && pwd)/_clawvis_env.sh"
+clawvis_env_load || true
+LOG_DIR="${LOG_DIR:-${TMPDIR:-/tmp}/clawvis-logs}"
+mkdir -p "$LOG_DIR"
 
-# Load instance secrets (TELEGRAM_TARGET_ID, etc.)
 ENV_LOCAL="${HUB_ROOT:-$HOME/Lab/hub-ldom/instances/ldom}/.env.local"
 [ -f "$ENV_LOCAL" ] && set -a && . "$ENV_LOCAL" && set +a
 
-trap 'e=$?; [ $e -ne 0 ] && uv run --directory ~/.openclaw/skills/logger/core dombot-log "ERROR" "cron:morning-briefing" "system" "cron:fail" "Script failed (exit $e)" 2>/dev/null || true; exit $e' EXIT
+trap 'e=$?; [ $e -ne 0 ] && [ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] && uv run --directory "$LOGGER_CORE" dombot-log "ERROR" "cron:morning-briefing" "system" "cron:fail" "Script failed (exit $e)" 2>/dev/null || true; exit $e' EXIT
 
-uv run --directory ~/.openclaw/skills/logger/core \
+[ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] && uv run --directory "$LOGGER_CORE" \
   dombot-log "INFO" "cron:morning-briefing" "system" "cron:start" "Morning briefing started" 2>/dev/null || true
 
-uv run --directory ~/.openclaw/skills/morning-briefing \
-  python ./morning-briefing.py
+uv run --directory "$MB_DIR/core" python "$MB_DIR/morning-briefing.py"
 
-uv run --directory ~/.openclaw/skills/logger/core \
+[ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] && uv run --directory "$LOGGER_CORE" \
   dombot-log "INFO" "cron:morning-briefing" "system" "cron:complete" "Morning briefing finished" 2>/dev/null || true
-

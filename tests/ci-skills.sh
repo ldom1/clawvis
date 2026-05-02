@@ -43,7 +43,7 @@ if [ -f "${skill_tester}" ]; then
   tester_home="${ROOT_DIR}/.tmp/skill-tester-home"
   mkdir -p "${tester_home}/.openclaw"
   ln -sfn "${ROOT_DIR}/skills" "${tester_home}/.openclaw/skills"
-  HOME="${tester_home}" bash "${skill_tester}"
+  HOME="${tester_home}" CLAWVIS_ROOT="${ROOT_DIR}" bash "${skill_tester}"
 else
   echo "[warn] skill-tester not found at ${skill_tester}"
 fi

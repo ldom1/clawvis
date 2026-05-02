@@ -25,7 +25,7 @@ uv run --directory ${CLAWVIS_ROOT}/skills/proactive-innovation/core python -m pr
 
 Le package `core/` et le script `scripts/run-proactive-innovation.sh` exécutent le scan **sans** que l’agent envoie de messages en boucle : un seul rapport est produit, puis **un seul** message Telegram à la fin.
 
-Le module Python ne fait **jamais** d’appel Telegram/OpenClaw ; le script shell envoie **une fois** le rapport combiné. Limites par run : 10 projets, 5 améliorations/projet, 3 idées.
+Le module Python ne fait **jamais** d’appel Telegram ; le script shell envoie **une fois** le rapport (`TELEGRAM_URL` / `POST /send`). Limites par run : 10 projets, 5 améliorations/projet, 3 idées.
 
 ---
 

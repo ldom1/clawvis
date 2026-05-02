@@ -46,6 +46,7 @@ jobs:
           bash -n scripts/hub-healthcheck.sh
           bash -n scripts/transcribe-audio.sh
           bash -n tests/ci-playwright.sh
+          bash -n tests/ci-scheduler.sh
           bash -n tests/test-get-sh.sh
 
       - name: get.sh install smoke (workspace copy + install.sh)

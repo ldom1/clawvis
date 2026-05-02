@@ -4,6 +4,54 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### CI — brain-maintenance ruff (2026-05-02)
+- **`skills/brain-maintenance/core`** : retrait imports `Path` inutiles (`recalibrate.py`, `trim.py`) ; **`recover.py`** — `WORKSPACE = agent_workspace()` pour `relative_to` et `.logs` (corrige F821 sous `ci-skills.sh`).
+
+### CI — scheduler gate (2026-05-02)
+- **`tests/ci-scheduler.sh`** : `pytest -q services/scheduler/tests` ; invoqué depuis **`tests/ci-all.sh`** après hub-core ; **`bash -n`** dans `.github/workflows/ci.yml`.
+- **`docs/testing.md`** / **`docs/ARCHITECTURE.md`** : orchestrateur documenté (`kanban → hub-core → scheduler → …`).
+
+### Scheduler — shell cron jobs (2026-05-02)
+- **Job YAML** : champ optionnel `command` — si présent, le scheduler exécute un shell dans `CLAWVIS_ROOT` au lieu d’appeler l’agent avec « Run the X skill » (incompatible avec les skills Claude Code).
+- **`hub-refresh` / `morning-briefing`** : passent en `command: bash "/clawvis/skills/…/scripts/run.sh"`.
+- **Docker** : volume `./:/clawvis:ro` + env `CLAWVIS_ROOT`, `BRAIN_PATH`, `MEMORY_ROOT`, `INSTANCE_NAME` sur le service `scheduler`.
+- **Tests** : correction des chemins `jobs/` dans les tests workflow ; nouveau test shell vs agent ; tests `_run_shell_command` avec deux racines temporaires + smoke layout sur le checkout courant (`CLAWVIS_ROOT`).
+
+### Skills — CLAWVIS_ROOT sweep (2026-05-02)
+- **`skills/_clawvis_env.sh`** : résolution partagée de `CLAWVIS_ROOT`, `LOGGER_CORE`, `LOG_DIR` ; les scripts cron source ce fichier au lieu de `~/.openclaw/skills/logger/core`.
+- **Nettoyage OpenClaw** : suppression des références `~/.openclaw` / CLI dans `skills/` ; Telegram via `TELEGRAM_URL` + `POST /send` ; git-sync → miroir `.claude` / templates (`clawvis-config-mirror`) ; docs reverse-prompt / qmd / SKILLS alignées.
+- **Python** : `memory_root()` / `clawvis_paths` dans les skills concernés ; logger écrit sous `${CLAWVIS_ROOT}/logs` (ou `CLAWVIS_LOG_DIR`).
+- **Hooks** : `self-improvement/hooks/agent-bootstrap/` (remplace `openclaw`) ; `references/clawvis-skills.md`.
+
+### Skills — self-improvement OpenRouter (2026-05-02)
+- **`self-improvement` / `call_llm`** : **OpenRouter uniquement** (`OPENROUTER_*`) ; retrait Mammouth / Mistral et fallback OpenClaw `sessions_spawn`.
+- **`config.py`** : chargement `.env` dans l’ordre skill → core → **racine Clawvis** (override) pour lire les mêmes clés que Docker/agent.
+- **`run-self-improvement.sh`** : source `${CLAWVIS_ROOT}/.env` avant les `.env` locaux du skill.
+
+### Skills — self-improvement paths (2026-05-02)
+- **`skills/self-improvement/scripts/`** : `_clawvis_env.sh` (résolution `CLAWVIS_ROOT` / `~/lab/clawvis` / `~/Lab/clawvis`), tous les shells utilisent `dombot_log_uv` et `${CLAWVIS_ROOT}/logs` au lieu de `~/.openclaw`.
+- **`scripts/run-self-improvement.sh`** : logs sous `${CLAWVIS_ROOT}/logs`, fallback `/tmp` ; fallback CLI `openclaw sessions_spawn` uniquement si la commande est dans `PATH`.
+- **`core/self_improvment/config.py`** : `LEARNINGS_DIR` = `skills/self-improvement/.learnings`, `WORKSPACE` = racine Clawvis si résolu, clés API uniquement via `.env` ; suppression de la lecture `~/.openclaw/openclaw.json`.
+- **`protocol_audit`** : scan skills sous `${CLAWVIS_ROOT}/skills`, projets sous `~/lab` et `~/Lab`, `PROTOCOL.md` idem.
+
+### Skills — dombot-mail (2026-05-02)
+- **`scripts/dombot-mail.sh`** : source `skills/_clawvis_env.sh` (`clawvis_env_load`) ; `.env` skill → core → `${CLAWVIS_ROOT}/.env`.
+- **`core/dombot_mail/service.py`** : logger sous `${CLAWVIS_ROOT}/skills/logger/core` (fallback `~/lab/clawvis` / `~/Lab/clawvis`).
+- **`core/dombot_mail/config.py`** : chargement `.env` aligné (skill → core → racine repo).
+- **`SKILL.md`** : retrait métadonnées OpenClaw et chemins `~/.openclaw` ; documentation `CLAWVIS_ROOT`.
+
+### Skills — hub-refresh + self-improvement (2026-05-02)
+- **`skills/hub-refresh/SKILL.md`** : enregistrement du skill (description, run, troubleshooting) pour exposition dans l’index agent.
+- **`skills/hub-refresh/scripts/run.sh`** : résolution du dépôt via `CLAWVIS_ROOT` ou `$HOME/lab/clawvis` / `$HOME/Lab/clawvis` ; chemins `hub-core` et `skills/logger/core` relatifs à cette racine ; message si logger absent ; **plus de pin `UV_PYTHON=/usr/bin/python3.11`** — uv choisit l’interpréteur (`requires-python >=3.11` dans hub-core) ; `UV_PYTHON` non exécutable → ignoré.
+- **`skills/self-improvement/SKILL.md`** : skill documentaire aligné sur le job cron `services/scheduler/definitions/jobs/self-improvement.yaml` et la séparation avec `knowledge-consolidator`.
+
+### Hub — Schedule view: React Flow workflow graph (2026-05-01)
+- **`hub/src/workflow/`** (nouveau): composants React lecture seule pour visualiser jobs et workflows en graphe — `WorkflowView` (React Flow + dagre), `JobNode` (custom node coloré par statut, dot pulsant pour `running`), `useWorkflowGraph` (transformation `nodeIds + edges → { nodes, edges }`, détection de cycle/duplicates), `WorkflowRunModal` (graphe en exécution, polling `/api/hub/kanban/logs` filtré sur `scheduler.workflow`).
+- **`hub/src/main.js`**: ajout d'un toggle « Liste / Workflow » sur les sections **Jobs** et **Workflows** de `/schedule` ; préférence persistée dans `localStorage` (`hub.schedule.jobsView`, `hub.schedule.workflowsView`). Run d'un workflow ouvre désormais une modal avec graphe animé (jobs courants `running`, edges `success/failed/pending`, jobs restants `skipped` après échec).
+- **`hub/src/style.css`**: thème React Flow aligné sur les variables Hub (`--surface`, `--accent`, `--border`), bordures pulsantes pour `running`, edges `pending` en pointillés, classes `wf-stacked-card` pour la liste de pipelines.
+- **`hub/package.json`**: ajout `dagre` (runtime) et `typescript`, `@types/dagre`, `@types/react`, `@types/react-dom` (devDeps) ; nouveau `hub/tsconfig.json` strict, `hub/src/vite-env.d.ts` pour les imports CSS.
+- Pas de changement backend : la « source de vérité » des statuts d'exécution reste les events `workflow.trigger`, `workflow.job_done`, `workflow.stopped`, `workflow.complete` déjà émis par `services/scheduler/core/scheduler.py`.
+
 ### CI — kanban + Hub format (2026-05-01)
 - **`tests/test_memory_api.py`**: `test_quartz_static_serves_memory_projects_when_no_quartz_build` monkeypatch `kanban_api.core.active_brain_memory_root` (pas seulement `memory_api`) car `_fallback_projects_dir()` vit dans `core` et appelait le vrai `get_hub_settings()` → `PermissionError` sur `hub_settings.json` en CI.
 - **Hub**: `yarn --cwd hub prettier --write src/main.js` pour refaire passer `format:check`.
