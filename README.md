@@ -197,6 +197,46 @@ It works out of the box — no Quartz installation needed. A lightweight Python 
 
 ---
 
+## Launching a project on dombot.tech
+
+Projects created in Clawvis can be exposed at `<project>.dombot.tech` via the [clawvis-deployment](https://github.com/ldom1/clawvis-deployment) Ansible repo.
+
+### How it works
+
+```
+Browser → VPS nginx (TLS) → Tailscale → devbox nginx → container port
+```
+
+Each project gets its own subdomain routed to a port in the `8100–8199` range on devbox.
+
+### Register a new project subdomain
+
+From the `clawvis-deployment` repo:
+
+```bash
+uv run ansible-playbook add_project.yml \
+  -e project_name=myapp \
+  -e project_port=8100
+```
+
+The project is then reachable at `http://myapp.dombot.tech` (or `https://` once the wildcard TLS cert is in place — see [`docs/routing-architecture.md`](https://github.com/ldom1/clawvis-deployment/blob/main/docs/routing-architecture.md)).
+
+### Remove a project subdomain
+
+```bash
+uv run ansible-playbook remove_project.yml -e project_name=myapp
+```
+
+### Port allocation
+
+| Range | Usage |
+|-------|-------|
+| 8088 | Clawvis hub (fixed) |
+| 8090–8092 | Clawvis internal services (fixed) |
+| 8100–8199 | Clawvis projects (dynamic) |
+
+---
+
 ## What's inside
 
 | Directory | Purpose |
