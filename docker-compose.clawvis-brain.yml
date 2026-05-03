@@ -14,3 +14,8 @@ services:
   hub-memory-api:
     volumes:
       - "${BRAIN_PATH}:${BRAIN_PATH}:rw"
+  telegram:
+    volumes:
+      - "${BRAIN_PATH}:${BRAIN_PATH}:rw"
+    environment:
+      - BRAIN_PATH=${BRAIN_PATH}

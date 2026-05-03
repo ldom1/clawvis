@@ -123,6 +123,8 @@ When `clawvis` is installed globally (`~/.local/bin/clawvis`) and you run comman
 
 **Cron + Telegram:** `docker compose up` (and `clawvis restart` in Docker mode) start `telegram` and `scheduler` with the rest of the stack. Without `TELEGRAM_BOT_TOKEN`, the telegram service runs in **stub mode** (HTTP `/send` only — logs deliveries, no Telegram API). Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env` for a real bot. `TELEGRAM_CHAT_ID` must be the target chat/channel id (not the bot id), otherwise `/test` and scheduler notifications are rejected. Cron definitions: `services/scheduler/definitions/jobs/*.yaml` and workflows in `services/scheduler/definitions/workflows/*.yaml`.
 
+**Telegram memory:** The bot remembers across sessions. When `BRAIN_PATH` is set and `docker-compose.clawvis-brain.yml` is active, the telegram service reads a lightweight memory context (user profile + active context + open topics, ≤300 tokens) at startup and injects it into every prompt. On shutdown it asks the agent to extract key points and writes them back to `resources/knowledge/operational/clawvis/` in the brain vault — no conversation transcripts, just distilled facts. brain-sync commits and pushes the updated files at session end.
+
 ---
 
 ## AI Runtime
