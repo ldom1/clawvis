@@ -8,7 +8,7 @@ export PATH="${HOME}/.local/bin:${PATH}"
 if [ -n "${UV_PYTHON:-}" ] && [ ! -x "$UV_PYTHON" ]; then
   unset UV_PYTHON
 fi
-export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-$HOME/.venvs/hub-core}"
+export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${TMPDIR:-/tmp}/clawvis-venvs/hub-core}"
 
 _resolve_clawvis_root() {
   if [ -n "${CLAWVIS_ROOT:-}" ] && [ -d "${CLAWVIS_ROOT}/hub-core" ]; then
