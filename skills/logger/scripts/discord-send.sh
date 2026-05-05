@@ -77,5 +77,6 @@ log "Resolved target channel id: $(mask "$TARGET_ID")"
 log "Message length: ${#MESSAGE}"
 cd "$CORE_DIR"
 log "Running: uv run discord-cli main --once --channel-id <id> --message <message>"
-uv run discord-cli main --once --channel-id "$TARGET_ID" --message "$MESSAGE"
+UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/logger-core" \
+  uv run discord-cli main --once --channel-id "$TARGET_ID" --message "$MESSAGE"
 log "Done."

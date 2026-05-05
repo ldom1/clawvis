@@ -275,9 +275,13 @@ class CuriosityAgent:
         return items
 
     def _run_dombot_mail(self, *args: str) -> str:
+        import os, tempfile
+        venv = os.path.join(tempfile.gettempdir(), "clawvis-venvs", "dombot-mail-core")
+        env = os.environ.copy()
+        env["UV_PROJECT_ENVIRONMENT"] = venv
         cmd = ["uv", "run", "--directory", str(DOMBOT_MAIL_CORE), "dombot-mail", *args]
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False, env=env)
             return r.stdout or ""
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
             self.log(f"dombot-mail not available: {e}", "WARN")

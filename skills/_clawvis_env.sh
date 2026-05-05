@@ -34,7 +34,17 @@ clawvis_env_load() {
   return 0
 }
 
+# Wraps `uv run --directory <dir>` with a writable venv in /tmp.
+# Derives venv slug from parent-dir + dir name (e.g. logger-core, morning-briefing-core).
+clawvis_uv_run_dir() {
+  local dir="$1"; shift
+  local slug
+  slug="$(basename "$(dirname "$dir")")-$(basename "$dir")"
+  UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/${slug}" \
+    uv run --directory "$dir" "$@"
+}
+
 dombot_log_uv() {
   [ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] || return 0
-  uv run --directory "$LOGGER_CORE" "$@"
+  clawvis_uv_run_dir "$LOGGER_CORE" "$@"
 }

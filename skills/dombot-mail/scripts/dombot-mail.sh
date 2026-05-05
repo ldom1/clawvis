@@ -18,4 +18,5 @@ if [ -n "${CLAWVIS_ROOT:-}" ] && [ -f "${CLAWVIS_ROOT}/.env" ]; then
   set -a && . "${CLAWVIS_ROOT}/.env" && set +a
 fi
 
+export UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/dombot-mail-core"
 exec uv run --directory "$CORE_DIR" dombot-mail "$@"
