@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Skills — scheduler container compatibility (2026-05-05)
+- **Root cause**: scheduler mounts `.:/clawvis:ro` — all `uv run --directory` calls created `.venv` inside the read-only mount, causing PermissionError on every skill.
+- **`skills/_clawvis_env.sh`**: added `clawvis_uv_run_dir()` helper that auto-derives `UV_PROJECT_ENVIRONMENT=/tmp/clawvis-venvs/<slug>` from the target directory; `dombot_log_uv()` wraps logger calls through this helper; `LOG_DIR` falls back to `/tmp/clawvis-logs` when `/clawvis/logs` is not writable.
+- **All skill scripts** updated to use `clawvis_uv_run_dir` instead of bare `uv run --directory`: `hub-refresh`, `morning-briefing`, `brain-maintenance` (recalibrate/recover/trim), `proactive-innovation`, `implement`, `knowledge-consolidator` (collect + consolidate), `logger` (dombot-log + discord-send), `dombot-mail`.
+- **`knowledge_consolidator/curiosity.py`**: `_run_dombot_mail()` now passes `UV_PROJECT_ENVIRONMENT` via subprocess env.
+- **`docker-compose.yml`** (scheduler): added `CLAWVIS_LOG_DIR=/logs` (Python logger writes to writable mount), `HUB_API_DIR=/hub-api`, and volume `./hub/public/api:/hub-api:rw`.
+- **`docker-compose.yml`** (hub): added volume `./hub/public/api:/usr/share/nginx/html/api:ro` so hub-refresh JSON files are served live without container rebuild.
+- **`hub-core/hub_core/config.py`**: `HUB_API_DIR` env var takes precedence over `LAB_DIR`-derived path, decoupling hub-core from host filesystem layout.
+- **Scheduler job definitions**: `self-improvement.yaml` uses explicit `bash /clawvis/skills/…` command; `knowledge-consolidator-collect.yaml` uses `/clawvis/` prefix.
+
 ### CI — brain-maintenance ruff (2026-05-02)
 - **`skills/brain-maintenance/core`** : retrait imports `Path` inutiles (`recalibrate.py`, `trim.py`) ; **`recover.py`** — `WORKSPACE = agent_workspace()` pour `relative_to` et `.logs` (corrige F821 sous `ci-skills.sh`).
 
