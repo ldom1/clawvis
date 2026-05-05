@@ -41,6 +41,7 @@ clawvis_uv_run_dir() {
   local slug
   slug="$(basename "$(dirname "$dir")")-$(basename "$dir")"
   UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/${slug}" \
+    VIRTUAL_ENV="" \
     uv run --directory "$dir" "$@"
 }
 

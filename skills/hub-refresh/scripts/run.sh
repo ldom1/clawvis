@@ -52,7 +52,7 @@ export NETWORK_ALLOWLIST="api.mammouth.ai,api.anthropic.com,localhost"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh START — AGENT_ID=$AGENT_ID AGENT_ROLE=$AGENT_ROLE CLAWVIS_ROOT=$CLAWVIS_ROOT" >>"$LOG_FILE"
 
 cd "$HUB_CORE_DIR"
-if timeout 300 uv run python -m hub_core.main "$@" >>"$LOG_FILE" 2>&1; then
+if timeout 300 env VIRTUAL_ENV="" uv run python -m hub_core.main "$@" >>"$LOG_FILE" 2>&1; then
   EXIT_CODE=0
   STATUS="SUCCESS"
 else
@@ -64,6 +64,7 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh END — STATUS=$STATUS EXIT_COD
 
 if [ -d "$LOGGER_CORE" ]; then
   UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/logger-core" \
+    VIRTUAL_ENV="" \
     uv run --directory "$LOGGER_CORE" dombot-log "INFO" "cron:hub-refresh" "system" "cron:complete" "Hub Refresh executed ($STATUS)" "{\"exit_code\": $EXIT_CODE, \"log_file\": \"$LOG_FILE\"}" || true
 else
   echo "hub-refresh: logger core missing at $LOGGER_CORE — skip dombot-log" >>"$LOG_FILE"
