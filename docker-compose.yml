@@ -232,6 +232,7 @@ services:
       - SKILLS_DIR=/skills
       - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
       - CLAWVIS_ROOT=/clawvis
+      - CLAWVIS_LOG_DIR=/logs
       - BRAIN_PATH=${BRAIN_PATH}
       - MEMORY_ROOT=${BRAIN_PATH}
       - INSTANCE_NAME=${INSTANCE_NAME:-example}
