@@ -10,7 +10,7 @@ _CONFIG_DIR = Path(__file__).resolve().parent
 load_dotenv(_CONFIG_DIR.parent / ".env")
 
 LAB_DIR = Path(os.getenv("LAB_DIR", "/lab"))
-HUB_API_DIR = LAB_DIR / "hub" / "public" / "api"
+HUB_API_DIR = Path(os.getenv("HUB_API_DIR", "")) if os.getenv("HUB_API_DIR") else LAB_DIR / "hub" / "public" / "api"
 PROVIDERS_JSON = HUB_API_DIR / "providers.json"
 SYSTEM_JSON = HUB_API_DIR / "system.json"
 STATUS_JSON = HUB_API_DIR / "status.json"

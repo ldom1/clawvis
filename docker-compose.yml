@@ -14,6 +14,8 @@ services:
     volumes:
       - ./instances:/clawvis/instances:ro
       - "${PROJECTS_ROOT:?Set PROJECTS_ROOT in .env}:/clawvis/projects-root:ro"
+      # hub-core writes providers/system/status JSON via hub-refresh cron; serve them live.
+      - ./hub/public/api:/usr/share/nginx/html/api:ro
     tmpfs:
       - /tmp
     labels:
@@ -233,6 +235,7 @@ services:
       - CENTRAL_LOG_FILE=/logs/message-trajectory.jsonl
       - CLAWVIS_ROOT=/clawvis
       - CLAWVIS_LOG_DIR=/logs
+      - HUB_API_DIR=/hub-api
       - BRAIN_PATH=${BRAIN_PATH}
       - MEMORY_ROOT=${BRAIN_PATH}
       - INSTANCE_NAME=${INSTANCE_NAME:-example}
@@ -241,6 +244,8 @@ services:
       - ./logs:/logs:rw
       # Cron shell jobs (hub-refresh, morning-briefing, …) execute scripts under skills/ + hub-core/.
       - .:/clawvis:ro
+      # hub-core writes providers/system/status JSON here; hub container serves them via ro mount.
+      - ./hub/public/api:/hub-api:rw
     depends_on:
       agent-service:
         condition: service_healthy
