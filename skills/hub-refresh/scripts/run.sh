@@ -36,10 +36,11 @@ LOG_DIR="${CLAWVIS_LOG_DIR:-${CLAWVIS_ROOT}/logs}"
 TIMESTAMP=$(date '+%Y-%m-%d-%H%M')
 LOG_FILE="$LOG_DIR/hub-refresh-$TIMESTAMP.log"
 
-if ! mkdir -p "$LOG_DIR" 2>/dev/null; then
+mkdir -p "$LOG_DIR" 2>/dev/null || true
+if ! touch "$LOG_FILE" 2>/dev/null; then
   LOG_DIR="${TMPDIR:-/tmp}/clawvis-logs"
-  LOG_FILE="$LOG_DIR/hub-refresh-$TIMESTAMP.log"
   mkdir -p "$LOG_DIR"
+  LOG_FILE="$LOG_DIR/hub-refresh-$TIMESTAMP.log"
 fi
 
 export AGENT_ID="dombot"

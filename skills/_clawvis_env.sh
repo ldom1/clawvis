@@ -18,12 +18,18 @@ clawvis_resolve_root() {
 
 # Sets CLAWVIS_ROOT, LOGGER_CORE, LOG_DIR; returns 0 if repo found.
 clawvis_env_load() {
-  local root
+  local root _primary_log
   root="$(clawvis_resolve_root)" || return 1
   CLAWVIS_ROOT="$root"
   export CLAWVIS_ROOT
   LOGGER_CORE="${CLAWVIS_ROOT}/skills/logger/core"
-  LOG_DIR="${CLAWVIS_ROOT}/logs"
+  _primary_log="${CLAWVIS_ROOT}/logs"
+  if mkdir -p "$_primary_log" 2>/dev/null && [ -w "$_primary_log" ]; then
+    LOG_DIR="$_primary_log"
+  else
+    LOG_DIR="${TMPDIR:-/tmp}/clawvis-logs"
+    mkdir -p "$LOG_DIR" 2>/dev/null || true
+  fi
   export LOGGER_CORE LOG_DIR
   return 0
 }

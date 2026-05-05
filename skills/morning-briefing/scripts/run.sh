@@ -19,7 +19,8 @@ trap 'e=$?; [ $e -ne 0 ] && [ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] &
 [ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] && uv run --directory "$LOGGER_CORE" \
   dombot-log "INFO" "cron:morning-briefing" "system" "cron:start" "Morning briefing started" 2>/dev/null || true
 
-uv run --directory "$MB_DIR/core" python "$MB_DIR/morning-briefing.py"
+UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/morning-briefing" \
+  uv run --directory "$MB_DIR/core" python "$MB_DIR/morning-briefing.py"
 
 [ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] && uv run --directory "$LOGGER_CORE" \
   dombot-log "INFO" "cron:morning-briefing" "system" "cron:complete" "Morning briefing finished" 2>/dev/null || true

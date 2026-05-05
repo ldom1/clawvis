@@ -4,10 +4,10 @@ name: self-improvement
 prompt: |
   Run the self-improvement review by executing this command:
 
-    bash ${CLAWVIS_ROOT}/skills/self-improvement/scripts/run-self-improvement.sh
+    bash /clawvis/skills/self-improvement/scripts/run-self-improvement.sh
 
   The script reads .learnings/ (ERRORS.md, LEARNINGS.md, FEATURE_REQUESTS.md) under
-  ${CLAWVIS_ROOT}/skills/self-improvement/, calls the LLM review via OpenRouter,
+  /clawvis/skills/self-improvement/, calls the LLM review via OpenRouter,
   and sends a Telegram report automatically.
 
   Do not write any files yourself. Just run the script above and report its output.
