@@ -197,15 +197,19 @@ It works out of the box — no Quartz installation needed. A lightweight Python 
 
 ## Launching a project on dombot.tech
 
-Projects created in Clawvis can be exposed at `<project>.dombot.tech` via the [clawvis-deployment](https://github.com/ldom1/clawvis-deployment) Ansible repo.
+Projects created in Clawvis can be exposed at `https://<project>.dombot.tech` via the [clawvis-deployment](https://github.com/ldom1/clawvis-deployment) Ansible repo.
 
 ### How it works
 
 ```
-Browser → VPS nginx (TLS) → Tailscale → devbox nginx → container port
+Browser (HTTPS)
+  → VPS nginx — per-project Let's Encrypt cert
+    → Tailscale tunnel
+      → devbox nginx — routes by subdomain
+        → container on 127.0.0.1:<port>
 ```
 
-Each project gets its own subdomain routed to a port in the `8100–8199` range on devbox.
+Each project gets its own subdomain, its own TLS certificate, and a port in the `8100–8199` range on devbox.
 
 ### Register a new project subdomain
 
@@ -217,7 +221,9 @@ uv run ansible-playbook add_project.yml \
   -e project_port=8100
 ```
 
-The project is then reachable at `http://myapp.dombot.tech` (or `https://` once the wildcard TLS cert is in place — see [`docs/routing-architecture.md`](https://github.com/ldom1/clawvis-deployment/blob/main/docs/routing-architecture.md)).
+One command provisions everything: nginx vhosts on both devbox and VPS, a Let's Encrypt cert via HTTP challenge, and HTTP→HTTPS redirect. The project is live at `https://myapp.dombot.tech` within seconds.
+
+See [`docs/routing-architecture.md`](https://github.com/ldom1/clawvis-deployment/blob/main/docs/routing-architecture.md) for the full architecture.
 
 ### Remove a project subdomain
 
