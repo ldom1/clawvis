@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - **`docker-compose.yml`** (hub): added volume `./hub/public/api:/usr/share/nginx/html/api:ro` so hub-refresh JSON files are served live without container rebuild.
 - **`hub-core/hub_core/config.py`**: `HUB_API_DIR` env var takes precedence over `LAB_DIR`-derived path, decoupling hub-core from host filesystem layout.
 - **Scheduler job definitions**: `self-improvement.yaml` uses explicit `bash /clawvis/skills/…` command; `knowledge-consolidator-collect.yaml` uses `/clawvis/` prefix.
+- **`VIRTUAL_ENV=""`**: added to `clawvis_uv_run_dir()` and direct `uv run` calls in `hub-refresh` to suppress uv's "does not match project environment path" warning from the container's `/app/.venv`.
 
 ### CI — brain-maintenance ruff (2026-05-02)
 - **`skills/brain-maintenance/core`** : retrait imports `Path` inutiles (`recalibrate.py`, `trim.py`) ; **`recover.py`** — `WORKSPACE = agent_workspace()` pour `relative_to` et `.logs` (corrige F821 sous `ci-skills.sh`).
