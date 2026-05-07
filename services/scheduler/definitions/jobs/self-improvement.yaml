@@ -2,7 +2,11 @@ cron: 0 0 * * *
 enabled: true
 name: self-improvement
 prompt: |
+<<<<<<< Updated upstream
   Run the self-improvement review by executing this command:
+=======
+  Read /clawvis/skills/self-improvement/SKILL.md and follow its instructions exactly.
+>>>>>>> Stashed changes
 
     bash /clawvis/skills/self-improvement/scripts/run-self-improvement.sh
 
