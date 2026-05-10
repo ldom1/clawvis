@@ -1,17 +1,15 @@
-"""Bi-weekly drift detection (SOUL.md / AGENTS.md vs behavior)."""
+"""Drift detection: CLAUDE.md / AGENTS.md vs recent memory notes."""
 
 from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
 
-from brain_maintenance.clawvis_paths import agent_workspace, memory_root
+from brain_maintenance.clawvis_paths import agent_workspace, brain_path, memory_root
 from brain_maintenance.logging import log_info, log_warning
 
 WORKSPACE = agent_workspace()
-L1_NAMES = [
-    "SOUL.md", "AGENTS.md", "MEMORY.md", "USER.md", "TOOLS.md", "IDENTITY.md", "HEARTBEAT.md"
-]
+L1_NAMES = ["CLAUDE.md", "AGENTS.md", "README.md"]
 
 
 def read_l1_files() -> dict[str, str | None]:
@@ -23,19 +21,39 @@ def read_l1_files() -> dict[str, str | None]:
 
 
 def get_recent_behavior() -> str:
-    """Read last 24h daily notes from workspace memory as behavior signal."""
+    """Read last 24h notes as behavior signal.
+
+    Primary: Local Brain vault (BRAIN_PATH/inbox/daily/implementation/clawvis/).
+    Fallback: Clawvis instance memory (MEMORY_ROOT/daily/).
+    """
     from datetime import date, timedelta
-    memory_daily = memory_root() / "daily"
+
     today = date.today()
     lines: list[str] = []
+
+    bp = brain_path()
+    if bp:
+        brain_daily = bp / "inbox" / "daily" / "implementation" / "clawvis"
+        for delta in (0, 1):
+            day = today - timedelta(days=delta)
+            if brain_daily.exists():
+                for note in sorted(brain_daily.glob(f"{day}-*.md"), reverse=True):
+                    lines.extend(note.read_text(encoding="utf-8").splitlines())
+        if lines:
+            return "\n".join(lines[:80])
+
+    memory_daily = memory_root() / "daily"
     for delta in (0, 1):
         note = memory_daily / f"{today - timedelta(days=delta)}.md"
         if note.exists():
             lines.extend(note.read_text(encoding="utf-8").splitlines())
-    if not lines:
-        # Fallback: AGENTS.md itself confirms autonomy is expected
-        return "AGENTS.md: autonomous systems, proactive work, deploy with crons"
-    return "\n".join(lines[:80])
+    if lines:
+        return "\n".join(lines[:80])
+
+    return (
+        "AGENTS.md: verify commands/tests; update docs when behavior changes; "
+        "stack hub kanban-api hub-memory-api agent telegram scheduler"
+    )
 
 
 def detect_drift(l1: dict[str, str | None], recent: str) -> dict:
@@ -44,25 +62,26 @@ def detect_drift(l1: dict[str, str | None], recent: str) -> dict:
         "drift_detected": [],
         "corrections_needed": [],
     }
-    soul = l1.get("SOUL.md") or ""
-    agents = l1.get("AGENTS.md") or ""
-    # Autonomy: SOUL declares it; AGENTS.md "Autonomous Systems Pattern" reinforces it.
-    # Drift = SOUL says autonomous AND neither AGENTS.md nor recent behavior mention it.
-    soul_autonomous = "Autonomie" in soul
-    agents_autonomous = "Autonomous" in agents or "autonomous" in agents or "proactive" in agents.lower()
-    recent_autonomous = any(
-        kw in recent.lower()
-        for kw in ("autonomous", "proactive", "cron", "deploy", "implement", "créé", "exécuté")
-    )
-    if soul_autonomous and not (agents_autonomous or recent_autonomous):
-        drift["drift_detected"].append("⚠️ AUTONOMOUS: SOUL says yes, behavior no")
-        drift["corrections_needed"].append("Reinforce autonomous in next 3 responses")
+    agents = (l1.get("AGENTS.md") or "").lower()
+    claude = (l1.get("CLAUDE.md") or "").lower()
+    recent_l = recent.lower()
 
-    # Conciseness: check recent notes line count
-    soul_concise = "Économie de Verbe" in soul or "Concis" in soul
-    if soul_concise and len(recent.split("\n")) > 40:
-        drift["drift_detected"].append("⚠️ CONCISE: SOUL says yes, recent notes verbose")
-        drift["corrections_needed"].append("Reinforce concise in next 3 responses")
+    if "verify" in agents and not any(
+        k in recent_l for k in ("verify", "test", "pytest", "ci-all", "tests/")
+    ):
+        drift["drift_detected"].append(
+            "⚠️ VERIFY: AGENTS.md expects verification; recent notes lack test/verify signal"
+        )
+        drift["corrections_needed"].append("Run or note verification (tests/CI) for recent work")
+
+    docs_cue = "documentation" in agents or "changelog" in claude
+    if docs_cue and len(recent.split()) > 40 and not any(
+        k in recent_l for k in ("doc", "changelog", "readme", "skill.md", "docs/")
+    ):
+        drift["drift_detected"].append(
+            "⚠️ DOCS: CLAUDE/AGENTS stress doc updates; recent long notes omit doc/changelog cues"
+        )
+        drift["corrections_needed"].append("Mention docs/CHANGELOG when behavior or setup changed")
 
     return drift
 
@@ -73,7 +92,7 @@ def main() -> None:
     recent = get_recent_behavior()
     drift = detect_drift(l1, recent)
     print("\n" + "=" * 70)
-    print(" RECALIBRATE — Agent Drift Detection")
+    print(" RECALIBRATE — Agent drift vs CLAUDE.md / AGENTS.md")
     print("=" * 70 + "\n")
     if drift["drift_detected"]:
         for issue in drift["drift_detected"]:

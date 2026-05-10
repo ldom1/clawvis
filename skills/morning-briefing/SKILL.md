@@ -11,7 +11,8 @@ metadata:
 **AVANT toute autre action**, exécuter ce script Python :
 
 ```bash
-python3 ~/Lab/clawvis/skills/morning-briefing/morning-briefing.py
+export CLAWVIS_ROOT="${CLAWVIS_ROOT:-$HOME/lab/clawvis}"
+uv run --directory "$CLAWVIS_ROOT/skills/morning-briefing/core" python -m briefing
 ```
 
 - Ce script construit le briefing à partir de sources réelles (curiosity files, Wikipedia API, system.json).
@@ -43,7 +44,7 @@ Generate and deliver the daily morning briefing to Ldom via Telegram (ID: `56896
 - System metrics unavailable? Omit the entire System Audit section
 - No Wikipedia event for today? Skip Moment Before
 
-**Implementation:** See `~/Lab/clawvis/skills/morning-briefing/morning-briefing.py` for reference implementation with strict source validation.
+**Implementation:** See `skills/morning-briefing/core/briefing/main.py` (run `python -m briefing` from `skills/morning-briefing/core`).
 
 ## Quick Reference
 
@@ -75,7 +76,7 @@ Before assembling ANY section, validate sources:
 
 ## Step 1 — Moment Before (Wikipedia)
 
-**Implémentation repo :** `skills/morning-briefing/wikipedia_on_this_day.py` (stdlib + User-Agent) ; le script appelle `format_wikipedia_moment()` dans `morning-briefing.py`.
+**Implémentation repo :** `skills/morning-briefing/core/briefing/wikipedia_on_this_day.py` (stdlib + User-Agent) ; `briefing.main.format_wikipedia_moment()` l’appelle.
 
 - Langue : variable d’environnement `WIKIPEDIA_ON_THIS_DAY_LANG` (défaut `en`). Endpoint Wikimedia :  
   `GET https://api.wikimedia.org/feed/v1/wikipedia/{lang}/onthisday/events/{month}/{day}`

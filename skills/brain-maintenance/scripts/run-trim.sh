@@ -21,7 +21,7 @@ if ! clawvis_uv_run_dir "$CORE_BRAIN" python -m brain_maintenance trim; then
     python -c "
 from brain_maintenance.trim import audit_l1_files, L1_TOTAL_BUDGET
 r = audit_l1_files()
-print(f'L1 Budget dépassé : {r[\"total_tokens\"]}/{L1_TOTAL_BUDGET} tokens. Trop de contenu dans les fichiers SOUL/AGENTS/MEMORY. A nettoyer.')
+print(f'L1 Budget dépassé : {r[\"total_tokens\"]}/{L1_TOTAL_BUDGET} tokens. Trop de contenu dans CLAUDE.md / AGENTS.md / README.md. À nettoyer.')
 " 2>/dev/null)
   if [ -n "$SUMMARY" ]; then
     _tg="${TELEGRAM_URL:-http://127.0.0.1:8094}"

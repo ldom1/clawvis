@@ -62,10 +62,16 @@ fi
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh END — STATUS=$STATUS EXIT_CODE=$EXIT_CODE" >>"$LOG_FILE"
 
+if [ "$EXIT_CODE" -ne 0 ]; then
+  echo "hub-refresh: FAILED (exit $EXIT_CODE). See log: $LOG_FILE" >&2
+fi
+
 if [ -d "$LOGGER_CORE" ]; then
+  _lvl="INFO"
+  [ "$EXIT_CODE" -ne 0 ] && _lvl="ERROR"
   UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/logger-core" \
     VIRTUAL_ENV="" \
-    uv run --directory "$LOGGER_CORE" dombot-log "INFO" "cron:hub-refresh" "system" "cron:complete" "Hub Refresh executed ($STATUS)" "{\"exit_code\": $EXIT_CODE, \"log_file\": \"$LOG_FILE\"}" || true
+    uv run --directory "$LOGGER_CORE" dombot-log "$_lvl" "cron:hub-refresh" "system" "cron:complete" "Hub Refresh executed ($STATUS)" "{\"exit_code\": $EXIT_CODE, \"log_file\": \"$LOG_FILE\"}" || true
 else
   echo "hub-refresh: logger core missing at $LOGGER_CORE — skip dombot-log" >>"$LOG_FILE"
 fi

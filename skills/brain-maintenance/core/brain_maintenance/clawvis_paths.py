@@ -23,6 +23,21 @@ def agent_workspace() -> Path:
     return Path.home() / "lab" / "clawvis"
 
 
+def brain_path() -> Path | None:
+    """Resolve BRAIN_PATH from env or ~/ai-dotfiles/config/brain.env."""
+    raw = os.environ.get("BRAIN_PATH", "").strip()
+    if raw:
+        return Path(raw).expanduser().resolve()
+    env_file = Path.home() / "ai-dotfiles" / "config" / "brain.env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            if line.startswith("BRAIN_PATH="):
+                val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                if val:
+                    return Path(val).expanduser().resolve()
+    return None
+
+
 def memory_root() -> Path:
     m = os.environ.get("MEMORY_ROOT", "").strip()
     cr = clawvis_root()
