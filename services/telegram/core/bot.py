@@ -13,10 +13,12 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from core.bridge import AgentError, call_agent
 from core.config import get_settings
 from core.formatter import format_reply
+from core.memory import TelegramMemory
 from core.models import OutcomingMessage, incoming_from_update
 from core.router import enrich
 
 _tg_app: Application | None = None
+_memory: TelegramMemory | None = None
 
 _HELP_TEXT = (
     "Here's what I can do:\n\n"
@@ -47,17 +49,18 @@ async def _cmd_routed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     command = update.message.text.split()[0].lstrip("/").split("@")[0].lower()
     args = " ".join(context.args) if context.args else ""
     prompt = enrich(command, args) or update.message.text
+    injected = _memory.inject(prompt) if _memory else prompt
     trace_id = new_trace_id()
     trace_event(
         "telegram.bot",
         "command.received",
         trace_id=trace_id,
         command=command,
-        prompt_chars=len(prompt),
+        prompt_chars=len(injected),
     )
     settings = get_settings()
     try:
-        raw = await call_agent(settings, prompt, trace_id=trace_id)
+        raw = await call_agent(settings, injected, trace_id=trace_id)
     except AgentError:
         log.error("agent.error command=%s", command)
         trace_event(
@@ -68,6 +71,9 @@ async def _cmd_routed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         )
         await update.message.reply_text(_UNREACHABLE_MSG)
         return
+    if _memory:
+        _memory.record("user", prompt)
+        _memory.record("assistant", raw)
     await update.message.reply_text(format_reply(raw))
     log.info("command.replied command=%s chars=%d", command, len(raw))
     trace_event(
@@ -93,8 +99,9 @@ async def on_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         text_chars=len(incoming.text or ""),
     )
     settings = get_settings()
+    injected = _memory.inject(incoming.text) if _memory else incoming.text
     try:
-        raw = await call_agent(settings, incoming.text, trace_id=trace_id)
+        raw = await call_agent(settings, injected, trace_id=trace_id)
     except AgentError:
         log.error("agent.error freeform")
         trace_event(
@@ -106,6 +113,9 @@ async def on_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         if update.message:
             await update.message.reply_text(_UNREACHABLE_MSG)
         return
+    if _memory:
+        _memory.record("user", incoming.text)
+        _memory.record("assistant", raw)
     if update.message:
         await update.message.reply_text(format_reply(raw))
         log.info("message.replied chars=%d", len(raw))
@@ -189,8 +199,12 @@ async def _start_http_server() -> None:
 
 
 async def main() -> None:
-    global _tg_app
+    global _tg_app, _memory
     settings = get_settings()
+
+    # Load brain memory (no-op when BRAIN_PATH unset or dir missing)
+    _memory = TelegramMemory(settings.brain_path or None)
+    _memory.load()
 
     await _start_http_server()
 
@@ -220,6 +234,9 @@ async def main() -> None:
         finally:
             await tg_app.updater.stop()
             await tg_app.stop()
+            # Persist memory before the process exits
+            if _memory:
+                await _memory.save(lambda prompt: call_agent(settings, prompt))
 
 
 if __name__ == "__main__":

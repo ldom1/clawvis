@@ -123,6 +123,8 @@ When `clawvis` is installed globally (`~/.local/bin/clawvis`) and you run comman
 
 **Cron + Telegram:** `docker compose up` (and `clawvis restart` in Docker mode) start `telegram` and `scheduler` with the rest of the stack. Without `TELEGRAM_BOT_TOKEN`, the telegram service runs in **stub mode** (HTTP `/send` only — logs deliveries, no Telegram API). Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env` for a real bot. `TELEGRAM_CHAT_ID` must be the target chat/channel id (not the bot id), otherwise `/test` and scheduler notifications are rejected. Cron definitions: `services/scheduler/definitions/jobs/*.yaml` and workflows in `services/scheduler/definitions/workflows/*.yaml`.
 
+**Telegram memory:** The bot remembers across sessions. When `BRAIN_PATH` is set and `docker-compose.clawvis-brain.yml` is active, the telegram service reads a lightweight memory context (user profile + active context + open topics, ≤300 tokens) at startup and injects it into every prompt. On shutdown it asks the agent to extract key points and writes them back to `resources/knowledge/operational/clawvis/` in the brain vault — no conversation transcripts, just distilled facts. brain-sync commits and pushes the updated files at session end.
+
 ---
 
 ## AI Runtime
@@ -192,6 +194,52 @@ On the Hub home, each project that is not the home “active” row has an **Act
 **Claude Code in Docker:** the Kanban API mounts your host `~/.claude` and sets `CLAWVIS_HOST_CLAUDE_DIR` / `CLAWVIS_REPO_HOST_PATH` (see `docker-compose.yml`) so runtime setup updates the same files Claude Code reads on the machine, not paths inside the container. **`claude.json` points `node` at `<repo>/mcp/server.js` on the host** (not `/clawvis/...`). One-time: `cd mcp && npm install` so the MCP SDK is available, then `claude refresh`. Optionally mount the host `claude` binary and set `CLAWVIS_HOST_CLAUDE_CLI` for wizard detection.
 
 It works out of the box — no Quartz installation needed. A lightweight Python renderer converts your `.md` files to HTML automatically. If you want the full Quartz static site experience, clone Quartz to `quartz/` in the repo root and run `clawvis start`.
+
+---
+
+## Launching a project on dombot.tech
+
+Projects created in Clawvis can be exposed at `https://<project>.dombot.tech` via the [clawvis-deployment](https://github.com/ldom1/clawvis-deployment) Ansible repo.
+
+### How it works
+
+```
+Browser (HTTPS)
+  → VPS nginx — per-project Let's Encrypt cert
+    → Tailscale tunnel
+      → devbox nginx — routes by subdomain
+        → container on 127.0.0.1:<port>
+```
+
+Each project gets its own subdomain, its own TLS certificate, and a port in the `8100–8199` range on devbox.
+
+### Register a new project subdomain
+
+From the `clawvis-deployment` repo:
+
+```bash
+uv run ansible-playbook add_project.yml \
+  -e project_name=myapp \
+  -e project_port=8100
+```
+
+One command provisions everything: nginx vhosts on both devbox and VPS, a Let's Encrypt cert via HTTP challenge, and HTTP→HTTPS redirect. The project is live at `https://myapp.dombot.tech` within seconds.
+
+See [`docs/routing-architecture.md`](https://github.com/ldom1/clawvis-deployment/blob/main/docs/routing-architecture.md) for the full architecture.
+
+### Remove a project subdomain
+
+```bash
+uv run ansible-playbook remove_project.yml -e project_name=myapp
+```
+
+### Port allocation
+
+| Range | Usage |
+|-------|-------|
+| 8088 | Clawvis hub (fixed) |
+| 8090–8092 | Clawvis internal services (fixed) |
+| 8100–8199 | Clawvis projects (dynamic) |
 
 ---
 

@@ -11,6 +11,7 @@ class TelegramSettings(BaseModel):
     bot_token: str = ""
     chat_id: int = 0
     send_port: int = 8094
+    brain_path: str = ""
 
     @property
     def stub_mode(self) -> bool:
@@ -29,5 +30,6 @@ def get_settings() -> TelegramSettings:
             "bot_token": os.environ.get("TELEGRAM_BOT_TOKEN", "").strip(),
             "chat_id": int(os.environ.get("TELEGRAM_CHAT_ID", "0") or "0"),
             "send_port": int(os.environ.get("TELEGRAM_SEND_PORT", "8094")),
+            "brain_path": os.environ.get("BRAIN_PATH", "").strip(),
         }
     )
