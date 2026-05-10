@@ -11,7 +11,8 @@ LOGGER_CORE="${SKILLS_ROOT}/logger/core"
 
 _dombot_log() {
   [[ -d "${LOGGER_CORE}" ]] || return 0
-  uv run --directory "${LOGGER_CORE}" dombot-log "$@" 2>/dev/null || true
+  UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/logger-core" \
+    uv run --directory "${LOGGER_CORE}" dombot-log "$@" 2>/dev/null || true
 }
 
 trap 'e=$?; [ $e -ne 0 ] && _dombot_log "ERROR" "cron:knowledge-consolidator" "system" "collect:fail" "Script failed (exit $e)"; exit $e' EXIT
@@ -23,7 +24,8 @@ fi
 
 for session in "${SESSIONS[@]}"; do
   echo "[collect] curiosity session: $session"
-  uv run --directory "$SKILL_DIR/core" python -m knowledge_consolidator "$session"
+  UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/knowledge-consolidator-core" \
+    uv run --directory "$SKILL_DIR/core" python -m knowledge_consolidator "$session"
 done
 
 if [[ -x "${HOME}/Lab/quartz/rebuild.sh" ]]; then

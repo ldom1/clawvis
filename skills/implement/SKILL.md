@@ -1,94 +1,123 @@
 ---
 name: implement
-description: "Execute a single kanban task selected by kanban-implementer. Reads the task context + Brain note, implements the change, updates task status. Called by kanban-implementer, never standalone. Use when: kanban-implementer has selected a task and passes TASK_ID + context."
+description: "Execute a single kanban task. Auto-selects the best eligible task (DomBot-assigned, highest priority, effort ≤ KANBAN_MAX_EFFORT) or loads a specific task via --task-id. Use when: running the daily implementation cron, or when Ldom asks 'implémente la prochaine tâche du kanban'. Always one task per run."
 ---
 
 # Implement
 
-Executes one kanban task end-to-end. Called by `kanban-implementer` after task selection.
+Executes one kanban task end-to-end.
 
-## Quick run
-
-```bash
-# Implement a specific task
-uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
-  --task-id task-XXXXXXXX
-
-# Mark task done after implementation
-uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
-  --task-id task-XXXXXXXX --mark-done
-```
+**Invariant : une seule tâche par run, sans exception.**
 
 ---
 
-## Workflow
+## Deux logiques d'entrée
 
-### Step 1 — Load context
+### Logique A — Auto-select (sans `--task-id`)
+
+Lit `tasks.json` directement depuis le système de fichiers pour sélectionner la meilleure tâche éligible.
+
+**Critères d'éligibilité :**
+- `status ∈ {Backlog, To Start}`
+- `assignee = DomBot`
+- `effort_hours ≤ KANBAN_MAX_EFFORT` (défaut : 2h)
+- `confidence ≥ KANBAN_MIN_CONFIDENCE` (défaut : 0.4 ; `null` traité comme 0.5 ; assignee humain = 1.0)
+
+**Tri de sélection :**
+1. Projet prioritaire en premier (`KANBAN_PRIORITY_PROJECT` ou `--project`)
+2. Puis par priorité : High < Medium < Low
+3. Puis par effort croissant
+
+**Sortie :** contexte markdown de la tâche + `TASK_ID` + `IS_AMBIGUOUS`
 
 ```bash
-uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
-  --task-id <TASK_ID>
+# Sélection automatique
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement
+
+# Avec projet prioritaire
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement --project hub
+
+# Lister les tâches éligibles sans en choisir une
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement --list
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement --list --project hub
 ```
 
-This prints:
-- `TASK_TITLE`, `TASK_DESCRIPTION`, `TASK_PROJECT`, `TASK_EFFORT`
-- `BRAIN_NOTE` — path to the project Brain note
-- `BRAIN_CONTENT` — full content of the Brain note (context for implementation)
+**Source de données :** `MEMORY_ROOT/kanban/tasks.json` (lecture directe JSON)
 
-### Step 2 — Read the Brain
+---
 
-The Brain note at `BRAIN_NOTE` contains project context, decisions, and previous work. **Always read it before implementing.**
+### Logique B — Tâche explicite (avec `--task-id`)
 
-Key sections to use:
-- **Contexte / Objectif** — what the project is solving
-- **Archive** — past decisions, avoid re-doing what's already done
-- **Ressources** — existing components to reuse
+Interroge l'API Kanban REST pour charger une tâche précise, et enrichit avec la note Brain.
 
-### Step 3 — Implement
-
-Implement the task following `PROTOCOL.md` rules:
-- Use `uv` for Python, `npm`/`yarn` for JS
-- Write tests alongside the code
-- Keep changes minimal and focused on the task
-- Commit with semantic message: `feat(<scope>): <what>` / `fix(<scope>): <what>`
-
-### Step 4 — Update Brain note
-
-If implementation introduces a new decision or component, append to the **Archive** section of the Brain note.
-
-### Step 5 — Update task status
+**Sortie :** variables shell `TASK_ID`, `TASK_TITLE`, `TASK_PROJECT`, etc. + `BRAIN_NOTE` (path) + `BRAIN_CONTENT` (contenu complet de la note Brain du projet)
 
 ```bash
-# Mark In Progress at start (optional, for long tasks)
+# Charger une tâche spécifique
+uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
+  --task-id task-XXXXXXXX
+```
+
+**Source de données :** `GET {KANBAN_API_URL}/tasks/{task_id}` + lecture fichier Brain
+
+---
+
+### Mutations de statut (requièrent `--task-id`)
+
+Toujours via l'API REST (`PATCH /tasks/{task_id}`).
+
+```bash
+# Marquer "In Progress" au début
 uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
   --task-id <TASK_ID> --set-status "In Progress"
 
-# Mark Done when complete
+# Marquer "Done" à la fin
 uv run --directory ${CLAWVIS_ROOT}/skills/implement/core python -m implement \
   --task-id <TASK_ID> --mark-done
 ```
 
-### Step 6 — Log to Discord
+Statuts valides : `Backlog | To Start | In Progress | Blocked | Review | Done`
 
-Via logger skill:
+---
+
+## Workflow complet
+
 ```
-[implement] <project> — <task title> done — <N> lines changed
+1. Sélection
+   ├─ sans --task-id → auto-select (tasks.json)  [Logique A]
+   └─ avec --task-id → chargement API            [Logique B]
+
+2. Lire la note Brain (BRAIN_NOTE / BRAIN_CONTENT)
+   └─ Contexte, décisions passées, archive
+
+3. Implémenter
+   └─ uv (Python) | yarn (JS) | tests | commit sémantique
+
+4. Mettre à jour le statut
+   ├─ --set-status "In Progress" au départ (optionnel)
+   └─ --mark-done à la fin (obligatoire)
+
+5. Logger
+   └─ Discord via logger skill : [implement] <projet> — <titre> done
 ```
 
 ---
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `KANBAN_API_URL` | `http://localhost:8088/api/hub/kanban` | Kanban API base URL |
-| `MEMORY_ROOT` | `$BRAIN_PATH` | Path to instance memory root |
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `KANBAN_API_URL` | `http://localhost:8088/api/hub/kanban` | API Kanban (Logique B + mutations) |
+| `MEMORY_ROOT` | dérivé de `CLAWVIS_ROOT` | Racine mémoire instance |
+| `KANBAN_PRIORITY_PROJECT` | `(aucun)` | Projet prioritaire en auto-select |
+| `KANBAN_MAX_EFFORT` | `2.0` | Effort max (heures) pour auto-select |
+| `KANBAN_MIN_CONFIDENCE` | `0.4` | Score confiance minimum (Kahneman) |
 
 ---
 
 ## Invariants
 
-- **One task per session.** Never implement more than one task per `implement` call.
-- **Brain first.** Always read the Brain note before writing code.
-- **Status discipline.** Task must be `Done` before logging completion.
-- **No Telegram.** `kanban-implementer` sends the session summary — `implement` only logs to Discord.
+- **Une tâche par session.** Ne jamais implémenter plus d'une tâche par run.
+- **Brain d'abord.** Toujours lire la note Brain avant d'écrire du code.
+- **Statut à jour.** La tâche doit être `Done` avant de logger la complétion.
+- **Pas de Telegram.** Le log de complétion va sur Discord uniquement (`logger` skill).

@@ -2,10 +2,28 @@ cron: 0 0 * * *
 enabled: true
 name: self-improvement
 prompt: |
-  Run the self-improvement skill now.
+  Read /clawvis/skills/self-improvement/SKILL.md and follow its instructions exactly.
 
-  Requirements:
-  - Focus on concrete learnings from recent execution.
-  - Produce actionable improvements.
-  - Keep conclusions short and specific.
+    bash /clawvis/skills/self-improvement/scripts/run-self-improvement.sh
+
+  The script reads .learnings/ (ERRORS.md, LEARNINGS.md, FEATURE_REQUESTS.md) under
+  /clawvis/skills/self-improvement/, calls the LLM review via OpenRouter,
+  and sends a Telegram report automatically.
+
+  Do not write any files yourself. Just run the script above and report its output.
+
+  TELEGRAM SUMMARY (required last message): plain text for mobile — no Markdown (** or __). Blank line between sections. Follow the REPORT_TEMPLATE.md structure:
+
+  What's Working (Keep Doing It)
+  • concrete point 1
+  • concrete point 2
+
+  What Needs Fixing (Priority Order)
+  • fix 1
+  • fix 2
+
+  Innovation To Try
+  • idea
+
+  Keep the summary under 20 lines. No code fences. No placeholders.
 timezone: Europe/Paris

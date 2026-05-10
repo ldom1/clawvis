@@ -2,36 +2,31 @@ cron: 0 23 * * *
 enabled: true
 name: knowledge-consolidator-collect
 prompt: |
-  You are running the Knowledge Consolidator — Phase 1: Collect.
+  Run the Knowledge Consolidator Phase 1 (collect) by executing this command:
 
-  BRAIN_PATH is available as $BRAIN_PATH env var (e.g. /mnt/c/Users/louis/Documents/Local Brain).
+    bash /clawvis/skills/knowledge-consolidator/scripts/collect.sh
 
-  For each knowledge domain (tech, geopolitics, culture, community, latest, tech_news):
-  1. Determine the output directory: $BRAIN_PATH/resources/knowledge/curiosity/<domain>/
-  2. Create the directory if it does not exist.
-  3. Write a curiosity note to: $BRAIN_PATH/resources/knowledge/curiosity/<domain>/$(date +%Y-%m-%d)-knowledge_<domain>.md
-  4. Record key trends, discoveries and insights for that domain — concise, max 400 words per file.
+  The script fetches real data from RSS feeds, GitHub, Reddit, and Wikipedia for
+  all 6 domains (tech, geopolitics, culture, community, latest, tech_news) and
+  writes the curiosity notes to the brain automatically.
 
-  Rules:
-  - Do NOT modify any MEMORY.md file (perennial index)
-  - Write ONLY into $BRAIN_PATH/resources/knowledge/curiosity/<domain>/
-  - One file per domain, named YYYY-MM-DD-knowledge_<domain>.md
-  - Use the Write tool to create each file
+  Do not write any files yourself. Just run the script above and report its output.
 
-  TELEGRAM SUMMARY (required last message): the scheduler sends your final reply to Telegram as plain text (mobile). Do not use Markdown (** or __ or # headings). Use this shape — short lines, blank line between blocks, • for bullets:
+  TELEGRAM SUMMARY (required last message): plain text for mobile — no Markdown (** or __). Blank line between sections. Use this shape:
 
   ✅ Knowledge · Phase 1 · Collect OK
 
-  6 domains · N total discoveries
+  6 domains collected
 
   Domains:
-  • tech — 5 · short source hint
-  • geopolitics — 5 · …
-  (one bullet per domain)
+  • tech — N discoveries
+  • geopolitics — N discoveries
+  • culture — N discoveries
+  • community — N discoveries
+  • latest — N discoveries
+  • tech_news — N discoveries
 
-  Files: curiosity/<domain>/YYYY-MM-DD-knowledge_<domain>.md
+  Next: Phase 2 consolidate (scheduled 23h30).
 
-  Next: Phase 2 consolidate (scheduled after this job).
-
-  Keep the whole summary under ~25 lines. No code fences.
+  Keep the summary under 20 lines. No code fences.
 timezone: Europe/Paris

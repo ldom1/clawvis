@@ -8,7 +8,7 @@ export PATH="${HOME}/.local/bin:${PATH}"
 if [ -n "${UV_PYTHON:-}" ] && [ ! -x "$UV_PYTHON" ]; then
   unset UV_PYTHON
 fi
-export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-$HOME/.venvs/hub-core}"
+export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${TMPDIR:-/tmp}/clawvis-venvs/hub-core}"
 
 _resolve_clawvis_root() {
   if [ -n "${CLAWVIS_ROOT:-}" ] && [ -d "${CLAWVIS_ROOT}/hub-core" ]; then
@@ -32,11 +32,16 @@ CLAWVIS_ROOT="$(_resolve_clawvis_root)" || {
 
 HUB_CORE_DIR="${CLAWVIS_ROOT}/hub-core"
 LOGGER_CORE="${CLAWVIS_ROOT}/skills/logger/core"
-LOG_DIR="${CLAWVIS_ROOT}/logs"
+LOG_DIR="${CLAWVIS_LOG_DIR:-${CLAWVIS_ROOT}/logs}"
 TIMESTAMP=$(date '+%Y-%m-%d-%H%M')
 LOG_FILE="$LOG_DIR/hub-refresh-$TIMESTAMP.log"
 
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" 2>/dev/null || true
+if ! touch "$LOG_FILE" 2>/dev/null; then
+  LOG_DIR="${TMPDIR:-/tmp}/clawvis-logs"
+  mkdir -p "$LOG_DIR"
+  LOG_FILE="$LOG_DIR/hub-refresh-$TIMESTAMP.log"
+fi
 
 export AGENT_ID="dombot"
 export AGENT_ROLE="ORCHESTRATOR"
@@ -47,7 +52,7 @@ export NETWORK_ALLOWLIST="api.mammouth.ai,api.anthropic.com,localhost"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh START — AGENT_ID=$AGENT_ID AGENT_ROLE=$AGENT_ROLE CLAWVIS_ROOT=$CLAWVIS_ROOT" >>"$LOG_FILE"
 
 cd "$HUB_CORE_DIR"
-if timeout 300 uv run python -m hub_core.main "$@" >>"$LOG_FILE" 2>&1; then
+if timeout 300 env VIRTUAL_ENV="" uv run python -m hub_core.main "$@" >>"$LOG_FILE" 2>&1; then
   EXIT_CODE=0
   STATUS="SUCCESS"
 else
@@ -58,7 +63,9 @@ fi
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Refresh END — STATUS=$STATUS EXIT_CODE=$EXIT_CODE" >>"$LOG_FILE"
 
 if [ -d "$LOGGER_CORE" ]; then
-  uv run --directory "$LOGGER_CORE" dombot-log "INFO" "cron:hub-refresh" "system" "cron:complete" "Hub Refresh executed ($STATUS)" "{\"exit_code\": $EXIT_CODE, \"log_file\": \"$LOG_FILE\"}" || true
+  UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/logger-core" \
+    VIRTUAL_ENV="" \
+    uv run --directory "$LOGGER_CORE" dombot-log "INFO" "cron:hub-refresh" "system" "cron:complete" "Hub Refresh executed ($STATUS)" "{\"exit_code\": $EXIT_CODE, \"log_file\": \"$LOG_FILE\"}" || true
 else
   echo "hub-refresh: logger core missing at $LOGGER_CORE — skip dombot-log" >>"$LOG_FILE"
 fi

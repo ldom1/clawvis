@@ -2,7 +2,7 @@ cron: 30 0 * * *
 enabled: true
 name: brain-maintenance
 prompt: |
-  Run the brain-maintenance skill now.
+  Read /clawvis/skills/brain-maintenance/SKILL.md and follow its instructions exactly.
 
   Requirements:
   - Apply normal maintenance checks and cleanup behavior.
