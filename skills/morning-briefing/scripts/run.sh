@@ -33,7 +33,12 @@ trap 'e=$?; [ $e -ne 0 ] && [ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] &
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 clawvis_uv_run_dir "$MB_DIR/core" python "$MB_DIR/morning-briefing.py"
+=======
+UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/morning-briefing" \
+  uv run --directory "$MB_DIR/core" python "$MB_DIR/morning-briefing.py"
+>>>>>>> Stashed changes
 =======
 UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/morning-briefing" \
   uv run --directory "$MB_DIR/core" python "$MB_DIR/morning-briefing.py"
