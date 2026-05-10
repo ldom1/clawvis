@@ -4,7 +4,7 @@ name: knowledge-consolidator-collect
 prompt: |
   Run the Knowledge Consolidator Phase 1 (collect) by executing this command:
 
-    bash ${CLAWVIS_ROOT}/skills/knowledge-consolidator/scripts/collect.sh
+    bash /clawvis/skills/knowledge-consolidator/scripts/collect.sh
 
   The script fetches real data from RSS feeds, GitHub, Reddit, and Wikipedia for
   all 6 domains (tech, geopolitics, culture, community, latest, tech_news) and

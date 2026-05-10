@@ -8,4 +8,5 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CORE_DIR="$(cd "$SCRIPT_DIR/../core" && pwd)"
 
+export UV_PROJECT_ENVIRONMENT="${TMPDIR:-/tmp}/clawvis-venvs/logger-core"
 exec uv run --directory "$CORE_DIR" dombot-log "$@"

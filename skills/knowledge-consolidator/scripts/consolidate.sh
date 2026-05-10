@@ -15,10 +15,10 @@ if [ -f "${CLAWVIS_ROOT:-}/.env" ]; then
   set +a
 fi
 
-trap 'e=$?; [ $e -ne 0 ] && [ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] && uv run --directory "$LOGGER_CORE" dombot-log "ERROR" "cron:knowledge-consolidator" "system" "consolidate:fail" "Script failed (exit $e)" 2>/dev/null || true; exit $e' EXIT
+trap 'e=$?; [ $e -ne 0 ] && [ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] && clawvis_uv_run_dir "$LOGGER_CORE" dombot-log "ERROR" "cron:knowledge-consolidator" "system" "consolidate:fail" "Script failed (exit $e)" 2>/dev/null || true; exit $e' EXIT
 
-MEMORY_DIR="$(uv run --directory "$CORE_DIR" python -c "from knowledge_consolidator.clawvis_paths import memory_root; print(memory_root())")"
-MEMORY_FILE="$(uv run --directory "$CORE_DIR" python -c "from knowledge_consolidator.clawvis_paths import memory_root; print(memory_root() / 'MEMORY.md')")"
+MEMORY_DIR="$(clawvis_uv_run_dir "$CORE_DIR" python -c "from knowledge_consolidator.clawvis_paths import memory_root; print(memory_root())")"
+MEMORY_FILE="$(clawvis_uv_run_dir "$CORE_DIR" python -c "from knowledge_consolidator.clawvis_paths import memory_root; print(memory_root() / 'MEMORY.md')")"
 
 echo "[consolidate] Starting memory consolidation — $(date '+%Y-%m-%d %H:%M')"
 
@@ -39,5 +39,5 @@ else
 fi
 
 echo "[consolidate] Done."
-[ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] && uv run --directory "$LOGGER_CORE" \
+[ -n "${LOGGER_CORE:-}" ] && [ -d "$LOGGER_CORE" ] && clawvis_uv_run_dir "$LOGGER_CORE" \
   dombot-log "INFO" "cron:knowledge-consolidator" "system" "consolidate:complete" "Memory consolidation finished" 2>/dev/null || true
