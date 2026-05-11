@@ -49,3 +49,5 @@
 {"timestamp": "2026-05-10T21:17:43.602132+00:00Z", "level": "INFO", "process": "hub-core", "model": "", "action": "hub:complete", "message": "Hub state ready", "metadata": {"cpu": 0.0, "ram": 0.0, "mammouth_credits": "N/A"}, "pid": 277198}
 {"timestamp": "2026-05-10T21:17:43.604957+00:00Z", "level": "INFO", "process": "hub-core", "model": "", "action": "hub:refresh", "message": "Fetching hub state", "metadata": {"agent": "anonymous"}, "pid": 277198}
 {"timestamp": "2026-05-10T21:17:43.605303+00:00Z", "level": "INFO", "process": "hub-core", "model": "", "action": "hub:complete", "message": "Hub state ready", "metadata": {"cpu": 10.5, "ram": 42.0, "mammouth_credits": "N/A"}, "pid": 277198}
+{"timestamp": "2026-05-10T21:23:38.154740+00:00Z", "level": "INFO", "process": "system:skill-tester", "model": "system", "action": "tests:start", "message": "Skill tests started", "metadata": {}, "pid": 286357}
+{"timestamp": "2026-05-10T21:23:43.023960+00:00Z", "level": "INFO", "process": "system:skill-tester", "model": "system", "action": "tests:summary", "message": "Skill tests finished successfully (pass=7, skip=9)", "metadata": {}, "pid": 286671}
