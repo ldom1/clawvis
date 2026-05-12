@@ -92,7 +92,7 @@ def search_memory(query, max_results=5):
 
     return json.loads(result.stdout)
 
-# Usage in morning-briefing.py:
+# Usage in briefing (morning-briefing skill):
 recent = search_memory("discovery today")
 for item in recent:
     print(f"- {item['title']} (score: {item['score']})")

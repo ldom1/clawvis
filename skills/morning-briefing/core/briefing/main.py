@@ -1,20 +1,21 @@
-#!/usr/bin/env python3
 """
-Morning Briefing — Compact version with Curiosity integration.
+Morning Briefing — Curiosity + system metrics + Wikipedia.
 Sends to Telegram via Clawvis telegram service HTTP (/send).
 """
 
+from __future__ import annotations
+
 import json
 import os
-import sys
 import re
 import subprocess
-import urllib.request
+import sys
 import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-from wikipedia_on_this_day import fetch_on_this_day
+from briefing.wikipedia_on_this_day import fetch_on_this_day
 
 
 def _clawvis_root() -> Path | None:
@@ -64,7 +65,7 @@ def get_hub_url():
             url = CF_URL_FILE.read_text().strip()
             if url:
                 return url
-    except Exception:
+    except OSError:
         pass
     return "http://localhost:8088"
 
@@ -74,10 +75,12 @@ def get_system_line():
         data = json.loads(SYSTEM_JSON.read_text())
         cpu, ram, disk = data["cpu_percent"], data["ram_percent"], data["disk_percent"]
         alert = ""
-        if disk > 90: alert = " 🔴"
-        elif disk > 80 or ram > 85: alert = " ⚠️"
+        if disk > 90:
+            alert = " 🔴"
+        elif disk > 80 or ram > 85:
+            alert = " ⚠️"
         return f"⚙️ CPU {cpu}% · RAM {ram}% · Disk {disk}%{alert}"
-    except Exception:
+    except (OSError, json.JSONDecodeError, KeyError):
         return None
 
 
@@ -168,85 +171,57 @@ def format_wikipedia_moment() -> str | None:
 
 
 def score_discovery(title: str, source: str, category: str) -> float:
-    """
-    Score discovery relevance (0-10).
-    Higher = more important. Filter > 7.5 for morning briefing.
-    """
-    score = 7.5  # Default: good signal
-    
-    # Boost major topics
-    major_keywords = [
-        "iran", "khamenei", "geopolitical",
-        "aws", "outage", "infrastructure",
-        "ios", "security", "vulnerability",
-        "claude", "api", "anthropic",
-        "breakthrough", "discovery",
-    ]
-    for keyword in major_keywords:
-        if keyword.lower() in title.lower():
-            score = 9.0
-            break
-    
-    # Penalize low-signal sources/topics
+    """Score discovery relevance; filter with score > 7.5 in parse_curiosity_files."""
+    score = 8.0
     low_signal = [
-        "random", "tweet", "meme", "spam",
-        "reddit comment", "discussion",
+        "random",
+        "tweet",
+        "meme",
+        "spam",
+        "reddit comment",
+        "discussion",
     ]
+    blob = f"{title} {source}".lower()
     for phrase in low_signal:
-        if phrase.lower() in (title.lower() or source.lower()):
-            score = 4.0
-            break
-    
-    # Boost trusted sources
-    trusted_sources = ["france 24", "bbc", "ars technica", "github", "arxiv"]
-    for trusted in trusted_sources:
-        if trusted.lower() in source.lower():
-            score = min(10.0, score + 0.5)
-    
+        if phrase in blob:
+            return 4.0
     return score
 
 
 def parse_curiosity_files() -> list:
     """
     Extract discoveries from today's (or recent days') Curiosity files.
-    Format: ## N. Title / **Source:** ... / **Résumé:** ...
-    Returns: [(title, source, category, score), ...]
-    
     Fallback to yesterday, then 2 days ago if today's files don't exist.
-    Knowledge-consolidator runs at 23:30, so morning briefing (08:00) gets yesterday's data.
     """
     discoveries = []
     today = datetime.now().strftime("%Y-%m-%d")
     yesterday = datetime.fromtimestamp(datetime.now().timestamp() - 86400).strftime("%Y-%m-%d")
     day_before = datetime.fromtimestamp(datetime.now().timestamp() - 172800).strftime("%Y-%m-%d")
-    
+
     categories = ["tech_news", "tech", "latest", "geopolitics", "culture", "community"]
-    
-    # Try yesterday first (knowledge-consolidator runs at 23:30),
-    # then today (in case running late), then day before
+
     for date_str in [yesterday, today, day_before]:
         found_any = False
-        
+
         for cat in categories:
             p = MEMORY_DIR / f"{date_str}-{cat}.md"
             if not p.exists():
                 continue
-            
+
             found_any = True
-            
+
             try:
                 content = p.read_text(encoding="utf-8", errors="replace")
-                # ## 1. Title / ## 1) Title / ##1. Title
                 items = re.split(r"^##\s*\d+[\.)]?\s+", content, flags=re.MULTILINE)[1:]
-                
+
                 for item in items:
-                    lines = item.split('\n')
+                    lines = item.split("\n")
                     if not lines:
                         continue
-                    
+
                     title = lines[0].strip()
-                    source = cat  # Default
-                    
+                    source = cat
+
                     for line in lines:
                         msrc = re.match(
                             r"^\s*\*\*Source\s*:\s*\**\s*(.+?)\s*$",
@@ -263,39 +238,35 @@ def parse_curiosity_files() -> list:
                                 line.strip(),
                             ).strip().rstrip(".")
                             break
-                    
-                    # Clean up source (remove links, keep just text)
-                    source = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', source)
-                    source = source[:50]  # Limit length
-                    
+
+                    source = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", source)
+                    source = source[:50]
+
                     if len(title) > 3:
-                        score = score_discovery(title, source, cat)
-                        if score > 7.5:  # Filter threshold
+                        sc = score_discovery(title, source, cat)
+                        if sc > 7.5:
                             discoveries.append({
                                 "title": title,
                                 "source": source,
                                 "category": cat,
-                                "score": score,
+                                "score": sc,
                             })
-            except Exception as e:
+            except OSError:
                 continue
-        
-        # If we found files for this date, stop trying older dates
+
         if found_any and discoveries:
             break
-    
-    # Sort by score (descending), then category
+
     discoveries.sort(key=lambda x: (-x["score"], x["category"]))
-    return discoveries[:5]  # Top 5
+    return discoveries[:5]
 
 
 def format_discoveries(discoveries: list) -> str:
-    """Format top discoveries for briefing."""
     if not discoveries:
         return ""
-    
+
     lines = ["", "🌟 Top Discoveries (Curiosity 48h+):"]
-    for i, d in enumerate(discoveries[:3], 1):  # Top 3 for briefing
+    for i, d in enumerate(discoveries[:3], 1):
         emoji = {
             "tech": "🔧",
             "tech_news": "🔧",
@@ -304,20 +275,18 @@ def format_discoveries(discoveries: list) -> str:
             "culture": "🎭",
             "community": "💬",
         }.get(d["category"], "⭐")
-        
-        # Shorten title if needed
+
         title = d["title"]
         if len(title) > 60:
             title = title[:57] + "…"
-        
+
         lines.append(f"{i}. {emoji} {title} ({d['source']})")
-    
+
     return "\n".join(lines)
 
 
 def build_briefing():
-    now = datetime.now()
-    date_str = now.strftime("%d/%m")
+    date_str = datetime.now().strftime("%d/%m")
 
     lines = [f"🌅 {date_str} — Bonjour Ldom"]
 
@@ -337,11 +306,9 @@ def build_briefing():
     if wiki:
         lines.append(wiki)
 
-    # NEW: Add top discoveries from Curiosity
     discoveries = parse_curiosity_files()
     if discoveries:
-        discovery_section = format_discoveries(discoveries)
-        lines.append(discovery_section)
+        lines.append(format_discoveries(discoveries))
 
     lines.append(f"🔗 {get_hub_url()}")
     return "\n".join(lines)
@@ -368,7 +335,10 @@ def send_telegram(text: str) -> bool:
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
             if resp.status != 200:
-                print(f"⚠️ Telegram /send HTTP {resp.status}. Briefing printed locally.", file=sys.stderr)
+                print(
+                    f"⚠️ Telegram /send HTTP {resp.status}. Briefing printed locally.",
+                    file=sys.stderr,
+                )
                 return True
     except (urllib.error.URLError, OSError) as e:
         print(f"⚠️ Telegram send failed ({e}). Briefing generated locally.", file=sys.stderr)
@@ -394,21 +364,11 @@ def send_telegram(text: str) -> bool:
     return True
 
 
-def main():
+def main() -> None:
     cr = _clawvis_root()
     if cr is not None:
         os.chdir(cr)
     briefing = build_briefing()
-    
-    # Always print briefing (for inspection + logging)
     print(briefing)
-    
-    # Send to Telegram (async, non-blocking)
     send_telegram(briefing)
-    
-    # Always exit 0; briefing was generated successfully
     sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()

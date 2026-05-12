@@ -10,15 +10,11 @@ from brain_maintenance.logging import log_info, log_warning
 
 WORKSPACE = agent_workspace()
 L1_FILES = {
-    "SOUL.md": 1500,
-    "AGENTS.md": 3500,  # behavioral rules — intentionally large
-    "MEMORY.md": 1800,
-    "USER.md": 500,
-    "TOOLS.md": 900,
-    "IDENTITY.md": 300,
-    "HEARTBEAT.md": 300,
+    "CLAUDE.md": 1200,
+    "AGENTS.md": 800,
+    "README.md": 4500,
 }
-L1_TOTAL_BUDGET = 8800
+L1_TOTAL_BUDGET = 6500
 
 
 def count_tokens(text: str) -> int:

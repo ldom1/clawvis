@@ -50,7 +50,6 @@ def _pick_best_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
         except (TypeError, ValueError):
             yi = None
         score_len = min(len(text), 800)
-        # Sort: higher score_len first; same length → smaller year first (e.g. 1066 before 2019).
         year_key = yi if yi is not None else 99999
         usable.append((score_len, year_key, ev))
     if not usable:

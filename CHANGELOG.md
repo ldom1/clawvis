@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Skills — Clawvis alignment (2026-05-10)
+- **brain-maintenance** : L1 = `CLAUDE.md` / `AGENTS.md` / `README.md` ; recalibrate compare ces fichiers aux notes daily ; `logging.py` sans dépendance dombot-logger ; SKILL.md et message trim mis à jour.
+- **hub-refresh** : sur échec hub_core, message stderr avec chemin du log + `dombot-log` en niveau `ERROR` si `exit_code != 0`.
+- **morning-briefing** : exécution via `python -m briefing` depuis `skills/morning-briefing/core` ; code sous `core/briefing/` ; scoring curiosity sans listes de mots-clés / sources « trusted » ; tests `parse_curiosity_files` + imports.
+- **self-improvement** : vérifié (`protocol_audit`, pytest).
+
 ### Skills — scheduler container compatibility (2026-05-05)
 - **Root cause**: scheduler mounts `.:/clawvis:ro` — all `uv run --directory` calls created `.venv` inside the read-only mount, causing PermissionError on every skill.
 - **`skills/_clawvis_env.sh`**: added `clawvis_uv_run_dir()` helper that auto-derives `UV_PROJECT_ENVIRONMENT=/tmp/clawvis-venvs/<slug>` from the target directory; `dombot_log_uv()` wraps logger calls through this helper; `LOG_DIR` falls back to `/tmp/clawvis-logs` when `/clawvis/logs` is not writable.
