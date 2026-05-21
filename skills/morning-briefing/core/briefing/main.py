@@ -261,6 +261,38 @@ def parse_curiosity_files() -> list:
     return discoveries[:5]
 
 
+def parse_mail_file() -> list[dict]:
+    """Extract newsletter subjects from today's (or yesterday's) mail curiosity file."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    yesterday = datetime.fromtimestamp(datetime.now().timestamp() - 86400).strftime("%Y-%m-%d")
+    for date_str in [today, yesterday]:
+        p = MEMORY_DIR / f"{date_str}-mail.md"
+        if not p.exists():
+            continue
+        try:
+            content = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        items = []
+        for m in re.finditer(r"^##\s+\[([^\]]+)\]\s+(.+)$", content, re.MULTILINE):
+            subject = m.group(2).strip()
+            if len(subject) > 3:
+                items.append(subject)
+        if items:
+            return items
+    return []
+
+
+def format_newsletters(subjects: list[str]) -> str:
+    lines = ["", "📧 Newsletters:"]
+    for s in subjects[:5]:
+        title = s if len(s) <= 70 else s[:67] + "…"
+        lines.append(f"  • {title}")
+    if len(subjects) > 5:
+        lines.append(f"  …+{len(subjects) - 5} more")
+    return "\n".join(lines)
+
+
 def format_discoveries(discoveries: list) -> str:
     if not discoveries:
         return ""
@@ -309,6 +341,10 @@ def build_briefing():
     discoveries = parse_curiosity_files()
     if discoveries:
         lines.append(format_discoveries(discoveries))
+
+    newsletters = parse_mail_file()
+    if newsletters:
+        lines.append(format_newsletters(newsletters))
 
     lines.append(f"🔗 {get_hub_url()}")
     return "\n".join(lines)
