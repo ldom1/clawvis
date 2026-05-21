@@ -287,11 +287,27 @@ class CuriosityAgent:
             self.log(f"dombot-mail not available: {e}", "WARN")
             return ""
 
-    def _fetch_and_archive_mail(self, limit_per_folder: int = 10) -> Path | None:
-        """Fetch mails from INBOX + Promotions (and SocialNetworks), save to curiosity, archive."""
+    def _newsletter_sender_filter(self) -> list[str]:
+        """Return lowercase sender patterns from MAIL_NEWSLETTER_SENDERS, or [] for no filter."""
+        raw = os.environ.get("MAIL_NEWSLETTER_SENDERS", "").strip()
+        return [s.strip().lower() for s in raw.split(",") if s.strip()] if raw else []
+
+    def _fetch_and_archive_mail(self, limit_per_folder: int | None = None) -> Path | None:
+        if limit_per_folder is None:
+            limit_per_folder = int(os.environ.get("MAIL_LIMIT_PER_FOLDER", "50"))
+        """Fetch mails from INBOX + Promotions (and SocialNetworks), save to curiosity, archive.
+
+        When MAIL_NEWSLETTER_SENDERS is set (comma-separated patterns, e.g.
+        "@medium.com,@tldrnewsletter.com"), only emails whose sender matches one of
+        the patterns are processed and archived. Non-matching emails are left in place.
+        When empty, all emails are processed (nightly full collect behaviour).
+        """
         if not DOMBOT_MAIL_CORE.exists() or not (DOMBOT_MAIL_CORE / "pyproject.toml").exists():
             self.log("dombot-mail skill not found, skip mail collect", "WARN")
             return None
+        sender_filter = self._newsletter_sender_filter()
+        if sender_filter:
+            self.log(f"Sender filter active: {sender_filter}")
         out = self._run_dombot_mail("list-inbox", "--limit", str(limit_per_folder))
         if not out.strip():
             return None
@@ -316,6 +332,10 @@ class CuriosityAgent:
             for msg in list_result["messages"]:
                 uid = msg.get("uid")
                 if not uid:
+                    continue
+                sender = (msg.get("sender") or "").lower()
+                if sender_filter and not any(pattern in sender for pattern in sender_filter):
+                    self.log(f"Skip (filtered): {sender}", "INFO")
                     continue
                 read_out = self._run_dombot_mail("read", "--folder", folder, "--uid", uid)
                 try:

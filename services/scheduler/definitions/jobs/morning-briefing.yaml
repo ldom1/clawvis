@@ -1,7 +1,7 @@
 cron: 0 9 * * *
 enabled: true
 name: morning-briefing
-command: bash "/clawvis/skills/morning-briefing/scripts/run.sh"
+command: bash "/clawvis/skills/morning-briefing/scripts/run-with-email.sh"
 prompt: |
   (Reserved) Morning briefing runs via `command` — not sent to the agent.
 timezone: Europe/Paris
